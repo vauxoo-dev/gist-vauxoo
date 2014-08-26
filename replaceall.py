@@ -14,5 +14,5 @@ for dirpath, dnames, fnames in os.walk("//"):
     for f in fnames:
         if f.endswith(".py"):
             fname = (os.path.join(dirpath, f))
-            replaceAll(fname, "import pooler", "from openerp.osv import osv, fields")
+            replaceAll(fname, "import pooler", rm = True)
             replaceAll(fname, "import decimal_precision as dp", "from openerp.addons.decimal_precision import decimal_precision as dp", rm = False)
