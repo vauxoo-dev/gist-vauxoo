@@ -2,17 +2,20 @@ import os
 import fileinput
 import sys
 
-def replaceAll(file, searchExp, replaceExp="", rm=False):
+def replaceAll(file, prefijo=""):
     for line in fileinput.input(file, inplace=1):
-        if (searchExp in line) and rm:
+        if ("import pooler" in line) and prefijo == "rm":
             continue
-        if searchExp in line:
-            line = line.replace(searchExp,replaceExp)
+        if prefijo == "openerp.addons":
+            line = line.replace("import decimal_precision as dp", "from openerp.addons.decimal_precision import decimal_precision as dp")
+            line = line.replace("from report_webkit import webkit_report", "from openerp.addons.report_webkit import webkit_report")
+        if prefijo = "openerp":
+            line = line.replace("from osv import osv, fields", "from openerp.osv import osv, fields")
+            line = line.replace("from tools.translate import _", "from openerp.tools.translate import _")
         sys.stdout.write(line)
 
-for dirpath, dnames, fnames in os.walk("//"):
+for dirpath, dnames, fnames in os.walk("/home/julio/Documentos/openerp/instancias/7.0/attachent_factura_payroll/l10n-mx-invoice-pdf-formats-7.0_backup/"):
     for f in fnames:
         if f.endswith(".py"):
             fname = (os.path.join(dirpath, f))
-            replaceAll(fname, "import pooler", rm = True)
-            replaceAll(fname, "import decimal_precision as dp", "from openerp.addons.decimal_precision import decimal_precision as dp", rm = False)
+            replaceAll(fname, "openerp.addons")
