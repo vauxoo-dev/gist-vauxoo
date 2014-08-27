@@ -2,20 +2,31 @@ import os
 import fileinput
 import sys
 
-def replaceAll(file, prefijo=""):
+def replaceAll(file, value):
     for line in fileinput.input(file, inplace=1):
-        if ("import pooler" in line) and prefijo == "rm":
-            continue
-        if prefijo == "openerp.addons":
-            line = line.replace("import decimal_precision as dp", "from openerp.addons.decimal_precision import decimal_precision as dp")
-            line = line.replace("from report_webkit import webkit_report", "from openerp.addons.report_webkit import webkit_report")
-        if prefijo = "openerp":
-            line = line.replace("from osv import osv, fields", "from openerp.osv import osv, fields")
-            line = line.replace("from tools.translate import _", "from openerp.tools.translate import _")
+        for keys_prefix in value.keys():
+            for dat in value.get(keys_prefix):
+                prefijo = keys_prefix
+                module = dat
+                val = line.split("import")
+                if (module in line) and prefijo == "rm":
+                        continue
+                if len(val) >= 2 and (module in line.split()) and not(prefijo in line):
+                    if prefijo == "openerp.addons":
+                        line = line.replace(line, "{} {}.{} import{}".format("from", prefijo, module, val[-1]))
+                    if prefijo == "openerp":
+                        line = line.replace(line, "{} {}.{} import{}".format("from", prefijo, module, val[-1]))
+                    if prefijo == "openerp.report":
+                        line = line.replace(line, "{} {} import{}".format("from", prefijo, val[-1]))
         sys.stdout.write(line)
 
-for dirpath, dnames, fnames in os.walk("/home/julio/Documentos/openerp/instancias/7.0/attachent_factura_payroll/l10n-mx-invoice-pdf-formats-7.0_backup/"):
+for dirpath, dnames, fnames in os.walk("/home/julio/Documentos/openerp/instancias/7-vauxoo/7.0-addons-vauxoo/"):
     for f in fnames:
         if f.endswith(".py"):
             fname = (os.path.join(dirpath, f))
-            replaceAll(fname, "openerp.addons")
+            replaceAll(fname, value = {
+                'openerp': ["osv", "tools.translate"],
+                "openerp.addons": ["decimal_precision", "report_webkit"],
+                "openerp.report":["report_sxw"],
+                "rm":["import pooler"]
+                })
