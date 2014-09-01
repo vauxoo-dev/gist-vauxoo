@@ -10,7 +10,8 @@ def replaceAll(file, value):
                 module = dat
                 val = line.split("import")
                 if (module in line) and prefijo == "rm":
-                        continue
+                    line = ""
+                    continue
                 if len(val) >= 2 and (module in line.split()) and not(prefijo in line):
                     if prefijo == "openerp.addons":
                         line = line.replace(line, "{} {}.{} import{}".format("from", prefijo, module, val[-1]))
@@ -18,9 +19,11 @@ def replaceAll(file, value):
                         line = line.replace(line, "{} {}.{} import{}".format("from", prefijo, module, val[-1]))
                     if prefijo == "openerp.report":
                         line = line.replace(line, "{} {} import{}".format("from", prefijo, val[-1]))
+        line.replace("pooler.get_pool(cr.dbname).get(", "self.pool.get(")
         sys.stdout.write(line)
 
-for dirpath, dnames, fnames in os.walk("/home/julio/Documentos/openerp/instancias/7-vauxoo/7.0-addons-vauxoo/"):
+modules_dir = sys.argv[1]
+for dirpath, dnames, fnames in os.walk(modules_dir):
     for f in fnames:
         if f.endswith(".py"):
             fname = (os.path.join(dirpath, f))
@@ -28,5 +31,6 @@ for dirpath, dnames, fnames in os.walk("/home/julio/Documentos/openerp/instancia
                 'openerp': ["osv", "tools.translate"],
                 "openerp.addons": ["decimal_precision", "report_webkit"],
                 "openerp.report":["report_sxw"],
-                "rm":["import pooler"]
+                "rm":["import pooler"],
+                #"replace": [('pooler.get_pool(cr.dbname).get(', 'self.pool.get(')]
                 })
