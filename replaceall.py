@@ -19,7 +19,9 @@ def replaceAll(file, value):
                         line = line.replace(line, "{} {}.{} import{}".format("from", prefijo, module, val[-1]))
                     if prefijo == "openerp.report":
                         line = line.replace(line, "{} {} import{}".format("from", prefijo, val[-1]))
+                        
         line.replace("pooler.get_pool(cr.dbname).get(", "self.pool.get(")
+        line.replace("from l10n_mx_invoice_amount_to_text import amount_to_text_es_MX", "from openerp.addons.l10n_mx_invoice_amount_to_text import amount_to_text_es_MX")#TODO: check import of modules
         sys.stdout.write(line)
 
 modules_dir = sys.argv[1]
