@@ -1,6 +1,9 @@
+
+import json
 import ast
 import collections
 from collections import OrderedDict
+
 fname = "/Users/moylop260/openerp/instancias/odoo_git_clone/community-addons/odoo-extra/runbot_prebuild/__openerp__.py"
 
 class DictToOrdered(ast.NodeTransformer):
@@ -28,4 +31,7 @@ def parse_dict_as_odict(src):
 
 with open(fname) as fin:
     dict_str = fin.read()
-print parse_dict_as_odict( dict_str )
+odict = parse_dict_as_odict( dict_str )
+
+
+print(json.dumps(odict, indent=4))
