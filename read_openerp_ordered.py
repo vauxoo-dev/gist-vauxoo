@@ -199,6 +199,8 @@ def dict_key_rename( dict, old_key, new_key ):
         if dict.has_key( new_key):
             if isinstance( dict[new_key], list) and isinstance( dict[old_key], list):
                 dict[new_key].extend( dict.pop(old_key) )
+            else:
+                print "Warning, new_key exists [%s] and will be ignored"%( new_key, )
         else:
             dict[new_key] = dict.pop(old_key) 
     return dict
@@ -208,6 +210,7 @@ with open(fname) as fin:
 odict = parse_dict_as_odict( dict_str )
 #odict.rename('init_xml', 'data')
 odict = dict_key_rename(odict, 'init_xml', 'data')
+odict = dict_key_rename(odict, 'installable2', 'installable')
 
 new_dict_str = ""
 for line in dict_str.splitlines():
