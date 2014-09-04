@@ -1,9 +1,9 @@
 import re
  
-logfile = "/home/julio/Escritorio/runbot.log"
+logfile = "/Users/moylop260/Desktop/log1_error.log"
 re_module_log = "(openerp)(?P<module>[\D|\d])+"
 
-newfile = open("/home/julio/Documentos/openerp/instancias/7.0/opl-clubj/runbot2.log", "wb")
+newfile = open(logfile + '.out', "wb")
 with open(logfile, "r") as f:
     for line in f.readlines():
         match_object = re.search( re_module_log, line )
