@@ -169,7 +169,8 @@ import ast
 import collections
 from collections import OrderedDict
 
-fname = "/Users/moylop260/openerp/instancias/odoo_git_clone/community-addons/odoo-extra/runbot_prebuild/__openerp__.py"
+#fname = "/Users/moylop260/openerp/instancias/odoo_git_clone/community-addons/odoo-extra/runbot_prebuild/__openerp__.py"
+my_path="/home/jage/alan-7.0-addons-vauxoo/7.0"
 
 class DictToOrdered(ast.NodeTransformer):
     def visit_Dict(self, node):
@@ -204,13 +205,30 @@ def dict_key_rename( dict, old_key, new_key ):
         else:
             dict[new_key] = dict.pop(old_key) 
     return dict
+    
+#nuevas lienas  
+ficheros = os.listdir(my_path) 
+for filee in ficheros:
+    if filee !='.bzr':
+        fname=my_path+"/"+filee
+        os.chdir(fname)
+        for file in glob.glob("__openerp__.py"):
+            with open(file, 'r') as fin:
+                dict_str = fin.read()
+                #~ print dict_str
+                print fin.readlines()
 
-with open(fname) as fin:
-    dict_str = fin.read()
+
 odict = parse_dict_as_odict( dict_str )
-#odict.rename('init_xml', 'data')
+odict.rename('init_xml', 'data')
 odict = dict_key_rename(odict, 'init_xml', 'data')
-odict = dict_key_rename(odict, 'installable2', 'installable')
+
+#with open(fname) as fin:
+ #   dict_str = fin.read()
+#odict = parse_dict_as_odict( dict_str )
+#odict.rename('init_xml', 'data')
+#odict = dict_key_rename(odict, 'init_xml', 'data')
+#odict = dict_key_rename(odict, 'installable2', 'installable')
 
 new_dict_str = ""
 for line in dict_str.splitlines():
