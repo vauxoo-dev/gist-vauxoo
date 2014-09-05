@@ -38,6 +38,8 @@ def dict_key_rename( dict, old_key, new_key ):
         if dict.has_key( new_key):
             if isinstance( dict[new_key], list) and isinstance( dict[old_key], list):
                 dict[new_key].extend( dict.pop(old_key) )
+            else:
+                print "This tried to rename a key that already exists that can make conflicts, do it manually"
         else:
             dict[new_key] = dict.pop(old_key) 
     return dict
@@ -75,6 +77,17 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                  odict = parse_dict_as_odict( dict_str )
                  #odict.rename('init_xml', 'data')
                  odict = dict_key_rename(odict, 'init_xml', 'data')
+                 odict= dict_key_rename(odict, 'demo_xml', 'demo')
+                 odict = dict_key_rename(odict, 'update_xml', 'data')
+                 #~ odict = dict_key_rename(odict, 'depens', 'demo')
+                 #~ odict = dict_key_rename(odict, 'data', 'demo')
+                 #~ odict = dict_key_rename(odict, 'installable', 'inst')
+                 #~ odict = dict_key_rename(odict, 'demo', 'demo2')
+                 
+                 
+                 
+                 #del odict['update_xml']
+
 
             new_dict_str = ""
             for line in dict_str.splitlines():
@@ -90,6 +103,7 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
             odict_str = json.dumps(odict, indent=4)
             odict_str = odict_str.replace('\\n', '\n')
             odict_str = odict_str.replace('\\"', '"')
+            odict_str = odict_str.replace('true', 'True').replace('false', 'False')
             
             new_dict_str += odict_str
             f2 = open(fname, 'wb')
