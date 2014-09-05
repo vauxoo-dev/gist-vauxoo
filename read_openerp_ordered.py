@@ -1,247 +1,3 @@
-"""
-#Leer el diccionario en orden
-#eval
-#transformar las llaves
-#guardar diccionario mas comentarios
-
-from collections import OrderedDict
-
-fname = "/Users/moylop260/openerp/instancias/odoo_git_clone/community-addons/odoo-extra/runbot_prebuild/__openerp__.py"
-"""
-"""
-with open(fname, "r") as f:
-    print OrderedDict( eval(f.read()) )
-"""
-"""
-import cPickle as pickle
-with open(fname, "r") as fp:
-    ordered_dict = pickle.load(fp)
-
-print ordered_dict
-#OderDict
-#eval
-#pprint
-"""
-"""
-import re
-import ast
-import collections
-
-with open(fname) as file:
-    line = next(file)
-    values = re.search(r"OrderedDict\((.*)\)", line).group(1)
-    mydict = collections.OrderedDict(ast.literal_eval(values))
-"""
-"""
-import ast
-with open(fname, "r") as file:
-    line = next(file)
-    print "line", line
-"""
-"""
-import ast
-
-with open(fname) as fin:
-    parsed = ast.parse(fin.read())
-for node in ast.walk(parsed):
-    for body in node.body:
-        for value in body.value.values:
-            print value.s
-"""
-"""
-with open(fname, 'r') as f:
-        s = f.read()
-        print OrderedDict(ast.literal_eval(s))
-"""
-"""
-import ast
-from collections import OrderedDict
-
-with open(fname) as fin:
-    parsed = ast.parse(fin.read())
-first_dict = next(node for node in ast.walk(parsed) if isinstance(node, ast.Dict))
-
-keys = []
-vals = []
-for key in first_dict.keys:
-    if isinstance(key, ast.Str):
-        keys.append( key.s )
-    else:
-        keys.append( '' )
-    if isinstance(first_dict[key], ast.Str):
-        vals.append( first_dict[key].s )
-    else:
-        vals.append( '' )
-
-#keys = (isinstance(node, ast.Str) and node.s  or '' for node in first_dict.keys )
-#vals = (isinstance(node, ast.Str) and node.s or '' for node in first_dict.values  )
-#od = OrderedDict(zip(keys, vals))
-#print od
-print "keys",[keys]
-print "vals",[vals]
-
-print "zip(keys, vals)",zip(keys, vals)
-"""
-"""
-import ast
-import collections
-from collections import OrderedDict
-import pprint
-
-fname = "/Users/moylop260/openerp/instancias/odoo_git_clone/community-addons/odoo-extra/runbot_prebuild/__openerp__.py"
-
-class DictToOrdered(ast.NodeTransformer):
-    def visit_Dict(self, node):
-        return ast.fix_missing_locations(ast.copy_location(
-            ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id='collections', ctx=ast.Load()),
-                    attr='OrderedDict',
-                    ctx=ast.Load()),
-                args=[ast.Tuple(elts=
-                        [ast.Tuple(elts=list(pair), ctx=ast.Load())
-                         for pair in zip(node.keys, node.values)],
-                        ctx=ast.Load())],
-                keywords=[],
-                starargs=None,
-                kwargs=None),
-            node))
-
-def parse_dict_as_odict(src):
-    parsed = ast.parse(src, '<dynamic>', 'eval')
-    transformed = DictToOrdered().visit(parsed)
-    compiled = compile(transformed, '<dynamic>', 'eval')
-    return eval(compiled)
-
-with open(fname) as fin:
-    dict_str = fin.read()
-odict = parse_dict_as_odict( dict_str )
-pp = pprint.PrettyPrinter(indent=4)
-#print "+++"*10, pp.pprint( odict )
-
-import json
-
-print(json.dumps(odict, indent=4))
-# ^nice
-"""
-"""
-def pprint_od(od):
-    print "{"
-    for key in od:
-        #print "%s:%s,\n" % str(key), str(od[key])
-        #print " "*4 + "'" + key + "':", od[key]
-        #print "%s:%s,"%( pp.pprint(key), pp.pprint(od[key]) )
-        #print( key, "", True )# , pp.pprint(od[key])
-        print " "*4 + "'%s': %s%s%s,"%( key, isinstance(od[key], str) and "'" or '', od[key], isinstance(od[key], str) and "'" or '' )
-        cad = pp.pprint( od[key] )
-        print "*"*4 + "[%s]"%(cad)
-    print "}"
-
-
-
-for key,value in odict.iteritems():
-    print key, value
-
-pprint_od( odict )
-"""
-"""
-f=file(fname, "r")
-content=f.read().splitlines()
-
-contador=0
-diccionario={}
-for line in content:
-    if contador==0:
-        key=line
-        diccionario[key]=[]
-    else:
-        diccionario[key].append(line)
-    contador+=1
-    if contador==6:
-        contador=0
-
-print diccionario
-"""
-"""
-
-import json
-import ast
-import collections
-from collections import OrderedDict
-
-#fname = "/Users/moylop260/openerp/instancias/odoo_git_clone/community-addons/odoo-extra/runbot_prebuild/__openerp__.py"
-my_path="/home/jage/alan-7.0-addons-vauxoo/7.0"
-
-class DictToOrdered(ast.NodeTransformer):
-    def visit_Dict(self, node):
-        return ast.fix_missing_locations(ast.copy_location(
-            ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id='collections', ctx=ast.Load()),
-                    attr='OrderedDict',
-                    ctx=ast.Load()),
-                args=[ast.Tuple(elts=
-                        [ast.Tuple(elts=list(pair), ctx=ast.Load())
-                         for pair in zip(node.keys, node.values)],
-                        ctx=ast.Load())],
-                keywords=[],
-                starargs=None,
-                kwargs=None),
-            node))
-
-def parse_dict_as_odict(src):
-    parsed = ast.parse(src, '<dynamic>', 'eval')
-    transformed = DictToOrdered().visit(parsed)
-    compiled = compile(transformed, '<dynamic>', 'eval')
-    return eval(compiled)
-
-def dict_key_rename( dict, old_key, new_key ):
-    if dict.has_key( old_key):
-        if dict.has_key( new_key):
-            if isinstance( dict[new_key], list) and isinstance( dict[old_key], list):
-                dict[new_key].extend( dict.pop(old_key) )
-            else:
-                print "Warning, new_key exists [%s] and will be ignored"%( new_key, )
-        else:
-            dict[new_key] = dict.pop(old_key) 
-    return dict
-    
-#nuevas lienas  
-ficheros = os.listdir(my_path) 
-for filee in ficheros:
-    if filee !='.bzr':
-        fname=my_path+"/"+filee
-        os.chdir(fname)
-        for file in glob.glob("__openerp__.py"):
-            with open(file, 'r') as fin:
-                dict_str = fin.read()
-                #~ print dict_str
-                print fin.readlines()
-
-
-odict = parse_dict_as_odict( dict_str )
-odict.rename('init_xml', 'data')
-odict = dict_key_rename(odict, 'init_xml', 'data')
-
-#with open(fname) as fin:
- #   dict_str = fin.read()
-#odict = parse_dict_as_odict( dict_str )
-#odict.rename('init_xml', 'data')
-#odict = dict_key_rename(odict, 'init_xml', 'data')
-#odict = dict_key_rename(odict, 'installable2', 'installable')
-
-new_dict_str = ""
-for line in dict_str.splitlines():
-    line = line.strip()
-    if line and line[0] == '#':
-        #print line
-        new_dict_str += line + '\n'
-odict_str = json.dumps(odict, indent=4)
-new_dict_str += odict_str
-#print "new_dict_str"
-print new_dict_str
-"""
-
 import json
 import os
 import sys
@@ -251,7 +7,7 @@ from collections import OrderedDict
 import glob
 
 #~ my_path = "/home/jage/base_user_signature_logo/__openerp__.py"
-my_path="/home/jage/alan-7.0-addons-vauxoo/7.0/account_advance_payment"
+my_path="/home/julio/Documentos/openerp/instancias/7.0/7.0-addons-vauxoo/"
 
 class DictToOrdered(ast.NodeTransformer):
     def visit_Dict(self, node):
@@ -274,9 +30,8 @@ def parse_dict_as_odict(src):
     parsed = ast.parse(src, '<dynamic>', 'eval')
     transformed = DictToOrdered().visit(parsed)
     compiled = compile(transformed, '<dynamic>', 'eval')
-    print dir(eval(compiled)),'wwwwwwwwwww'
-    eval(compiled).popitem('description')
-    return eval(compiled)
+    compiled = eval(compiled)
+    return compiled
 
 def dict_key_rename( dict, old_key, new_key ):
     if dict.has_key( old_key):
@@ -314,26 +69,29 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
     for f in fnames:
         if f.endswith("__openerp__.py"):
             fname = (os.path.join(dirpath, f))
-            print fname
             
-            with open(fname) as fin:
+            with open(fname, 'rb') as fin:
                  dict_str = fin.read()
                  odict = parse_dict_as_odict( dict_str )
                  #odict.rename('init_xml', 'data')
-                 print odict, "estamos probando lo que sea"
                  odict = dict_key_rename(odict, 'init_xml', 'data')
 
             new_dict_str = ""
             for line in dict_str.splitlines():
-                print "imprimme line", line 
                 line = line.strip()
                 if line and line[0] == '#':
                     #print line
                     new_dict_str += line + '\n'
+                    
+            # TODO: is the better way to make??
+            # Added the three " in key description, beacuse was removed when dict type OrderedDict
+            # Replace \\n by \n because when writting in file not respected \n    
+            odict.update({'description': '""{}""'.format(odict.get('description'))})
             odict_str = json.dumps(odict, indent=4)
+            odict_str = odict_str.replace('\\n', '\n')
+            odict_str = odict_str.replace('\\"', '"')
+            
             new_dict_str += odict_str
-            #print "new_dict_str"
-            print new_dict_str,"comentario"
-            #~ f2 = open(fname, 'w')
-            #~ f2.write(new_dict_str)
-            #~ f2.close()
+            f2 = open(fname, 'wb')
+            f2.write(new_dict_str)
+            f2.close()
