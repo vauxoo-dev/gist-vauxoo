@@ -100,47 +100,31 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
             # Added the three " in key description, beacuse was removed when dict type OrderedDict
             # Replace \\n by \n because when writting in file not respected \n 
             
-            lista=["name",
-                    "version",
-                    "author",
-                    "category",
-                    "description",
-                    "website",
-                    "license",
-                    "depends",
-                    "demo",
-                    "data",
-                    "test",
-                    "js",
-                    "css",
-                    "qweb",
-                    "installable",
-                    "auto_install",
-                    "active"] 
-                    
-            #~ olist= OrderedDict((i, odict.get(i, "") ) for i in lista)
-            tup= []
-            strings_openerp = ("name","version","author","category","description","website","license")
-            boolean_openerp = ("installable","auto_install","active")
-            #import pdb; pdb.set_trace()
-            for i in lista:
-                
-                if not i in strings_openerp and i in boolean_openerp:
-                    tup.append((i, odict.get(i, False)))
-                elif not i in strings_openerp:
-                    tup.append((i, odict.get(i, []))) #= OrderedDict(i, odict.get(i, ""))
-                    #olist = OrderedDict(i, odict.get(i, "[]"))
-                else:
-                    tup.append((i, odict.get(i, ""))) #= OrderedDict(i, odict.get(i, ""))
+            lista=[("name", ""),
+                    ("version", ""),
+                    ("author", ""),
+                    ("category", ""),
+                    ("description", ""),
+                    ("website", ""), 
+                    ("license", ""),
+                    ("depends", []),
+                    ("demo", []),
+                    ("data", []),
+                    ("test", []),
+                    ("js", []),
+                    ("css", []),
+                    ("qweb", []),
+                    ("installable", True),
+                    ("auto_install", False),
+                    ("active", False)]
+            olist= OrderedDict((i_key, odict.get(i_key, i_default) ) for i_key, i_default in lista)
             
-            olist= OrderedDict(i for i in tup)
-                        
-                        #odict.update({'description': '""{}""'.format(odict.get('description'))})
-
+    
             olist.update({'description': '""{}""'.format(olist.get('description'))})
             odict_str = json.dumps(olist, indent=4)
             odict_str = odict_str.replace('\\n', '\n')
             odict_str = odict_str.replace('\\"', '"')
+            
             odict_str = odict_str.replace('true', 'True').replace('false', 'False')
             
             new_dict_str += odict_str
