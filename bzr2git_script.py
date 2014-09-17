@@ -38,7 +38,7 @@ try:
 except ConfigParser.NoSectionError:
     bzr2git = False
 
-def init_local_repo(git_repository_path):
+def git_init_local_repo(git_repository_path):
     if not os.path.isdir(git_repository_path):
         cmd_args = ["mkdir", "-p", git_repository_path]
         execute_cmd5(cmd_args, working_dir=None)
@@ -50,18 +50,34 @@ def init_local_repo(git_repository_path):
     #cmd_args = ["git", "config", "--bool", "core.bare", "true"]
     #execute_cmd5(cmd_args, working_dir=git_repository_path)
 
+def bzr_pull_branch(branch_unique_name, branch_path):
+    if not os.path.isdir(branch_path):
+        cmd_args = ["mkdir", "-p", branch_path]
+        execute_cmd5(cmd_args, working_dir=None)
 
+    if not os.path.isdir( os.path.join(branch_path, '.bzr') ):
+        cmd_args = ["bzr", "init", branch_path]
+        execute_cmd5(cmd_args, working_dir=None)
+
+    cmd_args = ["bzr", "pull", "--overwrite", "--remember", branch_unique_name]
+    execute_cmd5(cmd_args, working_dir=branch_path)
+
+    return True
 
 try:
     full_global_path_branches = Config.get(section, "full_global_path_branches")
 except ConfigParser.NoOptionError:
     full_global_path_branches = False
+
+bzr_branches = eval( Config.get(section, "bzr_branches") )
+
 if bzr2git:
     if full_global_path_branches:
-        try:
-            git_repository = Config.get(section, "git_repository")
-        except ConfigParser.NoOptionError:
-            git_repository = 'git_repository'
+        #try:
+        #    git_repository = Config.get(section, "git_repository")
+        #except ConfigParser.NoOptionError:
+        #    git_repository = 'git_repository'
+        git_repository = os.path.join( full_global_path_branches, "git_repo" )
 
         current_path = full_global_path_branches
         #current_path = os.path.realpath(os.path.join(os.path.dirname(__file__)))
@@ -69,37 +85,50 @@ if bzr2git:
 
         path_bzr_branches = current_path
 
-        listdir = os.listdir(path_bzr_branches)
-        listdir.reverse()#Master first branch, default branch
-        init_local_repo(git_repository)
-        for bzr_branch in listdir:
-            bzr_branch_fullpath = os.path.join( current_path, bzr_branch)
-            bzr_branch_version = bzr_branch.split('-')[0]
-            git_branch_version = bzr_branch_version
-            if git_branch_version == 'trunk':
-                git_branch_version = 'master'
-            if os.path.isdir( os.path.join( bzr_branch_fullpath, ".bzr" ) ):
+        if not os.path.isdir(path_bzr_branches):
+            cmd_args = ["mkdir", "-p", path_bzr_branches]
+            execute_cmd5(cmd_args, working_dir=None)
 
+        git_init_local_repo(git_repository)
+        for (branch_short_name, branch_unique_name) in bzr_branches:
+        #for bzr_branch in listdir:
+            bzr_branch_fullpath = os.path.join( current_path, branch_short_name)
+
+            #bzr_branch_version = bzr_branch.split('-')[0]
+            #git_branch_version = bzr_branch_version
+            if branch_short_name == 'trunk':
+                git_branch_version = 'master'
+            else:
+                git_branch_version = branch_short_name
+
+            if not os.path.isdir( os.path.join( bzr_branch_fullpath, ".bzr" ) ):
+                cmd_args = ["bzr", "init", bzr_branch_fullpath]
+                execute_cmd5(cmd_args, working_dir=None)
+
+            if not os.path.isdir( os.path.join( bzr_branch_fullpath, ".git" ) ):
+                cmd_args = ["mkdir", "-p", bzr_branch_fullpath]
+                execute_cmd5(cmd_args, working_dir=None)
+
+                cmd_args = ["git", "init", bzr_branch_fullpath]
+                execute_cmd5(cmd_args, working_dir=None)
+
+                old_revno = "0"
+            else:
                 cmd_args = ["bzr", "revno"]
                 old_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath,\
                     out_file=os.path.join( bzr_branch_fullpath, 'revno_old.txt'))
 
-                if not os.path.isdir( os.path.join( bzr_branch_fullpath, ".git" ) ):
-                    cmd_args = ["git", "init", "." ]
-                    execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
+            bzr_pull_branch(branch_unique_name, bzr_branch_fullpath)
 
-                cmd_args = ["bzr", "pull", ":parent"]
+            cmd_args = ["bzr", "revno"]
+            new_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath,\
+                out_file=os.path.join( bzr_branch_fullpath, 'revno_new.txt'))
+            
+            if old_revno <> new_revno:
+                cmd_args = ["bzr", "fast-export", "--plain", "-r", \
+                    old_revno + '..' +  new_revno, ".", "|", "git", \
+                    "fast-import", "--force"]
                 execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
-
-                cmd_args = ["bzr", "revno"]
-                new_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath,\
-                    out_file=os.path.join( bzr_branch_fullpath, 'revno_new.txt'))
-                
-                if old_revno <> new_revno:
-                    cmd_args = ["bzr", "fast-export", "--plain", "-r", \
-                        old_revno + '..' +  new_revno, ".", "|", "git", \
-                        "fast-import", "--force"]
-                    execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
 
                 cmd_args = ["git", "checkout", "-f", "master"]
                 execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
@@ -108,7 +137,8 @@ if bzr2git:
                 execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
 
                 if git_repository:
-                    cmd_args = ["git", "push", "--force", git_repository, "HEAD:"+git_branch_version]
+                    cmd_args = ["git", "push", "--force", git_repository,\
+                        "HEAD:" + git_branch_version]
                     execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
 """
 try:
