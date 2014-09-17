@@ -16,9 +16,10 @@ git_repository = git@github.com:Vauxoo/addons-vauxoo.git
 def execute_cmd5(args, working_dir, out_file=None):
     if working_dir:
         os.chdir( working_dir)
-    #out_file = out_file or '/dev/null'
+    out_file = out_file or '/dev/null'
     if out_file:
         args.extend([">", out_file])
+    #args.extend(["2>&1"])
     print "executing: ", ' '.join( args )
     os.system( ' '.join( args ) )
     if working_dir:
@@ -78,24 +79,21 @@ if bzr2git:
             if git_branch_version == 'trunk':
                 git_branch_version = 'master'
             if os.path.isdir( os.path.join( bzr_branch_fullpath, ".bzr" ) ):
-                ##import pdb;pdb.set_trace()
+
                 cmd_args = ["bzr", "revno"]
-                out_file = os.path.join( bzr_branch_fullpath, 'revno_old.txt')
-                ##old_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath, out_file=out_file)
-                #print "bzr_branch_fullpath",bzr_branch_fullpath
-                old_revno = "243"#TODO: Remove this line of code
-                #print "old_revno",old_revno
+                old_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath,\
+                    out_file=os.path.join( bzr_branch_fullpath, 'revno_old.txt'))
+
                 if not os.path.isdir( os.path.join( bzr_branch_fullpath, ".git" ) ):
                     cmd_args = ["git", "init", "." ]
                     execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
 
                 cmd_args = ["bzr", "pull", ":parent"]
-                ##execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
+                execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
 
                 cmd_args = ["bzr", "revno"]
-                out_file = os.path.join( bzr_branch_fullpath, 'revno_new.txt')
-                new_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath, out_file=out_file)
-                #print "new_revno",new_revno
+                new_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath,\
+                    out_file=os.path.join( bzr_branch_fullpath, 'revno_new.txt'))
                 
                 if old_revno <> new_revno:
                     cmd_args = ["bzr", "fast-export", "--plain", "-r", \
