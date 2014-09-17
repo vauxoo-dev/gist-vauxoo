@@ -4,6 +4,7 @@ import os
 import subprocess
 import uuid
 import ConfigParser
+import launchpad
 
 Config = ConfigParser.ConfigParser()
 #Config.read("addons_vauxoo.conf")
@@ -14,6 +15,8 @@ bzr_branches = [("trunk", "lp:~openerp-mexico-maintainer/openerp-mexico-localiza
 """
 
 current_path = os.path.realpath(os.path.join(os.path.dirname(__file__)))
+LP = launchpad.LP()
+LP.connect()
 
 def execute_cmd5(args, working_dir, out_file=None):
     if working_dir:
@@ -81,6 +84,19 @@ for file_cfg in os.listdir(files_cfg_path):
             full_global_path_branches = False
 
         bzr_branches = eval( Config.get(section, "bzr_branches") )
+        for (branch_short_name, branch_unique_name) in bzr_branches:
+            #branch_test_unique_name = "~vauxoo/addons-vauxoo/6.1"
+            branch_unique_name = ':' in branch_unique_name and \
+                branch_unique_name[branch_unique_name.index(':') + 1 : ]
+            mp_data = LP.get_merge_proposals(branch_unique_name)
+            for mp_number in mp_data.keys():
+                bzr_branches.append( (branch_short_name + '-MP' + mp_number, 'lp:' + mp_data[mp_number]['name'] ) )
+                #print "pull_branch",mp_number, mp_data[mp_number]['name']
+                #lp.pull_branch( mp_data[mp_number]['name'],
+                    #os.path.join('/tmp',os.path.basename(mp_data[mp_number]['name']))
+                    #os.path.join('/tmp', os.path.basename(mp_number))
+                #)
+
 
         if bzr2git:
             if full_global_path_branches:

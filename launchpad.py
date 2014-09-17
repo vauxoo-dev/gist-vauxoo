@@ -115,7 +115,7 @@ class LP(object):
             filters = {'status': NEW_MERGE_STATUS}
         if max_mp is None:
             max_mp = MAX_MP
-        branch = self.get_branch(branch_test_unique_name)
+        branch = self.get_branch(unique_name)
         merge_proposals = branch.getMergeProposals(**filters)
         mp_number__mp_obj_dict = dict([(merge_proposal.web_link.split('/')[-1], merge_proposal) for merge_proposal in merge_proposals])
         mp_numbers_sort = sorted( mp_number__mp_obj_dict.keys(), reverse=True )
@@ -132,13 +132,16 @@ class LP(object):
         #lp.pull_branch(branch.complete_name, branch_path)
         return mp_data
 
+    def bzr2git(self, bzr_branch_path, git_repo_path, branch_short_name=None):
+        pass#TODO
+
 if __name__ == '__main__':
     lp = LP()
     lp.connect()#TODO: Add to a global variable
     branch_test_unique_name = "~vauxoo/addons-vauxoo/6.1"
     mp_data = lp.get_merge_proposals(branch_test_unique_name)
     for mp_number in mp_data.keys():
-        #print "pull_branch",mp_data[mp_number]['name']
+        print "pull_branch",mp_number, mp_data[mp_number]['name']
         lp.pull_branch( mp_data[mp_number]['name'],
             #os.path.join('/tmp',os.path.basename(mp_data[mp_number]['name']))
             os.path.join('/tmp',os.path.basename(mp_number))
