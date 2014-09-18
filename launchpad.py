@@ -3,6 +3,7 @@ import os
 import threading
 import time
 import sys
+import subprocess
 
 from misc import *
 
@@ -12,29 +13,6 @@ MAX_MP = 10
 def assert_main_thread():
     t = threading.current_thread()
     #assert t.name == 'MainThread'
-
-def run(l, env=None):
-    """Run a command described by l in environment env"""
-    log("run", l)
-    env = dict(os.environ, **env) if env else None
-    if isinstance(l, list):
-        if env:
-            rc = os.spawnvpe(os.P_WAIT, l[0], l, env)
-        else:
-            rc = os.spawnvp(os.P_WAIT, l[0], l)
-    elif isinstance(l, str):
-        tmp = ['sh', '-c', l]
-        if env:
-            rc = os.spawnvpe(os.P_WAIT, tmp[0], tmp, env)
-        else:
-            rc = os.spawnvp(os.P_WAIT, tmp[0], tmp)
-    log("run", rc=rc)
-    return rc
-
-def mkdirs(dirs):
-    for d in dirs:
-        if not os.path.exists(d):
-            os.makedirs(d)
 
 class LP(object):
     """
@@ -85,14 +63,13 @@ class LP(object):
     def pull_branch(self, unique_name, repo_path):
         #log("branch-update",branch=unique_name)
         #repo_path = b.repo_path + job_suffix
-        if os.path.exists(repo_path):
-            log("bzr pull " + repr(["bzr", "pull", "lp:%s" % unique_name, "--quiet", "--remember", "--overwrite", "-d", repo_path]) )
+        unique_name = unique_name.startswith("lp:") and \
+            unique_name.replace("lp:", "") or unique_name
+        if os.path.isdir(os.path.join(repo_path, '.bzr')):
             rc = run(["bzr", "pull", "lp:%s" % unique_name, "--quiet", "--remember", "--overwrite", "-d", repo_path])
         else:
-            mkdirs(repo_path)
-            log("bzr branch " + repr( ["bzr", "branch", "--quiet", "--no-tree", "lp:%s" % unique_name, repo_path ] ) )
-            
-            rc = run(["bzr", "branch", "--quiet", "--no-tree", "lp:%s" % unique_name, repo_path ])
+            mkdirs([repo_path])
+            rc = run(["bzr", "branch", "--quiet", "--no-tree", "--use-existing-dir", "lp:%s" % unique_name, repo_path ])
         """
         committer_name, committer_xgram, committer_email = \
             get_committer_info(repo_path)
@@ -116,6 +93,8 @@ class LP(object):
             filters = {'status': NEW_MERGE_STATUS}
         if max_mp is None:
             max_mp = MAX_MP
+        unique_name = unique_name.startswith("lp:") and \
+            unique_name.replace("lp:", "") or unique_name
         branch = self.get_branch(unique_name)
         merge_proposals = branch.getMergeProposals(**filters)
         mp_number__mp_obj_dict = dict([(merge_proposal.web_link.split('/')[-1], merge_proposal) for merge_proposal in merge_proposals])
@@ -133,8 +112,48 @@ class LP(object):
         #lp.pull_branch(branch.complete_name, branch_path)
         return mp_data
 
-    def bzr2git(self, bzr_branch_path, git_repo_path, branch_short_name=None):
-        pass#TODO
+    def get_branch_revno(self, branch_url_path):
+        """
+        @branch_url_path: String url branch from lp or path branch local folder
+        """
+        branch_url_path = branch_url_path.startswith("~") and \
+            branch_url_path.replace("~", "lp:~") or branch_url_path
+        revno = None
+        if not 'lp:~' in branch_url_path:
+            if not os.path.isdir( os.path.join(branch_url_path, ".bzr") ):
+                return revno
+        try:
+            revno = get_revno_info(branch_url_path)
+        except:
+            pass
+        return revno
+
+    def bzr2git(self, bzr_branch_path, git_branch_path=None, revision=None, git_repo_path=None, git_branch_name=None):
+        if os.path.basename(bzr_branch_path.rstrip('/')) == '.bzr':
+            bzr_branch_path = os.path.dirname( bzr_branch_path )
+        if git_branch_path is None:
+            git_branch_path = os.path.join( bzr_branch_path, 'git' )#Without point because make a conflict with .bzr
+        git_init(git_branch_path)
+        revision_cmd = revision and ["-r", revision] or []
+        cmd_args1 = ["bzr", "fast-export", "--plain"]
+        cmd_args1.extend( revision_cmd )
+        cmd_args1.append( bzr_branch_path )
+
+        cmd_args2 = ["git", \
+            "--git-dir=%s"%(git_branch_path),
+            "fast-import", "--force"]
+
+        print "run pipe:",' '.join( cmd_args1) + ' | ' + ' '.join( cmd_args2 )
+        ps = subprocess.Popen(cmd_args1, stdout=subprocess.PIPE)
+        output = subprocess.check_output(cmd_args2,\
+                             stdin=ps.stdout)
+        ps.wait()
+        if git_repo_path and git_branch_name:
+            git_init(git_repo_path)
+            cmd_args = ["git", "push", "--force", git_repo_path,\
+                "HEAD:" + git_branch_name]
+            run(cmd_args)
+        return ps
 
 if __name__ == '__main__':
     lp = LP()

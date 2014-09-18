@@ -15,7 +15,7 @@ import os
 
 __all__ = [
     'kill', 'log', 'run', 'run_output', 'get_committer_info', 'underscore', 'dashes', 'has_test_enable_flag', 'has_no_netrpc_flag', 'project_name_from_unique_name',
-    'get_revno_info'
+    'get_revno_info', 'mkdirs', 'git_init'
     ]
 
 _logger = logging.getLogger('runbot')
@@ -57,11 +57,13 @@ def run(l,env=None):
     log("run",l)
     env = dict(os.environ, **env) if env else None
     if isinstance(l,list):
+        print "run:", ' '.join( l )
         if env:
             rc=os.spawnvpe(os.P_WAIT, l[0], l, env)
         else:
             rc=os.spawnvp(os.P_WAIT, l[0], l)
     elif isinstance(l,str):
+        print "run:", l
         tmp=['sh','-c',l]
         if env:
             rc=os.spawnvpe(os.P_WAIT, tmp[0], tmp, env)
@@ -76,10 +78,54 @@ def kill(pid,sig=signal.SIGKILL):
     except OSError:
         pass
 
+"""
+def run_pipe(l, cwd=None):
+    import pdb;pdb.set_trace()
+    lls = []
+    ll = []
+    for item in l:
+        if item == '|':
+            lls.append(ll)
+            ll = []
+            continue
+        ll.append(item)
+    lls.append(ll)
+    #only support one pipe :( TODO: many pipe
+    stdins = []
+    first_time = True
+    for cmd in lls:
+        if stdins and stdins[-1]:
+            output = subprocess.check_output(cmd, stdin=stdins[-1])
+            ps.wait()
+        else:
+            ps = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+            stdins.append( ps.stdout )
+    #subps = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=ps.stdout)
+#    cmd = lls.pop(0)
+#    output = subprocess.check_output(cmd,\
+#                         stdin=ps.stdout)
+    #ps.wait()
+    return lls
+"""
+
+#print run_pipe(['hola', '|', 'hola2'])
+
 def run_output(l, cwd=None):
     log("run_output",l)
+    print "run output:", ' '.join( l ), "into", cwd
     return subprocess.Popen(l, stdout=subprocess.PIPE, cwd=cwd).communicate()[0]
 
+def mkdirs(dirs):
+    if isinstance(dirs, basestring) or isinstance(dirs, str):
+        dirs = [dirs]
+    for d in dirs:
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+def git_init(git_path):
+    if not os.path.isdir(os.path.join(git_path, 'refs')):
+        mkdirs( [git_path] )
+        run(["git", "--bare", "init", git_path])
 #----------------------------------------------------------
 # OpenERP RunBot misc
 #----------------------------------------------------------
@@ -110,7 +156,7 @@ def get_committer_info(repo_path):
 
 def get_revno_info(repo_path):
     revno = False
-    output = run_output(["bzr", "revno"], cwd=repo_path)
+    output = run_output(["bzr", "revno", repo_path])
     revno_re = re.compile('(\d+)')
     for i in output.split('\n'):
         m = revno_re.match(i)
