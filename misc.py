@@ -21,9 +21,9 @@ __all__ = [
 _logger = logging.getLogger('runbot')
 _log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s')
 #_log_handler = logging.StreamHandler(sys.stdout)
-if not os.path.exists('run'): 
-    os.mkdir('run')
-_log_handler = logging.handlers.TimedRotatingFileHandler('run/runbot.log', 'D', 1, 30)
+if not os.path.exists('/tmp/run'): 
+    os.mkdir('/tmp/run')
+_log_handler = logging.handlers.TimedRotatingFileHandler('/tmp/run/runbot.log', 'D', 1, 30)
 _log_handler.setFormatter(_log_formatter)
 _logger.setLevel(logging.INFO)
 _logger.addHandler(_log_handler)

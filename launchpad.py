@@ -54,9 +54,10 @@ class LP(object):
         #launchpad = Launchpad.login_anonymously(
         #    'openerp-runbot', 'edge', 'lpcache')
         cachedir = os.path.expanduser("~/.launchpadlib/cache")
+        lp_creds = os.path.expanduser("~/.launchpadlib/.lp_creds")
         self.con = Launchpad.login_with(
             'openerp-runbot', EDGE_SERVICE_ROOT, cachedir,
-            credentials_file='.lp_creds')
+            credentials_file=lp_creds)
 
     def get_team_branches(self, team_name):
         assert_main_thread()
