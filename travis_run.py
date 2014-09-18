@@ -85,6 +85,7 @@ def run_travis_section(sections, travis_data, hidden_cmds=None):
     os.chmod(fname_sh, st.st_mode | stat.S_IEXEC)
     return os.system( os.path.join(os.environ['TRAVIS_BUILD_DIR'], fname_sh) )
 
+hidden_cmds = []
 #hidden_cmds = ["travis_install_nightly", "travis_install_mx_nightly", "git clone", "wget "]#second time not download all
 
 fname_travis_yml = os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.travis.yml')
