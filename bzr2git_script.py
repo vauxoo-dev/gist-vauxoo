@@ -50,7 +50,7 @@ try:
                     full_global_path_branches = Config.get(section, "full_global_path_branches")
                 except ConfigParser.NoOptionError:
                     full_global_path_branches = False
-                full_global_path_branches = os.path.join("/Users/moylop260/openerp/bzr2git/repo_local", os.path.basename( full_global_path_branches ) )
+                #full_global_path_branches = os.path.join("/Users/moylop260/openerp/bzr2git/repo_local", os.path.basename( full_global_path_branches ) )
                 bzr_branches = eval( Config.get(section, "bzr_branches") )
                 for (branch_short_name, branch_unique_name) in bzr_branches:
                     mp_data = LP.get_merge_proposals(branch_unique_name)
@@ -72,7 +72,7 @@ try:
                             LP.pull_branch(branch_unique_name, bzr_branch_fullpath)
                             #new_revno = LP.get_branch_revno(branch_unique_name)#Too long time to get only revno
                             new_revno = LP.get_branch_revno(bzr_branch_fullpath)
-                            old_revno = "0"#Comment this line
+                            #old_revno = "0"#Comment this line
 
                             if old_revno <> new_revno:
                                 LP.bzr2git(bzr_branch_fullpath,
@@ -81,6 +81,5 @@ try:
                                     git_repo_path=git_repository,
                                     git_branch_name=branch_short_name,
                                 )
-                            #exit(1)
 finally:
     os.unlink(lock_file)
