@@ -18,6 +18,7 @@ bzr_branches = [("trunk", "lp:~openerp-mexico-maintainer/openerp-mexico-localiza
 current_path = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 LP = launchpad.LP()
 LP.connect()
+CHECK_MP = True
 
 #@argv[1] path with config files
 files_cfg_path = sys.argv[1]
@@ -52,10 +53,11 @@ try:
                     full_global_path_branches = False
                 #full_global_path_branches = os.path.join("/Users/moylop260/openerp/bzr2git/repo_local", os.path.basename( full_global_path_branches ) )
                 bzr_branches = eval( Config.get(section, "bzr_branches") )
-                for (branch_short_name, branch_unique_name) in bzr_branches:
-                    mp_data = LP.get_merge_proposals(branch_unique_name)
-                    for mp_number in mp_data.keys():
-                        bzr_branches.append( (branch_short_name + '-MP' + mp_number, 'lp:' + mp_data[mp_number]['name'] ) )
+                if CHECK_MP:
+                    for (branch_short_name, branch_unique_name) in bzr_branches:
+                        mp_data = LP.get_merge_proposals(branch_unique_name)
+                        for mp_number in mp_data.keys():
+                            bzr_branches.append( (branch_short_name + '-MP' + mp_number, 'lp:' + mp_data[mp_number]['name'] ) )
 
                 if bzr2git:
                     if full_global_path_branches:
