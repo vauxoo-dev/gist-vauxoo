@@ -119,15 +119,15 @@ for file_cfg in os.listdir(files_cfg_path):
 
                 git_init_local_repo(git_repository)
                 for (branch_short_name, branch_unique_name) in bzr_branches:
+                    branch_short_name = branch_short_name.replace('trunk', 'master')#git fashion
                     bzr_branch_fullpath = os.path.join( path_bzr_branches, branch_short_name)
 
                     #bzr_branch_version = bzr_branch.split('-')[0]
                     #git_branch_version = bzr_branch_version
-                    if branch_short_name == 'trunk':
-                        git_branch_version = 'master'
-                    else:
-                        git_branch_version = branch_short_name
-
+                    #if branch_short_name == 'trunk':
+                        #git_branch_version = 'master'
+                    #else:
+                        #git_branch_version = branch_short_name
                     if not os.path.isdir( os.path.join( bzr_branch_fullpath, ".bzr" ) ):
                         cmd_args = ["bzr", "init", bzr_branch_fullpath]
                         execute_cmd5(cmd_args, working_dir=None)
@@ -150,7 +150,7 @@ for file_cfg in os.listdir(files_cfg_path):
                     cmd_args = ["bzr", "revno"]
                     new_revno = execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath,\
                         out_file=os.path.join( bzr_branch_fullpath, 'revno_new.txt'))
-            
+                    #old_revno = "0"#Comment this line
                     if old_revno <> new_revno:
                         cmd_args = ["bzr", "fast-export", "--plain", "-r", \
                             old_revno + '..' +  new_revno, ".", "|", "git", \
@@ -165,7 +165,7 @@ for file_cfg in os.listdir(files_cfg_path):
 
                         if git_repository:
                             cmd_args = ["git", "push", "--force", git_repository,\
-                                "HEAD:" + git_branch_version]
+                                "HEAD:" + branch_short_name]
                             execute_cmd5(cmd_args, working_dir=bzr_branch_fullpath)
         """
         try:
