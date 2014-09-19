@@ -35,7 +35,7 @@ try:
     open( lock_file, "w" )
     for file_cfg in os.listdir(files_cfg_path):
         if os.path.splitext( file_cfg )[1] in ['.cfg', '.conf', '.config']:
-            file_cfg = os.path.join(current_path, files_cfg_path, file_cfg)
+            file_cfg = os.path.join(files_cfg_path, file_cfg)
             print "file_cfg",file_cfg
             if os.path.isfile( file_cfg ):
                 print "is file"

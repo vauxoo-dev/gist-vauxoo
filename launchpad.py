@@ -150,7 +150,7 @@ class LP(object):
         ps.wait()
         if git_repo_path and git_branch_name:
             git_init(git_repo_path)
-            cmd_args = ["git", "push", "--force", git_repo_path,\
+            cmd_args = ["git", "--git-dir=%s"%(git_branch_path), "push", "--force", git_repo_path,\
                 "HEAD:" + git_branch_name]
             run(cmd_args)
         return ps
