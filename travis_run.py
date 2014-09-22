@@ -6,9 +6,12 @@ import stat
 
 _logger = logging.getLogger(__name__)
 
-MAIN_REPO_URL = "https://github.com/odoo-mexico/odoo-mexico.git"
+#MAIN_REPO_URL = "https://github.com/odoo-mexico/odoo-mexico.git"
 #MAIN_REPO_URL = "https://github.com/OCA/sale-financial.git"
+MAIN_REPO_URL = "git@github.com:OCA/OCB.git"
 MAIN_BRANCH = "7.0"
+MAIN_REPO_URL = "git@github.com:hbrunn/OCB.git"
+MAIN_BRANCH = "7.0_lp1340813"
 
 #export TRAVIS_HOME=/tmp/home/travis/build
 #export TRAVIS_HOME=/tmp/home
@@ -62,10 +65,7 @@ os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
 
 #import pdb;pdb.set_trace()
 if not os.path.isdir( os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git') ):
-    run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR']])
-
-run(['git', '--git-dir=%s'%os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git'), 'checkout', "-f", MAIN_BRANCH])###FIXME: Esta generando los archivos en donde se ejecuta el archivo
-run(['git', '--git-dir=%s'%os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git'), 'pull', 'origin', MAIN_BRANCH])
+    run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR'], '-b', MAIN_BRANCH, '--depth', '1'])
 
 def run_travis_section(sections, travis_data, hidden_cmds=None):
     if hidden_cmds is None:
