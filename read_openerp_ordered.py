@@ -1,3 +1,5 @@
+##!/usr/bin/python
+# -*- encoding: utf-8 -*-
 import json
 import os
 import sys
@@ -5,9 +7,10 @@ import ast
 import collections
 from collections import OrderedDict
 import glob
+import codecs
 
 #~ my_path = "/home/jage/base_user_signature_logo/__openerp__.py"
-my_path="/home/julio/Documentos/openerp/instancias/7.0/7.0-addons-vauxoo/"
+my_path="/home/taxque/OpenERP/Instancias/7.0/addons_all/ovl_7.0/l10n_ve_fiscal_book"
 
 class DictToOrdered(ast.NodeTransformer):
     def visit_Dict(self, node):
@@ -72,9 +75,9 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
         if f.endswith("__openerp__.py"):
             fname = (os.path.join(dirpath, f))
             
-            with open(fname, 'rb') as fin:
+            with codecs.open(fname, 'r3', encoding='utf-8') as fin:
                  dict_str = fin.read()
-                 odict = parse_dict_as_odict( dict_str )
+                 odict = parse_dict_as_odict( dict_str.encode('utf8') )
                  #odict.rename('init_xml', 'data')
                  odict = dict_key_rename(odict, 'init_xml', 'data')
                  odict= dict_key_rename(odict, 'demo_xml', 'demo')
@@ -117,17 +120,19 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                     ("installable", True),
                     ("auto_install", False),
                     ("active", False)]
-            olist= OrderedDict((i_key, odict.get(i_key, i_default) ) for i_key, i_default in lista)
+                    
             
-    
+            olist= OrderedDict((i_key, odict.get(i_key, i_default)) for i_key, i_default in lista)
+                
             olist.update({'description': '""{}""'.format(olist.get('description'))})
-            odict_str = json.dumps(olist, indent=4)
+            odict_str = json.dumps(olist, ensure_ascii=False, indent=4, encoding="utf-8")
             odict_str = odict_str.replace('\\n', '\n')
             odict_str = odict_str.replace('\\"', '"')
             
             odict_str = odict_str.replace('true', 'True').replace('false', 'False')
             
-            new_dict_str += odict_str
-            f2 = open(fname, 'wb')
+            
+            new_dict_str += odict_str.decode('utf8')
+            f2 = codecs.open(fname, 'wb', encoding='utf-8')
             f2.write(new_dict_str)
             f2.close()
