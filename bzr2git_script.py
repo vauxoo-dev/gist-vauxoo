@@ -56,7 +56,7 @@ try:
                 if CHECK_MP:
                     for (branch_short_name, branch_unique_name) in bzr_branches:
                         mp_data = LP.get_merge_proposals(branch_unique_name)
-                        for mp_number in mp_data.keys():
+                        for mp_number in sorted( mp_data.keys(), reverse=True ):#Process last MP first. This is faster with new MP.
                             bzr_branches.append( (branch_short_name + '-MP' + mp_number, 'lp:' + mp_data[mp_number]['name'] ) )
 
                 if bzr2git:
