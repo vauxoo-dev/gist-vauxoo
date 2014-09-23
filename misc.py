@@ -153,6 +153,10 @@ def bzr_get_revno(commit_count, branch_path, revno=None):
     m = revno_re.match(output_commit)
     if m:
         revno_from_commit_count = m.group(0).strip()
+        try:
+            revno_from_commit_count = int(revno_from_commit_count)
+        except ValueError:
+            revno_from_commit_count = float(revno_from_commit_count)
     return revno_from_commit_count
 
 def bzr_get_commit_count(branch_path, revno=None):
@@ -161,6 +165,7 @@ def bzr_get_commit_count(branch_path, revno=None):
     #count = False
     output = run_output(["bzr", "log", "--include-merged", "--line", "-r", str(revno)],
                         cwd=branch_path)
+    output = output.strip('\n')
     count = output.count('\n')
     return count
 

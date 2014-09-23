@@ -88,6 +88,7 @@ try:
                             if bzr_revno_from_git_commit_count <> bzr_new_revno:
                                 #TODO: Process date, commiter and msg. Because with bzr uncommit;bzr touch borrar;bzr commit -m "borrar";bzr push --overwrite this will fail.
                                 # Because is the same quantity of revno count.
+                                bzr_revno_from_git_commit_count = 0#Fix error of only detect last change and delete all other ones :(. TODO: Fix get last update changes
                                 LP.bzr2git(bzr_branch_fullpath,
                                     git_branch_path=git_branch_fullpath,
                                     revision=str(bzr_revno_from_git_commit_count)\
