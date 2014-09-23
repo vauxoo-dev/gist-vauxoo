@@ -138,49 +138,53 @@ def dashes(s):
     return s.replace("~","").replace(":","-").replace("/","-").replace(".","-").replace(" ","-").replace("_","-")
 
 def bzr_get_revno(commit_count, branch_path, revno=None):
-    if revno is None:
-        revno = "..-1"
     if commit_count == 0:
         return '0'
-    output_lines = run_output(["bzr", "log", "--include-merged", 
-                        "--line", "-r", str(revno)],
-                        cwd=branch_path,
-                ).strip('\n').split('\n')
-    output_lines.reverse()
-    output_commit = len(output_lines) >= commit_count and output_lines[commit_count-1] or False
-    revno_from_commit_count = False
-    revno_re = re.compile('[0-9]*\.?[0-9]')
-    m = revno_re.match(output_commit)
-    if m:
-        revno_from_commit_count = m.group(0).strip()
-        try:
-            revno_from_commit_count = int(revno_from_commit_count)
-        except ValueError:
-            revno_from_commit_count = float(revno_from_commit_count)
+    revnos = bzr_get_all_revno(branch_path, revno)
+    revno_from_commit_count = len(revnos) >= commit_count and revnos[commit_count-1] or False
     return revno_from_commit_count
 
-def bzr_get_commit_count(branch_path, revno=None):
+def bzr_get_all_revno(branch_path, revno=None):
     if revno is None:
         revno = "..-1"
-    #count = False
     output = run_output(["bzr", "log", "--include-merged", "--line", "-r", str(revno)],
                         cwd=branch_path)
-    output = output.strip('\n')
-    count = output.count('\n')
-    return count
+    output_lines = output.strip('\n').split('\n')
+    output_lines.reverse()
+    revnos = []
+    for output_line in output_lines:
+        revno_re = re.compile('(?P<revno>[0-9\.]*)?:')
+        m = revno_re.match(output_line.strip())
+        if m:
+            line_revno = m.group('revno').strip()
+            try:
+                line_revno = int(line_revno)
+            except ValueError:
+                #Some revno is 1.1.1.1
+                pass
+            except:
+                raise Exception('Error', "Not revno found: [%s]"%(output_line))
+            revnos.append(line_revno)
+        else:
+            raise Exception('Error', "Not revno found: [%s]"%(output_line))
+    return revnos
+
+def bzr_get_commit_count(branch_path, revno=None):
+    return len( bzr_get_all_revno(branch_path, revno) )
 
 def git_get_commit_count(repo_path, sha=None):
     if sha is None:
         sha = "HEAD"
     revno = False
-    output = run_output(["git", "--git-dir=%s"%(repo_path), "rev-list", sha, "--count"])
-    revno_re = re.compile('(\d+)')
-    for i in output.split('\n'):
-        m = revno_re.match(i)
-        if m:
-            revno = int( m.group(1).strip() )
-            #revno -= 2#git rev-list make 2 extra commit's diff with bzr revno
-            break
+    if os.path.isdir( os.path.join(repo_path, 'refs') ):
+        output = run_output(["git", "--git-dir=%s"%(repo_path), "rev-list", sha, "--count"])
+        revno_re = re.compile('(\d+)')
+        for i in output.split('\n'):
+            m = revno_re.match(i)
+            if m:
+                revno = int( m.group(1).strip() )
+                #revno -= 2#git rev-list make 2 extra commit's diff with bzr revno
+                break
     return revno
 
 def get_committer_info(repo_path):

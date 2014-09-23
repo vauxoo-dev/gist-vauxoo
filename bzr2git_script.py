@@ -96,5 +96,6 @@ try:
                                     git_repo_path=git_repository,
                                     git_branch_name=branch_short_name,
                                 )
+                                #exit(1)
 finally:
     os.unlink(lock_file)
