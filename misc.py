@@ -15,7 +15,8 @@ import os
 
 __all__ = [
     'kill', 'log', 'run', 'run_output', 'get_committer_info', 'underscore', 'dashes', 'has_test_enable_flag', 'has_no_netrpc_flag', 'project_name_from_unique_name',
-    'get_revno_info', 'mkdirs', 'git_init'
+    'get_revno_info', 'mkdirs', 'git_init', 'git_get_commit_count', 
+    'bzr_get_commit_count', 'bzr_get_revno'
     ]
 
 _logger = logging.getLogger('runbot')
@@ -136,6 +137,47 @@ def underscore(s):
 def dashes(s):
     return s.replace("~","").replace(":","-").replace("/","-").replace(".","-").replace(" ","-").replace("_","-")
 
+def bzr_get_revno(commit_count, branch_path, revno=None):
+    if revno is None:
+        revno = "..-1"
+    if commit_count == 0:
+        return '0'
+    output_lines = run_output(["bzr", "log", "--include-merged", 
+                        "--line", "-r", str(revno)],
+                        cwd=branch_path,
+                ).strip('\n').split('\n')
+    output_lines.reverse()
+    output_commit = len(output_lines) >= commit_count and output_lines[commit_count-1] or False
+    revno_from_commit_count = False
+    revno_re = re.compile('[0-9]*\.?[0-9]')
+    m = revno_re.match(output_commit)
+    if m:
+        revno_from_commit_count = m.group(0).strip()
+    return revno_from_commit_count
+
+def bzr_get_commit_count(branch_path, revno=None):
+    if revno is None:
+        revno = "..-1"
+    #count = False
+    output = run_output(["bzr", "log", "--include-merged", "--line", "-r", str(revno)],
+                        cwd=branch_path)
+    count = output.count('\n')
+    return count
+
+def git_get_commit_count(repo_path, sha=None):
+    if sha is None:
+        sha = "HEAD"
+    revno = False
+    output = run_output(["git", "--git-dir=%s"%(repo_path), "rev-list", sha, "--count"])
+    revno_re = re.compile('(\d+)')
+    for i in output.split('\n'):
+        m = revno_re.match(i)
+        if m:
+            revno = int( m.group(1).strip() )
+            #revno -= 2#git rev-list make 2 extra commit's diff with bzr revno
+            break
+    return revno
+
 def get_committer_info(repo_path):
     committer_name = None
     committer_xgram = None
@@ -165,7 +207,11 @@ def get_revno_info(repo_path):
             break
     return revno
 
-    
+def get_revision_id(repo_path, revno=None):
+    if revno is None:
+        revno = -1
+    output = run_output("bzr", "version-info", "--custom", '--template="{revision_id}\n"', "-r", str(revno), repo_path)
+
 def has_test_enable_flag(server_bin_path):
     """
     Test whether an openerp-server executable has the --test-enable flag.

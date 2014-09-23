@@ -29,6 +29,8 @@ print "check exists lock_file", lock_file
 if os.path.isfile(lock_file):
     print "lock_file exists. Running this instance in other side. Skipped script."
     sys.exit(0)
+#TODO: Use threading
+#TODO: Use git-bzr revno to check diff of revno's
 
 try:
     print "creating lock_file", lock_file
@@ -70,16 +72,26 @@ try:
                             bzr_branch_fullpath = os.path.join( path_bzr_branches, branch_short_name, 'bzr')
                             git_branch_fullpath = os.path.join( path_bzr_branches, branch_short_name, 'git')
 
-                            old_revno = LP.get_branch_revno(bzr_branch_fullpath) or 0
+                            #old_revno = LP.get_branch_revno(bzr_branch_fullpath) or 0
                             LP.pull_branch(branch_unique_name, bzr_branch_fullpath)
+                            #bzr_info = launchpad.get_committer_info(bzr_branch_fullpath)
                             #new_revno = LP.get_branch_revno(branch_unique_name)#Too long time to get only revno
-                            new_revno = LP.get_branch_revno(bzr_branch_fullpath)
-                            #old_revno = "0"#Comment this line
-
-                            if old_revno <> new_revno:
+                            bzr_new_revno = LP.get_branch_revno(bzr_branch_fullpath) or 0
+                            git_commit_count = launchpad.git_get_commit_count(
+                                    git_branch_fullpath) or 0
+                            bzr_revno_from_git_commit_count = \
+                                 launchpad.bzr_get_revno(git_commit_count,
+                                     bzr_branch_fullpath) or 0
+                            #bzr_revno_from_git_commit_count = "0"#Comment this line
+                            print "bzr_revno_from_git_commit_count,bzr_new_revno",\
+                                bzr_revno_from_git_commit_count,bzr_new_revno
+                            if bzr_revno_from_git_commit_count <> bzr_new_revno:
+                                #TODO: Process date, commiter and msg. Because with bzr uncommit;bzr touch borrar;bzr commit -m "borrar";bzr push --overwrite this will fail.
+                                # Because is the same quantity of revno count.
                                 LP.bzr2git(bzr_branch_fullpath,
                                     git_branch_path=git_branch_fullpath,
-                                    revision=str(old_revno) + '..' +  str(new_revno),
+                                    revision=str(bzr_revno_from_git_commit_count)\
+                                         + '..' +  str(bzr_new_revno),
                                     git_repo_path=git_repository,
                                     git_branch_name=branch_short_name,
                                 )
