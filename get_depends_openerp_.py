@@ -29,8 +29,17 @@ def get_modules_depends_dict(addons_paths):
                 module_depends_list = eval( open(oerp_path, "r").read() ).get('depends', [])
                 modules_depends_dict[os.path.dirname(oerp_path)] = module_depends_list
     return modules_depends_dict
+
+def print_modules_depends_dict(modules_depends_dict):
+    for key in sorted(modules_depends_dict.keys()):
+        print key + ':',
+        print '\n\t' + '\n\t'.join(modules_depends_dict[key])
             
 if __name__ == '__main__':
     modules_depends_dict = get_modules_depends_dict(sys.argv[1])
-    pp = pprint.PrettyPrinter(indent=4)
-    print pp.pprint(modules_depends_dict)
+    print_modules_depends_dict(modules_depends_dict)
+    #for key in sorted(modules_depends_dict.keys()):
+        #print "key",key,
+        #print "modules", '\n\t'.join(modules_depends_dict[key])
+    #pp = pprint.PrettyPrinter(indent=4)
+    #print pp.pprint(modules_depends_dict)
