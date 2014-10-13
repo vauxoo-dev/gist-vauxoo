@@ -9,6 +9,7 @@ from collections import OrderedDict
 import glob
 import codecs
 from heapq import merge
+import fileinput
 
 #~ my_path = "/home/jage/base_user_signature_logo/__openerp__.py"
 my_path="/home/jage/pruebas-encode/trunk/l10n_ve_fiscal_book"
@@ -66,15 +67,18 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                          if '""",' in line:
                             #print contador
                              num=int(contador)
-                             print num
+                             #print num
                  f.close
                  with open(fname,"r") as f:
                      #lista = []
                      comments_list = [line for line in f.readlines()[num:] if '#' in line]
+                     for i in comments_list:
+						 if i == "# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:":
+							 comments_list.remove(i)
+							 print comments_list
                      comentarios= "".join(comments_list)
-                     #print type(comentarios)
-                     #print comentarios
-                     #print comments_list
+                  
+                   
                  f.close()
                  #print dict_str
                  odict = parse_dict_as_odict( dict_str.encode('utf8') )
@@ -83,27 +87,12 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                  #print type(description)
                  description.append(comentarios + '\n')
                  cadena = "".join(description)
-                 #print cadena
-                 #~ lisde=list(merge(description,comentarios))
-                 #~ print lisde
-                 #~ cadena = "".join(lisde)
-                 #print cadena
-                     
-                 #print des
                  
-
-                 #print type(odict)
-                 #odict.rename('init_xml', 'data')
-                 #print odict
                  odict = dict_key_rename(odict, 'init_xml', 'data')
                  odict= dict_key_rename(odict, 'demo_xml', 'demo')
                  odict = dict_key_rename(odict, 'update_xml', 'data')
-                 #odict.get('description',default=None)
-                 #~ odict = dict_key_rename(odict, 'depens', 'demo')
-                 #~ odict = dict_key_rename(odict, 'data', 'demo')
-                 #~ odict = dict_key_rename(odict, 'installable', 'inst')
-                 #~ odict = dict_key_rename(odict, 'demo', 'demo2')
-                 #print odict
+                 odict = dict_key_rename(odict, 'active', 'auto_install')
+                
            
                  
                  #del odict['update_xml']
@@ -138,7 +127,7 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                     ("css", []),
                     ("qweb", []),
                     ("installable", True),
-                    ("auto_install", False)]
+                    ("auto_install", None )]
                     #("active", False)]
                     
             
@@ -152,21 +141,32 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
             #import pdb; pdb.set_trace()
             
             odict_str = odict_str.replace('true', 'True').replace('false', 'False')
-            #print odict_str.get('description')
-            #print odict_str
+        
             new_dict_str += odict_str.decode('utf8')
             f2 = codecs.open(fname, 'wb', encoding='utf-8')
             f2.write(new_dict_str)
-            print new_dict_str
+       
             f2.close()
+              
             with open(fname, 'r') as f:
                 lines = [line for line in f.readlines() if not line.replace(' ','').lower().startswith("#vim:expandtab:")]
-
-                #print lines
+            f.close()
             with open(fname, 'w') as f:
                 f.writelines(lines)
                 #print lines
             f.close
+            
+            
+            for line in fileinput.input(fname, inplace=True):
+                print line.rstrip()
+                
+                
+            for line in fileinput.input(fname, inplace=True):
+            	if line.startswith('\t'):
+            		print (line.replace('\t',"    ")).rstrip('\n')
+		else:
+			print(line.replace('\n', '')) 
+					
             f2 = open(fname,"a")
-            f2.write('\n' + "# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:")
+            f2.write("# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:" + '\n')
             f2.close
