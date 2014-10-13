@@ -162,10 +162,10 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                 
                 
             for line in fileinput.input(fname, inplace=True):
-				if line.startswith('\t'):
-					print (line.replace('\t',"    ")).rstrip('\n')
-				else:
-					print(line.replace('\n', '')) 
+            	if line.startswith('\t'):
+            		print (line.replace('\t',"    ")).rstrip('\n')
+		else:
+			print(line.replace('\n', '')) 
 					
             f2 = open(fname,"a")
             f2.write("# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:" + '\n')
