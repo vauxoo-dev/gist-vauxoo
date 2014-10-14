@@ -12,7 +12,7 @@ from heapq import merge
 import fileinput
 
 #~ my_path = "/home/jage/base_user_signature_logo/__openerp__.py"
-my_path="/home/jage/pruebas-encode/trunk/l10n_ve_fiscal_book"
+my_path="/home/jage/pruebas-encode/trunk"
 
 class DictToOrdered(ast.NodeTransformer):
     def visit_Dict(self, node):
@@ -76,9 +76,12 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
 						 if i == "# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:":
 							 comments_list.remove(i)
 							 print comments_list
+                     #print comments_list
                      comentarios= "".join(comments_list)
                   
-                   
+                     #print type(comentarios)
+                     #print comentarios
+                     #print comments_list
                  f.close()
                  #print dict_str
                  odict = parse_dict_as_odict( dict_str.encode('utf8') )
@@ -87,13 +90,25 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                  #print type(description)
                  description.append(comentarios + '\n')
                  cadena = "".join(description)
+                 #print cadena
+                 #~ lisde=list(merge(description,comentarios))
+                 #~ print lisde
+                 #~ cadena = "".join(lisde)
+                 #print cadena
+                     
+                 #print des
                  
+
+                 #print type(odict)
+                 #odict.rename('init_xml', 'data')
+                 #print odict
                  odict = dict_key_rename(odict, 'init_xml', 'data')
                  odict= dict_key_rename(odict, 'demo_xml', 'demo')
                  odict = dict_key_rename(odict, 'update_xml', 'data')
-                 odict = dict_key_rename(odict, 'active', 'auto_install')
-                
-           
+                 #odict = dict_key_rename(odict, 'active', 'auto_install')
+                 
+                 
+                 
                  
                  #del odict['update_xml']
 
@@ -127,13 +142,17 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                     ("css", []),
                     ("qweb", []),
                     ("installable", True),
-                    ("auto_install", None )]
-                    #("active", False)]
+                    ("auto_install", False),
+                    ("active", "default")]
                     
             
             olist= OrderedDict((i_key, odict.get(i_key, i_default)) for i_key, i_default in lista)
             olist.update({'description':cadena})
             olist.update({'description': '""{}""'.format(olist.get('description'))})
+            print olist[ "auto_install"]
+            act = olist.pop('active')
+            if not act == "default":
+                olist.update({'auto_install': act})
             #import pdb; pdb.set_trace()
             odict_str = json.dumps(olist, ensure_ascii=False, indent=4, encoding="utf-8")
             odict_str = odict_str.replace('\\n', '\n')
@@ -141,7 +160,8 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
             #import pdb; pdb.set_trace()
             
             odict_str = odict_str.replace('true', 'True').replace('false', 'False')
-        
+            #print odict_str.get('description')
+            #print odict_str
             new_dict_str += odict_str.decode('utf8')
             f2 = codecs.open(fname, 'wb', encoding='utf-8')
             f2.write(new_dict_str)
@@ -162,10 +182,10 @@ for dirpath, dnames, fnames in os.walk(modules_dir):
                 
                 
             for line in fileinput.input(fname, inplace=True):
-            	if line.startswith('\t'):
-            		print (line.replace('\t',"    ")).rstrip('\n')
-		else:
-			print(line.replace('\n', '')) 
+				if line.startswith('\t'):
+					print (line.replace('\t',"    ")).rstrip('\n')
+				else:
+					print(line.replace('\n', '')) 
 					
             f2 = open(fname,"a")
             f2.write("# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:" + '\n')
