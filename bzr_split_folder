@@ -7,10 +7,9 @@ import bzrlib.workingtree
 import sys
 
 bzr_branch = sys.argv[1]
-#bzr_branch = "/Users/moylop260/openerp/instancias/7.0/community-branches/70-addons-vauxoo"
+folders_to_split = sys.argv[2].split(',')
 
 bzr_branch_splitted = os.path.join(bzr_branch, 'splitted')
-folders_to_split = ['account_periods_initial', 'ifrs_report']
 
 #Make new main branch
 misc.mkdirs(bzr_branch_splitted)
@@ -19,16 +18,21 @@ misc.run_output(cmd, cwd=bzr_branch_splitted)
 
 # Get full log history from branch
 fname_full_history = os.path.join(bzr_branch, 'full-history.fi')
-open(fname_full_history, "w").write( misc.run_output(["bzr", "fast-export"], cwd=bzr_branch) )
+open(fname_full_history, "w").write(
+    misc.run_output(["bzr", "fast-export"], cwd=bzr_branch))
 
 for folder_to_split in folders_to_split:
     # Get log filter to folder
-    fname_folder_history = os.path.join(bzr_branch, folder_to_split + '.fi')
-    cmd = ["bzr", "fast-import-filter", "-i", folder_to_split, fname_full_history]
-    open(fname_folder_history, "w").write( misc.run_output(cmd, cwd=bzr_branch) )
+    fname_folder_history = os.path.join(bzr_branch,
+                                        folder_to_split + '.fi')
+    cmd = ["bzr", "fast-import-filter", "-i",
+           folder_to_split, fname_full_history]
+    open(fname_folder_history, "w").write(
+        misc.run_output(cmd, cwd=bzr_branch))
 
     # Make new branch
-    path_folder_split = os.path.join(bzr_branch_splitted, folder_to_split)
+    path_folder_split = os.path.join(bzr_branch_splitted,
+                                     folder_to_split + '_to_join')
     misc.mkdirs(path_folder_split)
     cmd = ['bzr', 'init']
     misc.run_output(cmd, cwd=path_folder_split)
@@ -37,11 +41,32 @@ for folder_to_split in folders_to_split:
     cmd = ['bzr', 'fast-import', fname_folder_history]
     misc.run_output(cmd, cwd=path_folder_split)
 
-    # Fixing join error more info here https://answers.launchpad.net/bzr/+question/71563
-    bzrlib.workingtree.WorkingTree.open(path_folder_split).set_root_id("tree_root_" + folder_to_split)
+    # Fixing join error more info here
+    #   https://answers.launchpad.net/bzr/+question/71563
+    bzrlib.workingtree.WorkingTree.open(path_folder_split).\
+        set_root_id("tree_root_" + folder_to_split)
 
     # Run join command
-    cmd = ['bzr', 'join', folder_to_split]
+    cmd = ['bzr', 'join', path_folder_split]
     misc.run_output(cmd, cwd=bzr_branch_splitted)
 
-sys.stdout.write('Now you can check next branch: ' + bzr_branch_splitted)
+    # Commit of join
+    cmd = ['bzr', 'commit', '-m', 'Join commit']
+    misc.run_output(cmd, cwd=bzr_branch_splitted)
+
+    # Move joinned folder to root path
+    cmd = ['bzr', 'mv',
+           os.path.join(path_folder_split, folder_to_split),
+           bzr_branch_splitted]
+    misc.run(cmd)
+
+    # Remove unused path
+    cmd = ['bzr', 'rm', path_folder_split]
+    misc.run(cmd)
+
+    # Commit of mv
+    cmd = ['bzr', 'commit', '-m', 'Move to root path']
+    misc.run_output(cmd, cwd=bzr_branch_splitted)
+
+sys.stdout.write('Now you can check next branch: ' +
+                 bzr_branch_splitted + '\n')
