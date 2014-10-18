@@ -1,6 +1,8 @@
 # Install 2to3 and copy this file to ../lib2to3/fixes/fix_imports_odoo.py
 # And later run 
 #   $2to3 --fix=imports_odoo --no-diffs -w .
+# Check this step with:
+#   $2to3 --list-fixes | grep odoo
 """Fix incompatible imports and module references of odoo."""
 from . import fix_imports
 
