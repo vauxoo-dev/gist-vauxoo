@@ -3,6 +3,8 @@ import os
 import sys
 builds_path = sys.argv[1]
 
+raw_input("You will delete all folder from [%s] path. Are you sure?.\n Press any key to continue"%(builds_path))
+
 for build_path in os.listdir(builds_path):
  if os.path.isdir(build_path):
   for item in os.listdir(build_path):
