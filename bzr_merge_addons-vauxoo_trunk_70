@@ -1,0 +1,20 @@
+# Merge basic
+cd ../addons-vauxoo/trunk
+bzr merge lp:addons-vauxoo/7.0
+
+# Revert translate files. Translation
+####bzr revert ./*/i18n/*.po
+
+# Revert modules deprecated and deleted
+# TODO: Create a new script py with this sentence
+bzr revert m321_customization/ 
+bzr revert m321_reports/
+bzr revert openacademy/
+bzr revert account_periods_initial/
+bzr revert ifrs_report/
+bzr revert bzr_to_task/
+bzr revert ir_values_menu/
+bzr revert portal_crm_vauxoo/
+bzr revert web_captcha/
+rm -rf m321_customization/ m321_reports/ openacademy/ account_periods_initial/ ifrs_report/ ir_values_menu/ bzr_to_task/ portal_crm_vauxoo/ web_captcha/
+
