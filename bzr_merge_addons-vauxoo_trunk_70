@@ -3,7 +3,7 @@ cd ../addons-vauxoo/trunk
 bzr merge lp:addons-vauxoo/7.0
 
 # Revert translate files. Translation
-####bzr revert ./*/i18n/*.po
+####bzr revert ./*/i18n/*.po # In this case we don't use double translation
 
 # Revert modules deprecated and deleted
 # TODO: Create a new script py with this sentence
