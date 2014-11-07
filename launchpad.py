@@ -66,6 +66,7 @@ class LP(object):
         unique_name = unique_name.startswith("lp:") and \
             unique_name.replace("lp:", "") or unique_name
         if os.path.isdir(os.path.join(repo_path, '.bzr')):
+            #  TODO: Add bzr break-lock --force
             rc = run(["bzr", "pull", "lp:%s" % unique_name, "--quiet", "--remember", "--overwrite", "-d", repo_path])
         else:
             mkdirs([repo_path])
