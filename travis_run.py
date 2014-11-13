@@ -3,15 +3,21 @@ import yaml
 import re
 import logging
 import stat
+import sys
 
 _logger = logging.getLogger(__name__)
 
 #MAIN_REPO_URL = "https://github.com/odoo-mexico/odoo-mexico.git"
 #MAIN_REPO_URL = "https://github.com/OCA/sale-financial.git"
-MAIN_REPO_URL = "git@github.com:OCA/OCB.git"
-MAIN_BRANCH = "7.0"
-MAIN_REPO_URL = "git@github.com:hbrunn/OCB.git"
-MAIN_BRANCH = "7.0_lp1340813"
+#MAIN_REPO_URL = "git@github.com:OCA/OCB.git"
+#MAIN_BRANCH = "7.0"
+#MAIN_REPO_URL = "git@github.com:hbrunn/OCB.git"
+#MAIN_BRANCH = "7.0_lp1340813"
+#MAIN_REPO_URL, MAIN_BRANCH = "https://github.com/odoo-mexico/odoo-mexico.git", "master"
+#MAIN_REPO_URL, MAIN_BRANCH = "git@github.com:OCA/maintainer-quality-tools.git", "master"
+#MAIN_REPO_URL, MAIN_BRANCH = "git@github.com:vauxoo-dev/maintainer-quality-tools.git", "master-add-custom-check-moylop260"
+
+MAIN_REPO_URL, MAIN_BRANCH = sys.argv[1], sys.argv[2]
 
 #export TRAVIS_HOME=/tmp/home/travis/build
 #export TRAVIS_HOME=/tmp/home
@@ -19,7 +25,8 @@ MAIN_BRANCH = "7.0_lp1340813"
 if not os.getenv('TRAVIS_HOME'):
     os.environ['HOME'] = os.getcwd()
 else:
-    os.environ['HOME'] = os.getenv('TRAVIS_HOME')
+    os.environ['HOME'] = os.getenv(
+        'TRAVIS_HOME')
 
 def log(*l, **kw):
     out = [i if isinstance(i, basestring) else repr(i) for i in l] + \
