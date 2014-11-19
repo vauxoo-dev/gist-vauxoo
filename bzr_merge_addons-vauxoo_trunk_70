@@ -18,3 +18,5 @@ bzr revert portal_crm_vauxoo/
 bzr revert web_captcha/
 rm -rf m321_customization/ m321_reports/ openacademy/ account_periods_initial/ ifrs_report/ ir_values_menu/ bzr_to_task/ portal_crm_vauxoo/ web_captcha/
 
+# Re-Verificar que todos hayan sido resueltos
+rgrep "<<<" . --exclude-dir=.git* --binary-files=without-match # Debe de devolver nada.
