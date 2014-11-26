@@ -74,13 +74,29 @@ os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
 if not os.path.isdir( os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git') ):
     run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR'], '-b', MAIN_BRANCH, '--depth', '1'])
 
+
+def get_env_to_export(environ):
+    export_str = ""
+    for key, value in environ.iteritems():
+        value = value or ''
+        if value.startswith('"')\
+           and value.endswith('"'):
+            value = value.strip('"')
+        if value.startswith("'")\
+           and value.endswith("'"):
+            value = value.strip("'")
+        if value and key:
+            value = '"' + value.replace('"', '\\"') + '"'
+            export_str += 'export %s=%s\n' % (key, value)
+    return export_str
+
+
 def run_travis_section(sections, travis_data, hidden_cmds=None):
     if hidden_cmds is None:
         hidden_cmds = []
     fname_sh = '_'.join(sections) + '_cmd.sh'
     with open(fname_sh, "w") as finstall:
-        for key, value in env.iteritems():
-            finstall.write('export %s="%s"\n'%(key, value ))
+        finstall.write(get_env_to_export(env))
         for section in sections:
             scripts = travis_data.get(section, [])
             scripts_filter = []
