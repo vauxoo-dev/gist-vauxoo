@@ -7,26 +7,6 @@ import sys
 
 _logger = logging.getLogger(__name__)
 
-#MAIN_REPO_URL = "https://github.com/odoo-mexico/odoo-mexico.git"
-#MAIN_REPO_URL = "https://github.com/OCA/sale-financial.git"
-#MAIN_REPO_URL = "git@github.com:OCA/OCB.git"
-#MAIN_BRANCH = "7.0"
-#MAIN_REPO_URL = "git@github.com:hbrunn/OCB.git"
-#MAIN_BRANCH = "7.0_lp1340813"
-#MAIN_REPO_URL, MAIN_BRANCH = "https://github.com/odoo-mexico/odoo-mexico.git", "master"
-#MAIN_REPO_URL, MAIN_BRANCH = "git@github.com:OCA/maintainer-quality-tools.git", "master"
-#MAIN_REPO_URL, MAIN_BRANCH = "git@github.com:vauxoo-dev/maintainer-quality-tools.git", "master-add-custom-check-moylop260"
-
-MAIN_REPO_URL, MAIN_BRANCH = sys.argv[1], sys.argv[2]
-
-#export TRAVIS_HOME=/tmp/home/travis/build
-#export TRAVIS_HOME=/tmp/home
-
-if not os.getenv('TRAVIS_HOME'):
-    os.environ['HOME'] = os.getcwd()
-else:
-    os.environ['HOME'] = os.getenv(
-        'TRAVIS_HOME')
 
 def log(*l, **kw):
     out = [i if isinstance(i, basestring) else repr(i) for i in l] + \
@@ -54,6 +34,31 @@ def run(l, env=None):
     log("run", rc=rc)
     return rc
 
+
+fname_travis_yml = os.path.join(
+        os.environ.get('TRAVIS_BUILD_DIR', ''), '.travis.yml')
+if not os.path.isfile(fname_travis_yml):
+    MAIN_REPO_URL, MAIN_BRANCH = sys.argv[1], sys.argv[2]
+    url_regex = "(?P<host>(git@|https://)([\w\.@]+)(/|:))(?P<owner>[\w,\-,\_]+)/(?P<repo>[\w,\-,\_]+)(.git){0,1}((/){0,1})"
+    match_object = re.search( url_regex, MAIN_REPO_URL )
+    os.environ['TRAVIS_BUILD_DIR'] = os.path.join( os.getenv('HOME'), 'travis', 'build', match_object.group("owner"), match_object.group("repo") )
+    if not os.path.isdir( os.environ['TRAVIS_BUILD_DIR'] ):
+        #print "*******************mkdir ", os.environ['TRAVIS_BUILD_DIR']
+        os.makedirs( os.environ['TRAVIS_BUILD_DIR'] )
+    fname_travis_yml = os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.travis.yml')
+    if not os.path.isdir( os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git') ):
+        run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR'], '-b', MAIN_BRANCH, '--depth', '1'])
+os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
+
+#export TRAVIS_HOME=/tmp/home/travis/build
+#export TRAVIS_HOME=/tmp/home
+
+if not os.getenv('TRAVIS_HOME'):
+    os.environ['HOME'] = os.getcwd()
+else:
+    os.environ['HOME'] = os.getenv(
+        'TRAVIS_HOME')
+
 enviroment_regex_str = "(?P<var>[\w]*)[ ]*[\=][ ]*[\"\']{0,1}(?P<value>[\w\.\-\_/]*)[\"\']{0,1}"
 #v1 https://www.debuggex.com/r/IkYbAthaCr2IEGr3
 #v2 https://www.debuggex.com/r/PfnMHBP75q0f31pz
@@ -61,18 +66,7 @@ enviroment_regex_str = "(?P<var>[\w]*)[ ]*[\=][ ]*[\"\']{0,1}(?P<value>[\w\.\-\_
 #v4 https://www.debuggex.com/r/x1oxs9LDfuW-d8AF
 enviroment_regex = re.compile(enviroment_regex_str, re.M)
 
-url_regex = "(?P<host>(git@|https://)([\w\.@]+)(/|:))(?P<owner>[\w,\-,\_]+)/(?P<repo>[\w,\-,\_]+)(.git){0,1}((/){0,1})"
-match_object = re.search( url_regex, MAIN_REPO_URL )
-
-os.environ['TRAVIS_BUILD_DIR'] = os.path.join( os.getenv('HOME'), 'travis', 'build', match_object.group("owner"), match_object.group("repo") )
-if not os.path.isdir( os.environ['TRAVIS_BUILD_DIR'] ):
-    #print "*******************mkdir ", os.environ['TRAVIS_BUILD_DIR']
-    os.makedirs( os.environ['TRAVIS_BUILD_DIR'] )
-os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
-
 #import pdb;pdb.set_trace()
-if not os.path.isdir( os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git') ):
-    run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR'], '-b', MAIN_BRANCH, '--depth', '1'])
 
 
 def get_env_to_export(environ):
@@ -111,7 +105,6 @@ def run_travis_section(sections, travis_data, hidden_cmds=None):
 hidden_cmds = []
 #hidden_cmds = ["travis_install_nightly", "travis_install_mx_nightly", "git clone", "wget "]#second time not download all
 
-fname_travis_yml = os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.travis.yml')
 if os.path.isfile( fname_travis_yml ):
     with open(fname_travis_yml, "r") as f_travis_yml:
         travis_data = yaml.load( f_travis_yml )
