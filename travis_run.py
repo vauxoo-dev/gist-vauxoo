@@ -13,6 +13,7 @@ def log(*l, **kw):
           ["%s=%r" % (k, v) for k, v in kw.items()]
     _logger.debug(' '.join(out))
 
+
 def run(l, env=None):
     """Run a command described by l in environment env"""
     log("run", l)
