@@ -49,7 +49,8 @@ if not os.path.isfile(fname_travis_yml):
     fname_travis_yml = os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.travis.yml')
     if not os.path.isdir( os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git') ):
         run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR'], '-b', MAIN_BRANCH, '--depth', '1'])
-os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
+if os.path.isdir(os.environ['TRAVIS_BUILD_DIR']):
+    os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
 
 #export TRAVIS_HOME=/tmp/home/travis/build
 #export TRAVIS_HOME=/tmp/home
