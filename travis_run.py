@@ -49,7 +49,7 @@ if not os.path.isfile(fname_travis_yml):
     fname_travis_yml = os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.travis.yml')
     if not os.path.isdir( os.path.join(os.environ['TRAVIS_BUILD_DIR'], '.git') ):
         run(['git', 'clone', MAIN_REPO_URL, os.environ['TRAVIS_BUILD_DIR'], '-b', MAIN_BRANCH, '--depth', '1'])
-if os.path.isdir(os.environ['TRAVIS_BUILD_DIR']):
+if os.path.isdir(os.environ.get('TRAVIS_BUILD_DIR', '')):
     os.chdir( os.environ['TRAVIS_BUILD_DIR'] )
 
 #export TRAVIS_HOME=/tmp/home/travis/build
@@ -118,6 +118,9 @@ if os.path.isfile( fname_travis_yml ):
                 pass
             env = os.environ
             for var, value in  enviroment_regex.findall( t_env ):
-                env[ var ] = value
+                if var in os.environ:
+                    env[ var ] = os.environ[var]
+                else:
+                    env[ var ] = value
             run_travis_section(['install', 'script'], travis_data, hidden_cmds=hidden_cmds)
             break#only first time for now. TODO: pyenv
