@@ -10,17 +10,20 @@ def search_non_ascii_char(dir_path):
             if fext in ['.py,', '.xml']:
 	        fname_path = os.path.join(dirname, filename)
 		count_newline = 1
+		count_col = 0
 		with open(fname_path) as fin:
 		    while True:
     			c = fin.read(1)
     			if not c:
       			    #print "End of file"
       			    break
+			count_col += 1
 			if c == '\n':
 				count_newline += 1
+				count_col = 0
 			if c not in string.printable:
-			    print "file", fname_path, "has a non-ascii char", [c], "lineno", count_newline
-			    #break
+			    print "%s:%d:%d %s" %( fname_path, count_newline, count_col, [c])
+			    fin.read(1) # Non-ascii char use 2 chars
 
 def main():
     search_non_ascii_char(sys.argv[1])
