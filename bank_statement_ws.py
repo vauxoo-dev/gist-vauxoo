@@ -4,7 +4,7 @@ import time
 import csv
 import argparse
 import base64
- 
+
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument("-d", "--db", help="DataBase Name", required=True)
 PARSER.add_argument("-r", "--user", help="OpenERP User", required=True)
@@ -12,37 +12,37 @@ PARSER.add_argument("-w", "--passwd", help="OpenERP Password", required=True)
 PARSER.add_argument("-p", "--port",
                     type=int,
                     help="Port, 8069 for default", default="8069")
-PARSER.add_argument("-b", "--st", type=str,
-                    help="Bank Statement Lines. Comma separate", required=True)
 PARSER.add_argument("-s", "--server",
                     help="Server IP, 127.0.0.1 for default",
                     default="127.0.0.1")
 ARGS = PARSER.parse_args()
- 
+
 if ARGS.db is None or ARGS.user is None or ARGS.passwd is None:
     print "Must be specified DataBase, User and Password"
     quit()
- 
-BANK_ST_LINES = map(int, ARGS.st.split(','))
+
+BANK_ST_LINE = [404, 400, 399, 398, 397, 350, 253, 247, 117, 35, 36, 29, 25, 261, 56, 51]
 DB_NAME = ARGS.db
 USER = ARGS.user
 PASSW = ARGS.passwd
 SERVER = ARGS.server
 PORT = ARGS.port
- 
+
 OERP_CONNECT = oerplib.OERP(SERVER,
                             database=DB_NAME,
                             protocol='xmlrpc', port=PORT)
- 
+
 UID_CONF = OERP_CONNECT.login(USER, PASSW)
- 
+
 # ID de account bank statement line
 # Editar vista agregando campo "id" para obtener el valor
-st_lines = OERP_CONNECT.browse('account.bank.statement.line', BANK_ST_LINES)
- 
-move_bank_statement = []
+for bank_line in BANK_ST_LINE:
+    print bank_line
+    st_line = OERP_CONNECT.browse('account.bank.statement.line', bank_line)
 
-for st_line in st_lines:
+    print st_line,"wwwwwwwwwwwwwwwww"
+    move_bank_statement = []
+
     for move_line_id in st_line.journal_entry_id.line_id:
         if move_line_id.reconcile_id:
             for move_reconcile in move_line_id.reconcile_id.line_id:
@@ -56,7 +56,8 @@ for st_line in st_lines:
                         'counterpart_move_line_id': move_reconcile.id,
                         'credit': move_reconcile.debit,
                         'debit': move_reconcile.credit,
-                        'name': move_reconcile.ref})
+                        'name': move_reconcile.name})
+
     # Al ejecutarse esta funcion desconcilia los movimientos que gurdamos en
     # @move_bank_statement tambien elimina la poliza
     # Se pone en un try la funcion por que hay un "bug" con oerplib cuando
@@ -68,7 +69,7 @@ for st_line in st_lines:
             [st_line.id])
     except:
         print "Error en return de metodo cancel"
-     
+
     # Ejecuta el proceso de conciliacion de bank statement
     # Mismo "Bug" la funcion no tiene "Return" por eso esta en un try
     try:
