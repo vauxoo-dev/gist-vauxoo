@@ -12,8 +12,8 @@ PARSER.add_argument("-w", "--passwd", help="OpenERP Password", required=True)
 PARSER.add_argument("-p", "--port",
                     type=int,
                     help="Port, 8069 for default", default="8069")
-PARSER.add_argument("-b", "--st", type=int, help="Bank Statement Line",
-                    required=True)
+PARSER.add_argument("-b", "--st", type=str,
+                    help="Bank Statement Lines. Comma separate", required=True)
 PARSER.add_argument("-s", "--server",
                     help="Server IP, 127.0.0.1 for default",
                     default="127.0.0.1")
@@ -23,7 +23,7 @@ if ARGS.db is None or ARGS.user is None or ARGS.passwd is None:
     print "Must be specified DataBase, User and Password"
     quit()
  
-BANK_ST_LINE = ARGS.st
+BANK_ST_LINES = map(int, ARGS.st.split(','))
 DB_NAME = ARGS.db
 USER = ARGS.user
 PASSW = ARGS.passwd
@@ -38,43 +38,44 @@ UID_CONF = OERP_CONNECT.login(USER, PASSW)
  
 # ID de account bank statement line
 # Editar vista agregando campo "id" para obtener el valor
-st_line = OERP_CONNECT.browse('account.bank.statement.line', BANK_ST_LINE)
+st_lines = OERP_CONNECT.browse('account.bank.statement.line', BANK_ST_LINES)
  
 move_bank_statement = []
- 
-for move_line_id in st_line.journal_entry_id.line_id:
-    if move_line_id.reconcile_id:
-        for move_reconcile in move_line_id.reconcile_id.line_id:
-            if move_line_id.id != move_reconcile.id:
-                # Creamos tipo de diccionario para que pueda ser procesado
-                # por la funcion que hace la conciliacion(pago)
-                # Funcion process_reconciliation
-                # Donde @counterpart_move_line_id es aml de provicion(factura)
-                # credit/debit la cantidad que se esta pagando
-                move_bank_statement.append({
-                    'counterpart_move_line_id': move_reconcile.id,
-                    'credit': move_reconcile.debit,
-                    'debit': move_reconcile.credit,
-                    'name': move_reconcile.ref})
-# Al ejecutarse esta funcion desconcilia los movimientos que gurdamos en
-# @move_bank_statement tambien elimina la poliza
-# Se pone en un try la funcion por que hay un "bug" con oerplib cuando
-# la funcion no tiene "Return" marca error el webservices.
-try:
-    OERP_CONNECT.execute(
-        'account.bank.statement.line',
-        'cancel',
-        [st_line.id])
-except:
-    print "Error en return de metodo cancel"
- 
-# Ejecuta el proceso de conciliacion de bank statement
-# Mismo "Bug" la funcion no tiene "Return" por eso esta en un try
-try:
-    OERP_CONNECT.execute(
-        'account.bank.statement.line',
-        'process_reconciliation',
-        st_line.id,
-        move_bank_statement)
-except:
-    print "Error en return de metodo process_reconciliation"
+
+for st_line in st_lines:
+    for move_line_id in st_line.journal_entry_id.line_id:
+        if move_line_id.reconcile_id:
+            for move_reconcile in move_line_id.reconcile_id.line_id:
+                if move_line_id.id != move_reconcile.id:
+                    # Creamos tipo de diccionario para que pueda ser procesado
+                    # por la funcion que hace la conciliacion(pago)
+                    # Funcion process_reconciliation
+                    # Donde @counterpart_move_line_id es aml de provicion(factura)
+                    # credit/debit la cantidad que se esta pagando
+                    move_bank_statement.append({
+                        'counterpart_move_line_id': move_reconcile.id,
+                        'credit': move_reconcile.debit,
+                        'debit': move_reconcile.credit,
+                        'name': move_reconcile.ref})
+    # Al ejecutarse esta funcion desconcilia los movimientos que gurdamos en
+    # @move_bank_statement tambien elimina la poliza
+    # Se pone en un try la funcion por que hay un "bug" con oerplib cuando
+    # la funcion no tiene "Return" marca error el webservices.
+    try:
+        OERP_CONNECT.execute(
+            'account.bank.statement.line',
+            'cancel',
+            [st_line.id])
+    except:
+        print "Error en return de metodo cancel"
+     
+    # Ejecuta el proceso de conciliacion de bank statement
+    # Mismo "Bug" la funcion no tiene "Return" por eso esta en un try
+    try:
+        OERP_CONNECT.execute(
+            'account.bank.statement.line',
+            'process_reconciliation',
+            st_line.id,
+            move_bank_statement)
+    except:
+        print "Error en return de metodo process_reconciliation"
