@@ -21,7 +21,8 @@ if ARGS.db is None or ARGS.user is None or ARGS.passwd is None:
     print "Must be specified DataBase, User and Password"
     quit()
 
-BANK_ST_LINE = [404, 400, 399, 398, 397, 350, 253, 247, 117, 35, 36, 29, 25, 261, 56, 51]
+BANK_ST_LINE = [404, 400, 399, 398, 397, 350, 253, 247, 117, 35, 36, 29, 25, 261, 56, 51, 112, 114, 118, 115]
+#BANK_ST_LINE = [112]
 DB_NAME = ARGS.db
 USER = ARGS.user
 PASSW = ARGS.passwd
@@ -56,7 +57,7 @@ for bank_line in BANK_ST_LINE:
                         'counterpart_move_line_id': move_reconcile.id,
                         'credit': move_reconcile.debit,
                         'debit': move_reconcile.credit,
-                        'name': move_reconcile.name})
+                        'name': move_reconcile.ref})
 
     # Al ejecutarse esta funcion desconcilia los movimientos que gurdamos en
     # @move_bank_statement tambien elimina la poliza
