@@ -57,7 +57,7 @@ for bank_line in BANK_ST_LINE:
                         'counterpart_move_line_id': move_reconcile.id,
                         'credit': move_reconcile.debit,
                         'debit': move_reconcile.credit,
-                        'name': move_reconcile.ref})
+                        'name': move_line_id.name})
 
     # Al ejecutarse esta funcion desconcilia los movimientos que gurdamos en
     # @move_bank_statement tambien elimina la poliza
