@@ -3,7 +3,7 @@
 import oerplib
 import logging
 import datetime
-import argparse
+import click
 
 import psycopg2
 _logger = logging.getLogger(__name__)
@@ -26,42 +26,45 @@ _logger = logging.getLogger(__name__)
               help='Port of Postgres')
 @click.option('-dh', default='localhost', prompt='Database Host',
               help='Host of Postgres')
+def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
+    conect = oerplib.OERP('localhost', port=pod)
+    conect.login(user=uo, passwd=po, database=dbo)
+    conp = psycopg2.connect("dbname='{dn}' user='{du}' host='{dh}' "
+                            "password='{dp}' port={dpo}".format(dn=dbo,
+                                                                du=du,
+                                                                dh=dh,
+                                                                dp=dp,
+                                                                dpo=dpo))
 
+    product_ids = conect.search(
+        'product.product', [('valuation', '=', 'real_time')])
+    move_ids = conect.search(
+        'stock.move', [
+            ('product_id', 'in', product_ids),
+            ('picking_id', '!=', False),
+            ('state', '=', 'done')])
+    pick_ids = []
+    for move in conect.read('stock.move', move_ids, ['date', 'picking_id']):
+        if move.get('picking_id')[0] in pick_ids:
+            continue
+        else:
+            pick_ids.append(move.get('picking_id')[0])
+        date_move = datetime.datetime.strptime(
+            str(move.get('date')), '%Y-%m-%d %H:%M:%S').date().strftime(
+            '%Y-%m-%d')
+        account_period_obj = conect.get('account.period')
+        period_date = account_period_obj.find(dt=date_move, context={})
+        acc_m_ids = conect.search(
+            'account.move', [
+                ('ref', '=', move.get('picking_id')[1]),
+                ('period_id', '!=', period_date[0])
+            ])
+        for acc_mv in acc_m_ids:
+            cr = conp.cursor()
+            cr.execute("""UPDATE account_move
+                          SET period_id={pid}, date='{dte}'
+                          WHERE id={amid}""".format(
+                pid=period_date[0], dte=date_move, amid=acc_mv))
 
-conect = oerplib.OERP('localhost', port=pod)
-conect.login(user=uo, passwd=po, database=dbo)
-conp = psycopg2.connect("dbname='{dn}' user='{du}' host='{dh}' "
-                        "password='{dp}' port={dpo}".format(dn=dbo,
-                                                            du=du,
-                                                            dh=dh,
-                                                            dp=dp,
-                                                            dpo=dpo))
-
-product_ids = conect.search(
-    'product.product', [('valuation', '=', 'real_time')])
-move_ids = conect.search(
-    'stock.move', [
-        ('product_id', 'in', product_ids),
-        ('picking_id', '!=', False),
-        ('state', '=', 'done')])
-pick_ids = []
-for move in conect.read('stock.move', move_ids, ['date', 'picking_id']):
-    if move.get('picking_id')[0] in pick_ids:
-        continue
-    else:
-        pick_ids.append(move.get('picking_id')[0])
-    date_move = datetime.datetime.strptime(
-        str(move.get('date')), '%Y-%m-%d %H:%M:%S').date().strftime('%Y-%m-%d')
-    account_period_obj = conect.get('account.period')
-    period_date = account_period_obj.find(dt=date_move, context={})
-    acc_m_ids = conect.search(
-        'account.move', [
-            ('ref', '=', move.get('picking_id')[1]),
-            ('period_id', '!=', period_date[0])
-        ])
-    for acc_mv in acc_m_ids:
-        cr = conp.cursor()
-        cr.execute("""UPDATE account_move
-                      SET period_id={pid}, date='{dte}'
-                      WHERE id={amid}""".format(
-            pid=period_date[0], dte=date_move, amid=acc_mv))
+if __name__ == '__main__':
+    change_aml()
