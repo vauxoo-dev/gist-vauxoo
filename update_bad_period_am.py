@@ -18,9 +18,9 @@ _logger = logging.getLogger(__name__)
 @click.option('-dbo', default='test', prompt='Database Odoo', help='DB Name')
 @click.option('-uo', default='admin', prompt='User Odoo', help='User of odoo')
 @click.option('-pod', default=8069, prompt='Port Odoo', help='Port of Odoo')
-@click.option('-du', default='josemorales', prompt='Database User',
+@click.option('-du', default='admin', prompt='Database User',
               help='Name of database user')
-@click.option('-dp', default='Karate.8', prompt='Database Password',
+@click.option('-dp', default='1234', prompt='Database Password',
               help='Password of database user')
 @click.option('-dpo', default=5432, prompt='Database Port',
               help='Port of Postgres')
