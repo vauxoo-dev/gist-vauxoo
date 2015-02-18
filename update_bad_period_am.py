@@ -65,6 +65,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
                           SET period_id={pid}, date='{dte}'
                           WHERE id={amid}""".format(
                 pid=period_date[0], dte=date_move, amid=acc_mv))
+    conp.commit()
 
 if __name__ == '__main__':
     change_aml()
