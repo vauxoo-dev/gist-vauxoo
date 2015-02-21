@@ -4,6 +4,7 @@ import oerplib
 import logging
 import datetime
 import click
+import csv
 
 import psycopg2
 _logger = logging.getLogger(__name__)
@@ -44,6 +45,8 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
             ('picking_id', '!=', False),
             ('state', '=', 'done')])
     pick_ids = []
+    file_new = open('/tmp/moves_changeds.csv', 'wb')
+    file_new.write('id, name, date, period\n')
     for move in conect.read('stock.move', move_ids, ['date', 'picking_id']):
         if move.get('picking_id')[0] in pick_ids:
             continue
@@ -59,12 +62,20 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
                 ('ref', '=', move.get('picking_id')[1]),
                 ('period_id', '!=', period_date[0])
             ])
-        for acc_mv in acc_m_ids:
+        for acc_mv in conect.browse('account.move', acc_m_ids):
             cr = conp.cursor()
             cr.execute("""UPDATE account_move
                           SET period_id={pid}, date='{dte}'
                           WHERE id={amid}""".format(
-                pid=period_date[0], dte=date_move, amid=acc_mv))
+                pid=period_date[0], dte=date_move, amid=acc_mv.id))
+            for line in acc_mv.line_id:
+                cr.execute("""UPDATE account_move_line
+                          SET period_id={pid}, date='{dte}'
+                          WHERE id={amlid}""".format(
+                    pid=period_date[0], dte=date_move, amlid=line.id))
+            file_new.write('%s, %s, %s, %s\n' % (
+                acc_mv.id, acc_mv.name, acc_mv.date, acc_mv.period_id.id or ''))
+    file_new.close()
     conp.commit()
 
 if __name__ == '__main__':
