@@ -21,7 +21,7 @@ if ARGS.db is None or ARGS.user is None or ARGS.passwd is None:
     print "Must be specified DataBase, User and Password"
     quit()
 
-BANK_ST_LINE = [404, 400, 399, 398, 397, 350, 253, 247, 117, 35, 36, 29, 25, 261, 56, 51, 112, 114, 118, 115]
+BANK_ST_LINE = [640, 1285, 1291, 1292, 1293, 1294, 785, 920, 797, 928, 675, 676, 677, 678, 940, 941, 688, 1203, 1339, 1312, 1220, 726, 734, 611, 742, 746, 631, 639]
 #BANK_ST_LINE = [112]
 DB_NAME = ARGS.db
 USER = ARGS.user
