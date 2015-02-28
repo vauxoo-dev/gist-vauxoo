@@ -61,7 +61,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
         acc_m_ids = conect.search(
             'account.move', [
                 ('ref', '=', move.get('picking_id')[1]),
-                ('period_id', '==', period_date[0])
+                ('period_id', '=', period_date[0])
             ])
         if period_state == "done" and acc_m_ids:
             account_period_obj.action_draft(period_date)
