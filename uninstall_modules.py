@@ -1,3 +1,20 @@
+#!/usr/bin/python
+import oerplib
+import os
+import sys
+
+HOST= ''
+PORT= 
+DB= ''
+USER= ''
+PASS= ''
+
+con = oerplib.OERP(
+server=HOST,
+database=DB,
+port=PORT,
+)
+
 con.login(USER, PASS)
 ids = []
 modules = [
