@@ -59,4 +59,5 @@ for name in modules:
             print 'No se pudo desinstalar el modulo', name
             st_ids = con.search('ir.module.module', [
                 ('state', '=', 'to install')])
-            con.write('ir.module.module', st_ids, {'state': 'uninstalled'})
+        
+        print con.read('ir.module.module', [id], ['state'])[0].get('state')
