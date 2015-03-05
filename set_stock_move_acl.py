@@ -66,10 +66,9 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
         if period_state == "done" and acc_m_ids:
             account_period_obj.action_draft(period_date)
         for acc_mv in conect.browse('account.move', acc_m_ids):
-            for line in acc_mv.line_id:
-                conect.write("account.move.line", line.id, {'sm_id': move.get("id")})
-                file_new.write('%s, %s, %s\n' % (
-                     str(line.id), line.name.encode('ascii', 'xmlcharrefreplace'), str(move.get("id")) or ''))
+            conect.write("account.move.line", acc_mv.line_id.ids, {'sm_id': move.get("id")})
+            file_new.write('%s, %s\n' % (
+                 str(acc_mv.line_id.ids), str(move.get("id")) or ''))
         if period_state == "done":
             wizard_period_close_id = conect.create('account.period.close', {'sure': 1})
             conect.execute('account.period.close', 'data_save', [wizard_period_close_id], {
