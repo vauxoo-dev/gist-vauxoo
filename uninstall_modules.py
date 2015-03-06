@@ -46,6 +46,15 @@ modules = [
     "hr_payslip_validation_home_address",
     "l10n_mx_data_bank",
 ]
+
+attachment_mx_ids_before = con.search('ir.attachment.facturae.mx', [])
+invoice_ids_before = con.search('account.invoice', [])
+account_ids_before = con.search('account.account', [])
+sale_order_ids_before = con.search('sale.order', [])
+pickins_ids_before = con.search('stock.picking', [])
+stock_moves_ids_before = con.search('stock.move', [])
+account_bank_statement_ids_before = con.search('account.bank.statement', [])
+
 for name in modules:
     ids = con.search('ir.module.module', [('name', '=', name),
                                           ('state', '=', 'installed')])
@@ -59,5 +68,22 @@ for name in modules:
             print 'No se pudo desinstalar el modulo', name
             st_ids = con.search('ir.module.module', [
                 ('state', '=', 'to install')])
-        
         print con.read('ir.module.module', [id], ['state'])[0].get('state')
+
+attachment_mx_ids_after = con.search('ir.attachment.facturae.mx', [])
+invoice_ids_after = con.search('account.invoice', [])
+account_ids_after = con.search('account.account', [])
+sale_order_ids_after = con.search('sale.order', [])
+pickins_ids_after = con.search('stock.picking', [])
+stock_moves_ids_after = con.search('stock.move', [])
+account_bank_statement_ids_after = con.search('account.bank.statement', [])
+
+print "**************************RESULTS************************************"
+print 'Atta MX before:',len(attachment_mx_ids_before),' after:',len(attachment_mx_ids_after)
+print 'Invoice before:',len(invoice_ids_before),' after:',len(invoice_ids_after)
+print 'Account before:',len(account_ids_before),' after:',len(account_ids_after)
+print 'Sale orders before:',len(sale_order_ids_before),' after:',len(sale_order_ids_after)
+print 'Pickings before:',len(pickins_ids_before),' after:',len(pickins_ids_after)
+print 'Stock moves before:',len(stock_moves_ids_before),' after:',len(stock_moves_ids_after)
+print 'Bank Statement before:',len(account_bank_statement_ids_before),' after:',len(account_bank_statement_ids_after)
+print "******************************************************************"
