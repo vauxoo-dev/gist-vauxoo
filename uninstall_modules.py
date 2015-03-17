@@ -28,7 +28,6 @@ modules = [
     "hr_expense_replenishment_tax",
     "hr_expense_replenishment",
     "hr_expense_analytic",
-    "account_move_report",
     "account_invoice_line_currency",
     "l10n_mx_facturae_pac_sf",
     "l10n_mx_payroll_base",
