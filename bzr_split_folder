@@ -6,6 +6,10 @@ import os
 import bzrlib.workingtree
 import sys
 
+# To run this script:
+# python bzr_split_folder path_file_bzr_to_made_git name_module
+# Sample
+# python bzr_split_folder /User/myUser/Instancia/6.1/addons/oml2 l10n_mx_facturae
 bzr_branch = sys.argv[1]
 folders_to_split = sys.argv[2].split(',')
 

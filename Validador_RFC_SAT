@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+#   sudo apt-get install python-soappy
+#   sudo pip install pillow qrcode
+#   wget http://security.ubuntu.com/ubuntu/pool/main/s/suds/python-suds_0.4.1-2ubuntu1_all.deb
+#   sudo dpkg -i python-suds_0.4.1-2ubuntu1_all.deb
+#####################################################################
+#  MAC
+#  sudo pip install soappy
+#  https://pypi.python.org/pypi/suds  descomprimir sudo python setup.py install
+#
+ 
+from suds.client import Client
+url = 'https://consultaqr.facturaelectronica.sat.gob.mx/ConsultaCFDIService.svc?wsdl'
+client = Client(url)
+ 
+RFCEMISOR = 'tuRFC'
+RFCRECEPTOR = 'RFCPartner'
+TOTAL = 'Total de la factura'  # 0000002320.000000
+UUID = 'UUDI'
+ 
+V1 = client.service.Consulta(
+    """"?re=%s&amp;rr=%s&amp;tt=%s&amp;id=%s""" %
+    (RFCEMISOR, RFCRECEPTOR, TOTAL, UUID))
+ 
+print V1.CodigoEstatus
+print V1.Estado
+ 
+print "---------------"
