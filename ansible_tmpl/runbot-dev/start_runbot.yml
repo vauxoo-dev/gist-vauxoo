@@ -1,0 +1,50 @@
+- hosts: local
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Check keys folder permissions
+      file:
+        path: "{{ data_folder }}/data/shared_ssh"
+        state: directory
+        group: "staff"
+        owner: "moylop260"
+        mode: 0700
+        recurse: yes
+      sudo: no
+
+    - name: Check logs folder permissions
+      file:
+        path: "{{ data_folder }}/data/logs"
+        state: directory
+        group: "staff"
+        owner: "moylop260"
+        recurse: yes
+      sudo: no
+
+    - name: Check static files folder permissions
+      file:
+        path: "{{ data_folder }}/data/static"
+        state: directory
+        group: "staff"
+        owner: "moylop260"
+        recurse: yes
+      sudo: no
+
+    - name: Start a new runbot conatiner
+      docker: 
+        image: "{{ runbot_image_name }}"
+        name: "{{ runbot_name }}"
+        command: "/entry_point.py" 
+        hostname: "{{ runbot_hostname }}"
+        ports: 
+          - "{{ odoo_mapped_port }}:8072"
+          - "{{ nginx_mapped_port }}:8080"
+        env: "DB_HOST={{ db_server }},DBFILTER={{ db_filter }},DB_NAME={{ db_name }},WITHOUT_DEMO=False,ODOO_CONFIG_FILE={{ odoo_config_file }}"
+        volumes:
+          - "{{ data_folder }}/data/shared_ssh:/home/runbot/.ssh" 
+          - "{{ data_folder }}/data/logs:/var/log/supervisor" 
+          - "{{ data_folder }}/data/static:/home/runbot/instance/extra_addons/odoo-extra/runbot/static"
+        docker_url: "{{ docker_host }}"
+
+

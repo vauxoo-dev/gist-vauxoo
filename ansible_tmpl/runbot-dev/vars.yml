@@ -1,0 +1,16 @@
+runbot_image_name: quay.io/vauxoo/runbot-dev
+runbot_name: runbot-developer2
+runbot_hostname: "boot2docker"
+
+odoo_mapped_port: 38069
+nginx_mapped_port: 38080
+odoo_config_file: "/home/runbot/odoo_runbot.conf"
+
+db_server: "192.168.59.3"
+db_filter: runbot*
+db_name: runbot
+
+# Folder where the volumes info will be stored
+data_folder: "/Users/moylop260/runbot-static" 
+
+docker_host: "{{ lookup('env','DOCKER_HOST') }}"
