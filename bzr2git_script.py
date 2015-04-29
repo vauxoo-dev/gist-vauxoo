@@ -13,6 +13,9 @@ Config = ConfigParser.ConfigParser()
 [bzr2git_conf]
 full_global_path_branches = /Users/moylop260/openerp/bzr2git/oml6
 bzr_branches = [("trunk", "lp:~openerp-mexico-maintainer/openerp-mexico-localization/trunk"), ("7.0", "lp:~openerp-mexico-maintainer/openerp-mexico-localization/7.0"),]
+
+Dependency:
+apt-get install bzr-fastimport
 """
 
 current_path = os.path.realpath(os.path.join(os.path.dirname(__file__)))
