@@ -1,5 +1,7 @@
 import itertools
+import os
 import re
+import stat
 import types
 import yaml
 
@@ -48,6 +50,11 @@ class travis(object):
                 docker_env += "\nexport %s=%s" % (var, value)
             yield docker_env
 
+    def get_default_cmd(self):
+        cmd = "\nexport TRAVIS_BUILD_DIR=/root/myproject" + \
+              "\ngit clone --single-branch git@github.com:Vauxoo/odoo-mexico-v2.git -b ${VERSION} ${TRAVIS_BUILD_DIR}"
+        return cmd
+
     def get_travis2docker(self):
         travis2docker_cmd_static_str = ""
         travis2docker_cmd_iter_list = []
@@ -61,22 +68,25 @@ class travis(object):
                 travis2docker_cmd_static_str += travis2docker_section + "\n"
         count = 1
         for item in itertools.product(*travis2docker_cmd_iter_list):
-            with open(
-                self.fname_dockerfile + str(count) + ".sh", "w"
-            ) as fdockerfile:
+            fname = self.fname_dockerfile + str(count) + ".sh"
+            with open(fname, "w") as fdockerfile:
                 fdockerfile.write(
                     item[0] + "\n" +
+                    self.get_default_cmd() + "\n" +
                     # extra environment variables if you split section
                     #   in many files cmd
                     # self.extra_env_from_run + "\n" +
                     travis2docker_cmd_static_str
                 )
+            st = os.stat(fname)
+            os.chmod(fname, st.st_mode | stat.S_IEXEC)
             count += 1
 
 
 if __name__ == '__main__':
     FNAME_TRAVIS_YML2 = "/Users/moylop260/openerp/instancias/" + \
-        "odoo_git_clone/community-addons/yoytec/.travis.yml"
-    FNAME_DOCKERFILE2 = "/tmp/borrar/cmd.sh"
+        "odoo_git_clone/community-addons/odoo-mexico-v2/.travis.yml"
+    FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
     TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2)
     TRAVIS_OBJ.get_travis2docker()
+    #  docker run -it -v ~/.ssh:/root/.ssh -v ./borrar:~/root/borrar
