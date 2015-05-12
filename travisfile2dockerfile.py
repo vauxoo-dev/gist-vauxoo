@@ -6,12 +6,19 @@ import types
 import yaml
 
 
+# TODO: Change name of class and variables to cmd
 class travis(object):
 
     def __init__(self, fname_travis_yml, fname_dockerfile):
+        """
+        Method Constructor
+        @fname_travis_yml: str name of file travis.yml to use.
+        @fname_dockerfile: str name of file dockerfile to save.
+        """
         f_travis_yml = open(fname_travis_yml, "r")
         self.travis_data = yaml.load(f_travis_yml)
         self.travis2docker_section = [
+            ('python', 'python'),
             ('env', 'env'),
             ('install', 'run'),
             ('script', 'run'),
@@ -29,7 +36,7 @@ class travis(object):
         section_type = self.travis2docker_section_dict.get(section, False)
         if not section_type:
             return None
-        section_data = self.travis_data[section]
+        section_data = self.travis_data.get(section, "")
         if isinstance(section_data, basestring):
             section_data = [section_data]
         job_method = getattr(self, 'get_travis2docker_' + section_type)
@@ -50,12 +57,16 @@ class travis(object):
                 docker_env += "\nexport %s=%s" % (var, value)
             yield docker_env
 
+    def get_travis2docker_python(self, section_data):
+        for line in section_data:
+            yield "# TODO: Use python version: " + line
+
     def get_default_cmd(self):
         cmd = "\nexport TRAVIS_BUILD_DIR=/root/myproject" + \
-              "\ngit clone --single-branch git@github.com:Vauxoo/odoo-mexico-v2.git -b ${VERSION} ${TRAVIS_BUILD_DIR}"
+              "\ngit clone --single-branch git@github.com:Vauxoo/vauxoo-applicant.git -b master ${TRAVIS_BUILD_DIR}"
         return cmd
 
-    def get_travis2docker(self):
+    def get_travis2docker_iter(self):
         travis2docker_cmd_static_str = ""
         travis2docker_cmd_iter_list = []
         for travis_section, dummy in self.travis2docker_section:
@@ -66,27 +77,31 @@ class travis(object):
                 ])
             elif isinstance(travis2docker_section, basestring):
                 travis2docker_cmd_static_str += travis2docker_section + "\n"
-        count = 1
         for item in itertools.product(*travis2docker_cmd_iter_list):
+            yield item[0] + "\n" + \
+                self.get_default_cmd() + "\n" + \
+                travis2docker_cmd_static_str
+            # extra environment variables if you split section
+            #   in many files cmd
+            # self.extra_env_from_run + "\n" + \
+
+    def get_travis2docker(self):
+        count = 1
+        for cmd in self.get_travis2docker_iter():
             fname = self.fname_dockerfile + str(count) + ".sh"
             with open(fname, "w") as fdockerfile:
-                fdockerfile.write(
-                    item[0] + "\n" +
-                    self.get_default_cmd() + "\n" +
-                    # extra environment variables if you split section
-                    #   in many files cmd
-                    # self.extra_env_from_run + "\n" +
-                    travis2docker_cmd_static_str
-                )
+                fdockerfile.write(cmd)
             st = os.stat(fname)
             os.chmod(fname, st.st_mode | stat.S_IEXEC)
             count += 1
 
 
 if __name__ == '__main__':
+    # TODO: Use options to get this params
     FNAME_TRAVIS_YML2 = "/Users/moylop260/openerp/instancias/" + \
-        "odoo_git_clone/community-addons/odoo-mexico-v2/.travis.yml"
+        "odoo_git_clone/community-addons/vauxoo-applicant/.travis.yml"
     FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
     TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2)
     TRAVIS_OBJ.get_travis2docker()
-    #  docker run -it -v ~/.ssh:/root/.ssh -v ./borrar:~/root/borrar
+    #print "docker run -it --name=borrar70 -v ~/borrar:/root/borrar -v ~/.ssh:/root/.ssh -v %s:/root/myproject vauxoo/odoo-80-image-shippable-auto /bin/sh -c /root/borrar/cmd.sh"%(FNAME_TRAVIS_YML2)
+
