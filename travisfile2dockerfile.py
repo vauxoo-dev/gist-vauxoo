@@ -45,9 +45,11 @@ class travis(object):
     def get_travis2docker_run(self, section_data):
         docker_run = ''
         for line in section_data:
-            for dummy, dummy, var, value in self.export_regex.findall(line):
+            export_regex_findall = self.export_regex.findall(line)
+            for dummy, dummy, var, value in export_regex_findall:
                 self.extra_env_from_run += "\nexport %s=%s" % (var, value)
-            docker_run += '\n' + line
+            if not export_regex_findall:
+                docker_run += '\n' + line
         return docker_run
 
     def get_travis2docker_env(self, section_data):
@@ -77,13 +79,11 @@ class travis(object):
                 ])
             elif isinstance(travis2docker_section, basestring):
                 travis2docker_cmd_static_str += travis2docker_section + "\n"
-        for item in itertools.product(*travis2docker_cmd_iter_list):
-            yield item[0] + "\n" + \
+        for combination in itertools.product(*travis2docker_cmd_iter_list):
+            yield '\n'.join(combination) + "\n" + \
                 self.get_default_cmd() + "\n" + \
+                self.extra_env_from_run  + "\n" + \
                 travis2docker_cmd_static_str
-            # extra environment variables if you split section
-            #   in many files cmd
-            # self.extra_env_from_run + "\n" + \
 
     def get_travis2docker(self):
         count = 1
@@ -99,9 +99,13 @@ class travis(object):
 if __name__ == '__main__':
     # TODO: Use options to get this params
     FNAME_TRAVIS_YML2 = "/Users/moylop260/openerp/instancias/" + \
-        "odoo_git_clone/community-addons/vauxoo-applicant/.travis.yml"
+        "odoo_git_clone/community-addons/" + \
+        "odoo-mexico-v2" + \
+        "/.travis.yml"
+        #"vauxoo-applicant" + \
     FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
     TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2)
     TRAVIS_OBJ.get_travis2docker()
     #print "docker run -it --name=borrar70 -v ~/borrar:/root/borrar -v ~/.ssh:/root/.ssh -v %s:/root/myproject vauxoo/odoo-80-image-shippable-auto /bin/sh -c /root/borrar/cmd.sh"%(FNAME_TRAVIS_YML2)
 
+    
