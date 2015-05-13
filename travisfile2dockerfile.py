@@ -73,7 +73,7 @@ class travis(object):
                 self.extra_env_from_run += "%s=%s " % (var, value)
             if not export_regex_findall:
                 if self.command_format == 'bash':
-                    docker_run += '\n' + line
+                    docker_run += '\n' + self.extra_env_from_run + line
                 elif self.command_format == 'docker':
                     docker_run += '\nRUN ' + self.extra_env_from_run + line
         return docker_run
@@ -174,5 +174,5 @@ if __name__ == '__main__':
         "odoo-mexico-v2" + \
         "/.travis.yml"
     FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
-    TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2, 'docker', 'shippable')
+    TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2, 'bash', 'shippable')
     TRAVIS_OBJ.get_travis2docker()
