@@ -19,7 +19,7 @@ def mkdirs(dirs):
 class travis(object):
 
     def __init__(self, fname_travis_yml, fname_dockerfile,
-                 command_format='bash'):
+                 command_format='bash', docker_user=None):
         """
         Method Constructor
         @fname_travis_yml: str name of file travis.yml to use.
@@ -46,6 +46,7 @@ class travis(object):
         self.export_regex = re.compile(export_regex_str, re.M)
         self.extra_env_from_run = ""
         self.command_format = command_format
+        self.docker_user = docker_user or 'root'
 
     def get_travis_section(self, section):
         section_type = self.travis2docker_section_dict.get(section, False)
@@ -99,15 +100,13 @@ class travis(object):
             yield "# TODO: Use python version: " + line
 
     def get_default_cmd(self, dockerfile_path):
-        # user = 'root'
-        user = 'shippable'
-        home_user_path = user == 'root' and "/root" \
-            or os.path.join("/home", user)
+        home_user_path = self.docker_user == 'root' and "/root" \
+            or os.path.join("/home", self.docker_user)
         project, branch = "git@github.com:Vauxoo/odoo-mexico-v2.git", "8.0"
         travis_build_dir = os.path.join(home_user_path, "myproject")
         if self.command_format == 'bash':
-            cmd = "\nsudo - su " + user + \
-                  "\nsudo chown -R %s:%s %s" % (user, user, home_user_path) + \
+            cmd = "\nsudo - su " + self.docker_user + \
+                  "\nsudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
                   "\nexport TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\ngit clone --single-branch %s -b %s " % (project, branch) + \
                   "${TRAVIS_BUILD_DIR}"
@@ -120,10 +119,10 @@ class travis(object):
                     os.path.join(dkr_files_path, 'ssh')
                 )
             cmd = 'FROM ' + self.travis_data.get('build_image', "") + \
-                  '\nUSER ' + user + \
+                  '\nUSER ' + self.docker_user + \
                   '\nADD ' + os.path.join("files", 'ssh') + ' ' + \
                   os.path.join(home_user_path, '.ssh') + \
-                  "\nRUN sudo chown -R %s:%s %s" % (user, user, home_user_path) + \
+                  "\nRUN sudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
                   "\nWORKDIR " + home_user_path + \
                   "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\nRUN git clone --single-branch %s -b %s " % (project, branch) + \
@@ -175,5 +174,5 @@ if __name__ == '__main__':
         "odoo-mexico-v2" + \
         "/.travis.yml"
     FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
-    TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2, 'docker')
+    TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2, 'docker', 'shippable')
     TRAVIS_OBJ.get_travis2docker()
