@@ -48,6 +48,27 @@ class travis(object):
         self.command_format = command_format
         self.docker_user = docker_user or 'root'
 
+    # def get_travis_type(self, repo_git):
+    #     self.repo_git_type = None
+    #     if os.path.isdir(repo_git):
+    #         self.repo_git_type = 'localpath'
+    #     elif os.path.isfile(repo_git):
+    #         self.repo_git_type = 'file'
+    #     else:
+    #         regex = r"(?P<host>(git@|https://)([\w\.@]+)(/|:))" \
+    #                  r"(?P<owner>[~\w,\-,\_]+)/" \
+    #                  r"(?P<repo>[\w,\-,\_]+)(.git){0,1}((/){0,1})"
+    #         match_object = re.search(regex, repo_git)
+    #         if match_object:
+    #             self.repo_git_type = 'remote'
+
+    # def get_travis_data(self, repo_git, branch=None):
+    #     self.get_travis_type(repo_git)
+    #     if self.repo_git_type == 'remote':
+    #         if branch is None:
+    #             raise "You need specify branch name with remote repository"
+    #         "git show 8.0:.travis.yml"
+
     def get_travis_section(self, section):
         section_type = self.travis2docker_section_dict.get(section, False)
         if not section_type:
@@ -97,7 +118,7 @@ class travis(object):
 
     def get_travis2docker_python(self, section_data):
         for line in section_data:
-            yield "# TODO: Use python version: " + line
+            yield "\n# TODO: Use python version: " + line
 
     def get_default_cmd(self, dockerfile_path):
         home_user_path = self.docker_user == 'root' and "/root" \
@@ -105,7 +126,7 @@ class travis(object):
         project, branch = "git@github.com:Vauxoo/odoo-mexico-v2.git", "8.0"
         travis_build_dir = os.path.join(home_user_path, "myproject")
         if self.command_format == 'bash':
-            cmd = "\nsudo - su " + self.docker_user + \
+            cmd = "\nsudo su - " + self.docker_user + \
                   "\nsudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
                   "\nexport TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\ngit clone --single-branch %s -b %s " % (project, branch) + \
@@ -156,6 +177,7 @@ class travis(object):
             mkdirs(fname)
             if self.command_format == 'bash':
                 fname = os.path.join(fname, 'script.sh')
+                cmd = self.get_default_cmd(os.path.dirname(fname)) + cmd
             elif self.command_format == 'docker':
                 fname = os.path.join(fname, 'Dockerfile')
                 cmd = self.get_default_cmd(os.path.dirname(fname)) + cmd
@@ -174,5 +196,9 @@ if __name__ == '__main__':
         "odoo-mexico-v2" + \
         "/.travis.yml"
     FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
-    TRAVIS_OBJ = travis(FNAME_TRAVIS_YML2, FNAME_DOCKERFILE2, 'bash', 'shippable')
+    TRAVIS_OBJ = travis(
+        FNAME_TRAVIS_YML2,
+        FNAME_DOCKERFILE2,
+        'bash',
+        'shippable')
     TRAVIS_OBJ.get_travis2docker()
