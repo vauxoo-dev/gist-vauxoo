@@ -1,35 +1,101 @@
 import itertools
 import os
 import re
-import stat
 import shutil
+import stat
+import subprocess
 import types
+from tempfile import gettempdir
+
 import yaml
 
 
-def mkdirs(dirs):
-    if isinstance(dirs, basestring) or isinstance(dirs, str):
-        dirs = [dirs]
-    for directory in dirs:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+class git(object):
+
+    def __init__(self, repo_git, path):
+        self.repo_git = repo_git
+        self.path = path
+
+    def run(self, cmd):
+        """Execute git command in bash"""
+        cmd = ['git', '--git-dir=%s' % self.path] + cmd
+        # print "cmd", ' '.join(cmd)
+        try:
+            return subprocess.check_output(cmd)
+        except BaseException:
+            return None
+
+    def update(self):
+        """Get a repository git or update it"""
+        if not os.path.isdir(os.path.join(self.path)):
+            os.makedirs(self.path)
+        if not os.path.isdir(os.path.join(self.path, 'refs')):
+            subprocess.check_output([
+                'git', 'clone', '--bare', self.repo_git, self.path
+            ])
+        self.run(['gc', '--auto', '--prune=all'])
+        self.run(['fetch', '-p', 'origin', '+refs/heads/*:refs/heads/*'])
+        self.run(['fetch', '-p', 'origin', '+refs/pull/*/head:refs/pull/*'])
+
+    def show_file(self, git_file, sha):
+        result = self.run(["show", "%s:%s" % (sha, git_file)])
+        return result
 
 
 # TODO: Change name of class and variables to cmd
 class travis(object):
 
-    def __init__(self, fname_travis_yml, fname_dockerfile,
-                 command_format='bash', docker_user=None):
+    def load_travis_file(self, branch):
+        self.git_obj.update()
+        yaml_loaded = None
+        for fname in ['.travis.yml', '.shippable.yml']:
+            yaml_str = self.git_obj.show_file(fname, branch)
+            try:
+                yaml_loaded = yaml.load(yaml_str)
+                break
+            except AttributeError:
+                pass
+        return yaml_loaded
+
+    def get_folder_name(self, name):
+        for invalid_char in '@:/':
+            name = name.replace(invalid_char, '_')
+        return name
+
+    def get_repo_path(self, root_path):
+        name = self.get_folder_name(self.git_project)
+        repo_path = os.path.join(root_path, 'repo', name)
+        return repo_path
+
+    def get_script_path(self, root_path):
+        name = self.get_folder_name(self.git_project)
+        script_path = os.path.join(
+            root_path, 'script',
+            name, self.get_folder_name(self.git_sha))
+        return script_path
+
+    def __init__(self, git_project, git_sha,
+                 command_format='docker', docker_user=None,
+                 git_root_path=None, scripts_root_path=None):
         """
         Method Constructor
-        @fname_travis_yml: str name of file travis.yml to use.
         @fname_dockerfile: str name of file dockerfile to save.
         @format_cmd: str name of format of command.
                      bash: Make a bash script.
                      docker: Make a dockerfile script.
         """
-        f_travis_yml = open(fname_travis_yml, "r")
-        self.travis_data = yaml.load(f_travis_yml)
+        if git_root_path is None:
+            git_root_path = gettempdir()
+        self.git_project = git_project
+        self.git_sha = git_sha
+        git_path = self.get_repo_path(git_root_path)
+        self.git_obj = git(git_project, git_path)
+        self.travis_data = self.load_travis_file(git_sha)
+        if not self.travis_data:
+            raise Exception(
+                "No yaml file loaded in %s of %s" % (
+                    git_sha, git_project)
+            )
         self.travis2docker_section = [
             # ('build_image', 'build_image'),
             ('python', 'python'),
@@ -38,7 +104,10 @@ class travis(object):
             ('script', 'script'),
         ]
         self.travis2docker_section_dict = dict(self.travis2docker_section)
-        self.fname_dockerfile = fname_dockerfile
+        if scripts_root_path is None:
+            self.scripts_root_path = self.get_script_path(git_root_path)
+        else:
+            self.scripts_root_path = scripts_root_path
         env_regex_str = r"(?P<var>[\w]*)[ ]*[\=][ ]*[\"\']{0,1}" + \
             r"(?P<value>[\w\.\-\_/\$\{\}\:]*)[\"\']{0,1}"
         export_regex_str = r"(?P<export>export|EXPORT)( )+" + env_regex_str
@@ -123,17 +192,19 @@ class travis(object):
     def get_default_cmd(self, dockerfile_path):
         home_user_path = self.docker_user == 'root' and "/root" \
             or os.path.join("/home", self.docker_user)
-        project, branch = "git@github.com:Vauxoo/odoo-mexico-v2.git", "8.0"
+        project, branch = self.git_project, self.git_sha
         travis_build_dir = os.path.join(home_user_path, "myproject")
         if self.command_format == 'bash':
             cmd = "\nsudo su - " + self.docker_user + \
                   "\nsudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
                   "\nexport TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\ngit clone --single-branch %s -b %s " % (project, branch) + \
-                  "${TRAVIS_BUILD_DIR}"
+                  "${TRAVIS_BUILD_DIR}" + \
+                  "\n"
         elif self.command_format == 'docker':
             dkr_files_path = os.path.join(dockerfile_path, "files")
-            mkdirs(dkr_files_path)
+            if not os.path.exists(dkr_files_path):
+                os.makedirs(dkr_files_path)
             if not os.path.exists(os.path.join(dkr_files_path, 'ssh')):
                 shutil.copytree(
                     os.path.expanduser("~/.ssh"),
@@ -169,12 +240,14 @@ class travis(object):
 
     def get_travis2docker(self):
         count = 1
+        fname_scripts = []
         for cmd in self.get_travis2docker_iter():
             fname = os.path.join(
-                os.path.dirname(self.fname_dockerfile),
+                self.scripts_root_path,
                 str(count)
             )
-            mkdirs(fname)
+            if not os.path.exists(fname):
+                os.makedirs(fname)
             if self.command_format == 'bash':
                 fname = os.path.join(fname, 'script.sh')
                 cmd = self.get_default_cmd(os.path.dirname(fname)) + cmd
@@ -187,18 +260,17 @@ class travis(object):
                 st = os.stat(fname)
                 os.chmod(fname, st.st_mode | stat.S_IEXEC)
             count += 1
+            fname_scripts.append(fname)
+        return fname_scripts
 
 
 if __name__ == '__main__':
     # TODO: Use options to get this params
-    FNAME_TRAVIS_YML2 = "/Users/moylop260/openerp/instancias/" + \
-        "odoo_git_clone/community-addons/" + \
-        "odoo-mexico-v2" + \
-        "/.travis.yml"
-    FNAME_DOCKERFILE2 = "./borrar/cmd.sh"
+    GIT_REPO = "git@github.com:Vauxoo/odoo-mexico-v2.git"
+    SHA_OR_BRANCH = "pull/171"
     TRAVIS_OBJ = travis(
-        FNAME_TRAVIS_YML2,
-        FNAME_DOCKERFILE2,
-        'bash',
-        'shippable')
-    TRAVIS_OBJ.get_travis2docker()
+        GIT_REPO,
+        SHA_OR_BRANCH,
+    )
+    FNAME_SCRIPTS = TRAVIS_OBJ.get_travis2docker()
+    print ' '.join(FNAME_SCRIPTS)  # pylint: disable=E1601
