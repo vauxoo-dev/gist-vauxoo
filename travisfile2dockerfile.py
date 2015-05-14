@@ -96,8 +96,8 @@ class travis(object):
         self.revision = revision
         git_path = self.get_repo_path(git_root_path)
         self.git_obj = git(git_project, git_path)
-        self.sha = self.git_obj.get_sha(revision)
         self.travis_data = self.load_travis_file(revision)
+        self.sha = self.git_obj.get_sha(revision)
         if not self.travis_data:
             raise Exception(
                 "No yaml file loaded in %s of %s" % (
@@ -300,8 +300,6 @@ class travis(object):
                 st = os.stat(fname_build)
                 os.chmod(fname_build, st.st_mode | stat.S_IEXEC)
             if fname_run:
-                image_name = self.get_folder_name(self.git_project) + \
-                    ":" + self.get_folder_name(self.revision)
                 with open(fname_run, "w") as fbuild:
                     fbuild.write(
                         "docker run -itP %s" % (
