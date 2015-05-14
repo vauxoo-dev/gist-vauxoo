@@ -43,6 +43,10 @@ class git(object):
         result = self.run(["show", "%s:%s" % (sha, git_file)])
         return result
 
+    def get_sha(self, revision):
+        result = self.run(["rev-parse", revision])
+        return result
+
 
 # TODO: Change name of class and variables to cmd
 class travis(object):
@@ -73,10 +77,10 @@ class travis(object):
         name = self.get_folder_name(self.git_project)
         script_path = os.path.join(
             root_path, 'script',
-            name, self.get_folder_name(self.git_sha))
+            name, self.get_folder_name(self.revision))
         return script_path
 
-    def __init__(self, git_project, git_sha,
+    def __init__(self, git_project, revision,
                  command_format='docker', docker_user=None,
                  git_root_path=None, scripts_root_path=None):
         """
@@ -89,14 +93,15 @@ class travis(object):
         if git_root_path is None:
             git_root_path = gettempdir()
         self.git_project = git_project
-        self.git_sha = git_sha
+        self.revision = revision
         git_path = self.get_repo_path(git_root_path)
         self.git_obj = git(git_project, git_path)
-        self.travis_data = self.load_travis_file(git_sha)
+        self.sha = self.git_obj.get_sha(revision)
+        self.travis_data = self.load_travis_file(revision)
         if not self.travis_data:
             raise Exception(
                 "No yaml file loaded in %s of %s" % (
-                    git_sha, git_project)
+                    revision, git_project)
             )
         self.travis2docker_section = [
             # ('build_image', 'build_image'),
@@ -194,7 +199,7 @@ class travis(object):
     def get_default_cmd(self, dockerfile_path):
         home_user_path = self.docker_user == 'root' and "/root" \
             or os.path.join("/home", self.docker_user)
-        project, branch = self.git_project, self.git_sha
+        project, branch = self.git_project, self.revision
         travis_build_dir = os.path.join(home_user_path, "myproject")
         if self.command_format == 'bash':
             cmd = "\nsudo su - " + self.docker_user + \
@@ -248,6 +253,8 @@ class travis(object):
                 self.scripts_root_path,
                 str(count)
             )
+            fname_build = None
+            fname_run = None
             if not os.path.exists(fname):
                 os.makedirs(fname)
             if self.command_format == 'bash':
@@ -256,13 +263,49 @@ class travis(object):
             elif self.command_format == 'docker':
                 fname = os.path.join(fname, 'Dockerfile')
                 cmd = self.get_default_cmd(os.path.dirname(fname)) + cmd
+                fname_build = os.path.join(
+                    os.path.dirname(fname), '10-build.sh'
+                )
+                fname_run = os.path.join(
+                    os.path.dirname(fname), '20-run.sh'
+                )
+                image_name = self.get_folder_name(self.git_project) + \
+                    ":" + self.get_folder_name(self.revision) + \
+                    "-b" + str(count)
+                    #"_" + self.sha + \
+            else:
+                raise Exception(
+                    "No command format found %s" % (self.command_format)
+                )
             with open(fname, "w") as fdockerfile:
                 fdockerfile.write(cmd)
+
+            if fname_build:
+                with open(fname_build, "w") as fbuild:
+                    fbuild.write(
+                        "docker build -t %s %s" % (
+                            image_name,
+                            os.path.dirname(fname)
+                        )
+                    )
+                st = os.stat(fname_build)
+                os.chmod(fname_build, st.st_mode | stat.S_IEXEC)
+            if fname_run:
+                image_name = self.get_folder_name(self.git_project) + \
+                    ":" + self.get_folder_name(self.revision)
+                with open(fname_run, "w") as fbuild:
+                    fbuild.write(
+                        "docker run -itP %s" % (
+                            image_name
+                        )
+                    )
+                st = os.stat(fname_run)
+                os.chmod(fname_run, st.st_mode | stat.S_IEXEC)
             if self.command_format == 'bash':
                 st = os.stat(fname)
                 os.chmod(fname, st.st_mode | stat.S_IEXEC)
             count += 1
-            fname_scripts.append(fname)
+            fname_scripts.append(os.path.dirname(fname))
         return fname_scripts
 
 
@@ -293,4 +336,8 @@ def main():
 
 if __name__ == '__main__':
     FNAME_SCRIPTS = main()
-    stdout.write(' '.join(FNAME_SCRIPTS) + '\n')
+    stdout.write(
+        'Script generated: \n' +
+        '\n'.join(FNAME_SCRIPTS) +
+        '\n'
+    )
