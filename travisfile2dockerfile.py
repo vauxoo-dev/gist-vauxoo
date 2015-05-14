@@ -1,3 +1,4 @@
+import argparse
 import itertools
 import os
 import re
@@ -5,6 +6,7 @@ import shutil
 import stat
 import subprocess
 import types
+from sys import stdout
 from tempfile import gettempdir
 
 import yaml
@@ -264,13 +266,31 @@ class travis(object):
         return fname_scripts
 
 
-if __name__ == '__main__':
-    # TODO: Use options to get this params
-    GIT_REPO = "git@github.com:Vauxoo/odoo-mexico-v2.git"
-    SHA_OR_BRANCH = "pull/171"
-    TRAVIS_OBJ = travis(
-        GIT_REPO,
-        SHA_OR_BRANCH,
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "git_repo_url",
+        help="Specify repository git of work."
+             "\nThis is used to clone it "
+             "and get file .travis.yml or .shippable.yml",
     )
-    FNAME_SCRIPTS = TRAVIS_OBJ.get_travis2docker()
-    print ' '.join(FNAME_SCRIPTS)  # pylint: disable=E1601
+    parser.add_argument(
+        "git_revision",
+        help="Revision git of work."
+             "\nYou can use a sha e.g. b48228"
+             " or branch name e.g. master"
+             " or pull number e.g. pull/1",
+    )
+    args = parser.parse_args()
+    sha = args.git_revision
+    git_repo = args.git_repo_url
+    travis_obj = travis(
+        git_repo,
+        sha,
+    )
+    return travis_obj.get_travis2docker()
+
+
+if __name__ == '__main__':
+    FNAME_SCRIPTS = main()
+    stdout.write(' '.join(FNAME_SCRIPTS) + '\n')
