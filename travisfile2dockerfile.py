@@ -162,24 +162,33 @@ class travis(object):
     #             cmd_str = 'FROM ' + line
     #     return cmd_str
 
-    def get_travis2docker_run(self, section_data):
+    def get_travis2docker_run(self, section_data, custom_command_format=None):
+        if custom_command_format is None:
+            custom_command_format = self.command_format
         docker_run = ''
         for line in section_data:
             export_regex_findall = self.export_regex.findall(line)
             for dummy, dummy, var, value in export_regex_findall:
                 self.extra_env_from_run += "%s=%s " % (var, value)
             if not export_regex_findall:
-                if self.command_format == 'bash':
+                if custom_command_format == 'bash':
                     docker_run += '\n' + self.extra_env_from_run + line
-                elif self.command_format == 'docker':
+                elif custom_command_format == 'docker':
                     docker_run += '\nRUN ' + self.extra_env_from_run + line
         return docker_run
 
     def get_travis2docker_script(self, section_data):
-        cmd_str = self.get_travis2docker_run(section_data)
+        cmd_str = self.get_travis2docker_run(
+            section_data, custom_command_format='bash')
         if self.command_format == 'docker' and cmd_str:
-            cmd_str = cmd_str[0] + cmd_str[1:].replace('\nRUN ', ' && ')
-            cmd_str = cmd_str.replace('RUN ', 'ENTRYPOINT ')
+            cmd_str = '\\\n'.join(cmd_str.strip('\n').split('\n'))
+            cmd_str = 'RUN sudo touch /entrypoint.sh \\' + \
+                '\n    && sudo chown %s:%s /entrypoint.sh \\' % (
+                    self.docker_user, self.docker_user) + \
+                '\n    && echo """%s"""' % (cmd_str) + \
+                ' > /entrypoint.sh \\'  + \
+                '\n    && sudo chmod +x /entrypoint.sh'
+            cmd_str += '\nENTRYPOINT /entrypoint.sh'
         return cmd_str
 
     def get_travis2docker_env(self, section_data):
@@ -324,12 +333,21 @@ def main():
              " or branch name e.g. master"
              " or pull number e.g. pull/1",
     )
+    parser.add_argument(
+        '--docker-user', dest='docker_user',
+        help="User of work into dockerfile."
+             "\nBased on your docker image."
+             "\nDefault: root",
+        default='root'
+    )
     args = parser.parse_args()
     sha = args.git_revision
     git_repo = args.git_repo_url
+    docker_user = args.docker_user
     travis_obj = travis(
         git_repo,
         sha,
+        docker_user=docker_user
     )
     return travis_obj.get_travis2docker()
 
