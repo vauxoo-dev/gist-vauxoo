@@ -1,3 +1,29 @@
+# -*- encoding: utf-8 -*-
+###########################################################################
+#    Module Writen to OpenERP, Open Source Management Solution
+#
+#    Copyright (c) 2013 Vauxoo - http://www.vauxoo.com/
+#    All Rights Reserved.
+#    info Vauxoo (info@vauxoo.com)
+############################################################################
+#    Coded by: moylop260 (moylop260@vauxoo.com)
+############################################################################
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+
 import argparse
 import itertools
 import os
@@ -17,6 +43,16 @@ class git(object):
     def __init__(self, repo_git, path):
         self.repo_git = repo_git
         self.path = path
+        self.repo_git_regex = r"(?P<host>(git@|https://)([\w\.@]+)(/|:))" + \
+            r"(?P<owner>[~\w,\-,\_]+)/" + \
+            r"(?P<repo>[\w,\-,\_]+)(.git){0,1}((/){0,1})"
+        match_object = re.search(self.repo_git_regex, repo_git)
+        if match_object:
+            self.host = match_object.group("host")
+            self.owner = match_object.group("owner")
+            self.repo = match_object.group("repo")
+        else:
+            self.host, self.owner, self.repo = False, False, False
 
     def run(self, cmd):
         """Execute git command in bash"""
@@ -186,7 +222,7 @@ class travis(object):
                 '\n    && sudo chown %s:%s /entrypoint.sh \\' % (
                     self.docker_user, self.docker_user) + \
                 '\n    && echo """%s"""' % (cmd_str) + \
-                ' > /entrypoint.sh \\'  + \
+                ' > /entrypoint.sh \\' + \
                 '\n    && sudo chmod +x /entrypoint.sh'
             cmd_str += '\nENTRYPOINT /entrypoint.sh'
         return cmd_str
@@ -278,10 +314,9 @@ class travis(object):
                 fname_run = os.path.join(
                     os.path.dirname(fname), '20-run.sh'
                 )
-                image_name = self.get_folder_name(self.git_project) + \
-                    ":" + self.get_folder_name(self.revision) + \
-                    "-b" + str(count)
-                    #"_" + self.sha + \
+                image_name = self.git_obj.owner + '/' + \
+                    self.git_obj.repo + \
+                    ":" + self.get_folder_name(self.revision)
             else:
                 raise Exception(
                     "No command format found %s" % (self.command_format)
