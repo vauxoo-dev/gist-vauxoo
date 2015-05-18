@@ -118,7 +118,8 @@ class travis(object):
 
     def __init__(self, git_project, revision,
                  command_format='docker', docker_user=None,
-                 git_root_path=None, scripts_root_path=None):
+                 git_root_path=None, scripts_root_path=None,
+                 default_docker_image=None):
         """
         Method Constructor
         @fname_dockerfile: str name of file dockerfile to save.
@@ -128,6 +129,7 @@ class travis(object):
         """
         if git_root_path is None:
             git_root_path = gettempdir()
+        self.default_docker_image = default_docker_image
         self.git_project = git_project
         self.revision = revision
         git_path = self.get_repo_path(git_root_path)
@@ -262,7 +264,8 @@ class travis(object):
                     os.path.expanduser("~/.ssh"),
                     os.path.join(dkr_files_path, 'ssh')
                 )
-            cmd = 'FROM ' + self.travis_data.get('build_image', "") + \
+            cmd = 'FROM ' + (self.travis_data.get('build_image', False) or \
+                  self.default_docker_image) + \
                   '\nUSER ' + self.docker_user + \
                   '\nADD ' + os.path.join("files", 'ssh') + ' ' + \
                   os.path.join(home_user_path, '.ssh') + \
@@ -357,7 +360,10 @@ def main():
         "git_repo_url",
         help="Specify repository git of work."
              "\nThis is used to clone it "
-             "and get file .travis.yml or .shippable.yml",
+             "and get file .travis.yml or .shippable.yml"
+             "\nIf your repository is private, "
+             "don't use https url, "
+             "use ssh url",
     )
     parser.add_argument(
         "git_revision",
@@ -368,19 +374,29 @@ def main():
     )
     parser.add_argument(
         '--docker-user', dest='docker_user',
-        help="User of work into dockerfile."
+        help="User of work into Dockerfile."
              "\nBased on your docker image."
              "\nDefault: root",
         default='root'
+    )
+    parser.add_argument(
+        '--docker-image', dest='default_docker_image',
+        help="Docker image to use by default in Dockerfile."
+             "\nUse this parameter if don't "
+             "exists value: 'build_image: IMAGE_NAME' "
+             "in .travis.yml",
+        default='vauxoo/odoo-80-image-shippable-auto'
     )
     args = parser.parse_args()
     sha = args.git_revision
     git_repo = args.git_repo_url
     docker_user = args.docker_user
+    default_docker_image = args.default_docker_image
     travis_obj = travis(
         git_repo,
         sha,
-        docker_user=docker_user
+        docker_user=docker_user,
+        default_docker_image=default_docker_image,
     )
     return travis_obj.get_travis2docker()
 
