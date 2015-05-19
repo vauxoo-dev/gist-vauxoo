@@ -144,8 +144,9 @@ class travis(object):
         self.sha = self.git_obj.get_sha(revision)
         if not self.travis_data:
             raise Exception(
-                "No yaml file loaded in %s of %s" % (
-                    revision, git_project)
+                "Make sure you have access to repository"
+                " " + git_project + " and that the file .travis.yml"
+                " exists in branch or revision " + revision
             )
         self.travis2docker_section = [
             # ('build_image', 'build_image'),
