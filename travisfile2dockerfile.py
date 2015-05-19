@@ -118,8 +118,7 @@ class travis(object):
 
     def __init__(self, git_project, revision,
                  command_format='docker', docker_user=None,
-                 git_root_path=None, scripts_root_path=None,
-                 default_docker_image=None):
+                 root_path=None, default_docker_image=None):
         """
         Method Constructor
         @fname_dockerfile: str name of file dockerfile to save.
@@ -127,12 +126,19 @@ class travis(object):
                      bash: Make a bash script.
                      docker: Make a dockerfile script.
         """
-        if git_root_path is None:
-            git_root_path = gettempdir()
+        if root_path is None:
+            self.root_path = os.path.join(
+                gettempdir(),
+                os.path.splitext(os.path.basename(__file__))[0],
+            )
+        else:
+            self.root_path = os.path.expandvars(
+                os.path.expanduser(root_path)
+            )
         self.default_docker_image = default_docker_image
         self.git_project = git_project
         self.revision = revision
-        git_path = self.get_repo_path(git_root_path)
+        git_path = self.get_repo_path(self.root_path)
         self.git_obj = git(git_project, git_path)
         self.travis_data = self.load_travis_file(revision)
         self.sha = self.git_obj.get_sha(revision)
@@ -149,10 +155,7 @@ class travis(object):
             ('script', 'script'),
         ]
         self.travis2docker_section_dict = dict(self.travis2docker_section)
-        if scripts_root_path is None:
-            self.scripts_root_path = self.get_script_path(git_root_path)
-        else:
-            self.scripts_root_path = scripts_root_path
+        self.scripts_root_path = self.get_script_path(self.root_path)
         env_regex_str = r"(?P<var>[\w]*)[ ]*[\=][ ]*[\"\']{0,1}" + \
             r"(?P<value>[\w\.\-\_/\$\{\}\:]*)[\"\']{0,1}"
         export_regex_str = r"(?P<export>export|EXPORT)( )+" + env_regex_str
@@ -398,19 +401,28 @@ def main():
         help="Docker image to use by default in Dockerfile."
              "\nUse this parameter if don't "
              "exists value: 'build_image: IMAGE_NAME' "
-             "in .travis.yml",
+             "in .travis.yml"
+             "\nDefault: 'vauxoo/odoo-80-image-shippable-auto'",
         default='vauxoo/odoo-80-image-shippable-auto'
+    )
+    parser.add_argument(
+        '--root-path', dest='root_path',
+        help="Root path to save scripts generated."
+             "\nDefault: 'tmp' dir of your O.S.",
+        default=None,
     )
     args = parser.parse_args()
     sha = args.git_revision
     git_repo = args.git_repo_url
     docker_user = args.docker_user
+    root_path = args.root_path
     default_docker_image = args.default_docker_image
     travis_obj = travis(
         git_repo,
         sha,
         docker_user=docker_user,
         default_docker_image=default_docker_image,
+        root_path=root_path,
     )
     return travis_obj.get_travis2docker()
 
