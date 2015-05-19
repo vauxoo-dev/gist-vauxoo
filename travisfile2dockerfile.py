@@ -264,6 +264,20 @@ class travis(object):
                     os.path.expanduser("~/.ssh"),
                     os.path.join(dkr_files_path, 'ssh')
                 )
+            cmd_refs = 'pull' in self.revision and \
+                '+refs/%s/head:refs/%s' % (
+                    self.revision, self.revision) or \
+                 '+refs/heads/%s:refs/heads/%s' % (
+                    self.revision, self.revision)
+
+            # TODO: Use sha
+            cmd_git_clone = [
+                "git init ${TRAVIS_BUILD_DIR}",
+                "cd ${TRAVIS_BUILD_DIR}",
+                "git remote add origin " + project,
+                "git fetch -p origin %s" % (cmd_refs),
+                "git reset --hard " + self.revision,
+            ]
             cmd = 'FROM ' + (self.travis_data.get('build_image', False) or \
                   self.default_docker_image) + \
                   '\nUSER ' + self.docker_user + \
@@ -272,8 +286,7 @@ class travis(object):
                   "\nRUN sudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
                   "\nWORKDIR " + home_user_path + \
                   "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
-                  "\nRUN git clone --single-branch %s -b %s " % (project, branch) + \
-                  "${TRAVIS_BUILD_DIR}" + \
+                  "\nRUN " + ' \\\n    && '.join(cmd_git_clone) + \
                   "\n"
         return cmd
 
@@ -368,9 +381,10 @@ def main():
     parser.add_argument(
         "git_revision",
         help="Revision git of work."
-             "\nYou can use a sha e.g. b48228"
-             " or branch name e.g. master"
-             " or pull number e.g. pull/1",
+             "\nYou can use "
+             "branch name e.g. master or 8.0 "
+             "or pull number with 'pull/#' e.g. pull/1 "
+             "NOTE: A sha e.g. b48228 NOT IMPLEMENTED YET",
     )
     parser.add_argument(
         '--docker-user', dest='docker_user',
