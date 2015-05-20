@@ -54,6 +54,14 @@ class git(object):
         else:
             self.host, self.owner, self.repo = False, False, False
 
+    def get_config_data(self, field=None):
+        if field is None:
+            field = "-l"
+        res = self.run(["config", field])
+        if res:
+            res = res.strip("\n").strip()
+        return res
+
     def run(self, cmd):
         """Execute git command in bash"""
         cmd = ['git', '--git-dir=%s' % self.path] + cmd
@@ -282,12 +290,31 @@ class travis(object):
                 "git fetch -p origin %s" % (cmd_refs),
                 "git reset --hard " + self.revision,
             ]
+            git_user_email = self.git_obj.get_config_data("user.email")
+            if git_user_email:
+                cmd_git_clone.append(
+                    "git config --global user.email %s" %(git_user_email)
+                )
+            else:
+                cmd_git_clone.append(
+                    "git config --unset --global user.email"
+                )
+            git_user_name = self.git_obj.get_config_data("user.name")
+            if git_user_name:
+                cmd_git_clone.append(
+                    "git config --global user.name %s" %(git_user_name)
+                )
+            else:
+                cmd_git_clone.append(
+                    "git config --unset --global user.name"
+                )
             cmd = 'FROM ' + (self.travis_data.get('build_image', False) or \
                   self.default_docker_image) + \
                   '\nUSER ' + self.docker_user + \
                   '\nADD ' + os.path.join("files", 'ssh') + ' ' + \
                   os.path.join(home_user_path, '.ssh') + \
-                  "\nRUN sudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
+                  "\nRUN sudo chown -R %s:%s %s" % (
+                    self.docker_user, self.docker_user, home_user_path) + \
                   "\nWORKDIR " + home_user_path + \
                   "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\nRUN " + ' \\\n    && '.join(cmd_git_clone) + \
