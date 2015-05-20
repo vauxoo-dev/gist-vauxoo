@@ -293,7 +293,7 @@ class travis(object):
             git_user_email = self.git_obj.get_config_data("user.email")
             if git_user_email:
                 cmd_git_clone.append(
-                    "git config --global user.email %s" %(git_user_email)
+                    "git config --global user.email \"%s\"" %(git_user_email)
                 )
             else:
                 cmd_git_clone.append(
@@ -302,7 +302,7 @@ class travis(object):
             git_user_name = self.git_obj.get_config_data("user.name")
             if git_user_name:
                 cmd_git_clone.append(
-                    "git config --global user.name %s" %(git_user_name)
+                    "git config --global user.name \"%s\"" %(git_user_name)
                 )
             else:
                 cmd_git_clone.append(
@@ -364,6 +364,7 @@ class travis(object):
                 image_name = self.git_obj.owner + '/' + \
                     self.git_obj.repo + \
                     ":" + self.get_folder_name(self.revision)
+                image_name = image_name.lower()
             else:
                 raise Exception(
                     "No command format found %s" % (self.command_format)
