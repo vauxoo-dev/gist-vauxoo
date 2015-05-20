@@ -71,17 +71,38 @@ class git(object):
         except BaseException:
             return None
 
-    def update(self):
-        """Get a repository git or update it"""
+    def init(self):
         if not os.path.isdir(os.path.join(self.path)):
             os.makedirs(self.path)
         if not os.path.isdir(os.path.join(self.path, 'refs')):
-            subprocess.check_output([
-                'git', 'clone', '--bare', self.repo_git, self.path
-            ])
+            self.run(['init', '--bare'])
+            self.run(['remote', 'add', 'origin', self.repo_git])
+        return True
+
+
+    def update(self, revision=None):
+        """Get a repository git or update it"""
+        self.init()
         self.run(['gc', '--auto', '--prune=all'])
-        self.run(['fetch', '-p', 'origin', '+refs/heads/*:refs/heads/*'])
-        self.run(['fetch', '-p', 'origin', '+refs/pull/*/head:refs/pull/*'])
+        if revision is None:
+            # Get all head and pull refs
+            self.run([
+                'fetch', '-p', 'origin',
+                '+refs/heads/*:refs/heads/*'
+            ])
+            self.run([
+                'fetch', '-p', 'origin',
+                '+refs/pull/*/head:refs/pull/*'])
+        else:
+            # TODO: Work with sha case
+            refs = 'pull' in revision and \
+                '+refs/%s/head:refs/%s' % (
+                    revision, revision) or \
+                 '+refs/heads/%s:refs/heads/%s' % (
+                    revision, revision)
+            self.run([
+                'fetch', '-p', 'origin', refs
+            ])
 
     def show_file(self, git_file, sha):
         result = self.run(["show", "%s:%s" % (sha, git_file)])
@@ -96,7 +117,7 @@ class git(object):
 class travis(object):
 
     def load_travis_file(self, branch):
-        self.git_obj.update()
+        self.git_obj.update(branch)
         yaml_loaded = None
         for fname in ['.travis.yml', '.shippable.yml']:
             yaml_str = self.git_obj.show_file(fname, branch)
