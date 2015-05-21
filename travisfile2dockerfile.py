@@ -425,7 +425,13 @@ class travis(object):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Script to generate from a .travis.yml"
+            " to Dockerfile."
+            "\nTODO: Don't work with sha number"
+            "\nTODO: Don't work if you ~/.ssh/id_rsa use passphrase."
+            "\n  You can remove it with next script: ssh-keygen -p"
+    )
     parser.add_argument(
         "git_repo_url",
         help="Specify repository git of work."
