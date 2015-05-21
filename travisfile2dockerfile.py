@@ -427,7 +427,9 @@ class travis(object):
 def main():
     parser = argparse.ArgumentParser(
         description="Script to generate from a .travis.yml"
-            " to Dockerfile."
+            " to Dockerfile. This script will make .sh files too."
+            "\nYou can found it in folder of script."
+            " (show path in final execution) to execute it."
             "\nTODO: Don't work with sha number"
             "\nTODO: Don't work if you ~/.ssh/id_rsa use passphrase."
             "\n  You can remove it with next script: ssh-keygen -p"
