@@ -239,9 +239,13 @@ class travis(object):
         docker_run = ''
         for line in section_data:
             export_regex_findall = self.export_regex.findall(line)
+            extra_env_from_run = ""
             for dummy, dummy, var, value in export_regex_findall:
-                self.extra_env_from_run += "%s=%s " % (var, value)
+                extra_env_from_run += "%s=%s " % (var, value)
+            if line.strip().lower().startswith('export'):
+                docker_run += "\nENV " + extra_env_from_run
             if not export_regex_findall:
+                self.extra_env_from_run += extra_env_from_run
                 if custom_command_format == 'bash':
                     docker_run += '\n' + self.extra_env_from_run + line
                 elif custom_command_format == 'docker':
