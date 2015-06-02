@@ -206,7 +206,9 @@ class travis(object):
         job_method = getattr(self, 'get_travis2docker_' + section_type)
         return job_method(section_data, *args, **kwards)
 
-    def get_travis2docker_run(self, section_data, custom_command_format=None):
+    def get_travis2docker_run(self, section_data,
+                              custom_command_format=None,
+                              add_extra_env=True):
         if custom_command_format is None:
             custom_command_format = self.command_format
         docker_run = ''
@@ -214,23 +216,31 @@ class travis(object):
             export_regex_findall = self.export_regex.findall(line)
             for dummy, dummy, var, value in export_regex_findall:
                 self.extra_env_from_run += "%s=%s " % (var, value)
+            extra_env = add_extra_env and self.extra_env_from_run or ''
             if not export_regex_findall:
                 if custom_command_format == 'bash':
-                    docker_run += '\n' + self.extra_env_from_run + line
+                    docker_run += '\n' + extra_env + line
                 elif custom_command_format == 'docker':
-                    docker_run += '\nRUN ' + self.extra_env_from_run + line
+                    docker_run += '\nRUN ' + extra_env + line
         return docker_run
+
+    def scape_bash_command(self, command):
+        return command.replace('$', '\\$').replace('_', '\\_')
 
     def get_travis2docker_script(self, section_data):
         cmd_str = self.get_travis2docker_run(
-            section_data, custom_command_format='bash')
+            section_data, custom_command_format='bash',
+            add_extra_env=False)
         if self.command_format == 'docker' and cmd_str:
-            cmd_str = '\\\n'.join(cmd_str.strip('\n').split('\n'))
+            cmd_str = self.extra_env_from_run + cmd_str
+            cmd_str = self.scape_bash_command(cmd_str)
+            cmd_str = '\\\\n'.join(cmd_str.strip('\n').split('\n'))
             cmd_str = 'RUN sudo touch /entrypoint.sh \\' + \
                 '\n    && sudo chown %s:%s /entrypoint.sh \\' % (
                     self.docker_user, self.docker_user) + \
-                '\n    && echo """%s"""' % (cmd_str) + \
-                ' > /entrypoint.sh \\' + \
+                '\n    && echo """%s"""' % (
+                    cmd_str,
+                ) + ' > /entrypoint.sh \\' + \
                 '\n    && sudo chmod +x /entrypoint.sh'
             cmd_str += '\nENTRYPOINT /entrypoint.sh'
         return cmd_str
@@ -404,7 +414,7 @@ class travis(object):
             if fname_run:
                 with open(fname_run, "w") as fbuild:
                     fbuild.write(
-                        "docker run -itP %s" % (
+                        "docker run $1 -itP %s" % (
                             image_name
                         )
                     )
