@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- encoding: utf-8 -*-
 ###########################################################################
 #    Module Writen to OpenERP, Open Source Management Solution
@@ -166,7 +167,7 @@ class travis(object):
         self.travis2docker_section_dict = dict(self.travis2docker_section)
         self.scripts_root_path = self.get_script_path(self.root_path)
         env_regex_str = r"(?P<var>[\w]*)[ ]*[\=][ ]*[\"\']{0,1}" + \
-            r"(?P<value>[\w\.\-\_/\$\{\}\:]*)[\"\']{0,1}"
+            r"(?P<value>[\w\.\-\_/\$\{\}\:,]*)[\"\']{0,1}"
         export_regex_str = r"(?P<export>export|EXPORT)( )+" + env_regex_str
         self.env_regex = re.compile(env_regex_str, re.M)
         self.export_regex = re.compile(export_regex_str, re.M)
@@ -195,7 +196,7 @@ class travis(object):
     #             raise "You need specify branch name with remote repository"
     #         "git show 8.0:.travis.yml"
 
-    def get_travis_section(self, section):
+    def get_travis_section(self, section, *args, **kwards):
         section_type = self.travis2docker_section_dict.get(section, False)
         if not section_type:
             return None
@@ -203,14 +204,7 @@ class travis(object):
         if isinstance(section_data, basestring):
             section_data = [section_data]
         job_method = getattr(self, 'get_travis2docker_' + section_type)
-        return job_method(section_data)
-
-    # def get_travis2docker_build_image(self, section_data):
-    #     cmd_str = ''
-    #     if self.command_format == 'docker':
-    #         for line in section_data:
-    #             cmd_str = 'FROM ' + line
-    #     return cmd_str
+        return job_method(section_data, *args, **kwards)
 
     def get_travis2docker_run(self, section_data, custom_command_format=None):
         if custom_command_format is None:
@@ -242,7 +236,29 @@ class travis(object):
         return cmd_str
 
     def get_travis2docker_env(self, section_data):
+        global_data_cmd = []
+        matrix_data_cmd = []
+        if 'global' in section_data:
+            global_data = section_data.pop('global')
+            global_data_cmd = [
+                global_env
+                for global_env
+                in self.get_travis2docker_env(global_data)
+            ]
+        if 'matrix' in section_data:
+            matrix_data = section_data.pop('matrix')
+            matrix_data_cmd = [
+                matrix_env
+                for matrix_env
+                in self.get_travis2docker_env(matrix_data)
+            ]
+        for combination in itertools.product(global_data_cmd, matrix_data_cmd):
+            command_str = '\n'.join(combination) + "\n"
+            yield command_str
+
         for line in section_data:
+            if line in ['global', 'matrix']:
+                continue
             docker_env = ""
             for var, value in self.env_regex.findall(line):
                 if self.command_format == 'bash':
@@ -259,7 +275,10 @@ class travis(object):
         home_user_path = self.docker_user == 'root' and "/root" \
             or os.path.join("/home", self.docker_user)
         project, branch = self.git_project, self.revision
-        travis_build_dir = os.path.join(home_user_path, "myproject")
+        travis_build_dir = os.path.join(
+            home_user_path, "myproject",
+            os.path.splitext(os.path.basename(project))[0]
+        )
         if self.command_format == 'bash':
             cmd = "\nsudo su - " + self.docker_user + \
                   "\nsudo chown -R %s:%s %s" % (self.docker_user, self.docker_user, home_user_path) + \
@@ -279,7 +298,7 @@ class travis(object):
             cmd_refs = 'pull' in self.revision and \
                 '+refs/%s/head:refs/%s' % (
                     self.revision, self.revision) or \
-                 '+refs/heads/%s:refs/heads/%s' % (
+                '+refs/heads/%s:refs/heads/%s' % (
                     self.revision, self.revision)
 
             # TODO: Use sha
@@ -293,7 +312,7 @@ class travis(object):
             git_user_email = self.git_obj.get_config_data("user.email")
             if git_user_email:
                 cmd_git_clone.append(
-                    "git config --global user.email \"%s\"" %(git_user_email)
+                    "git config --global user.email \"%s\"" % (git_user_email)
                 )
             else:
                 cmd_git_clone.append(
@@ -302,21 +321,21 @@ class travis(object):
             git_user_name = self.git_obj.get_config_data("user.name")
             if git_user_name:
                 cmd_git_clone.append(
-                    "git config --global user.name \"%s\"" %(git_user_name)
+                    "git config --global user.name \"%s\"" % (git_user_name)
                 )
             else:
                 cmd_git_clone.append(
                     "git config --unset --global user.name"
                 )
-            cmd = 'FROM ' + (self.travis_data.get('build_image', False) or \
-                  self.default_docker_image) + \
+            cmd = 'FROM ' + (self.travis_data.get('build_image', False) or
+                             self.default_docker_image) + \
                   '\nUSER ' + self.docker_user + \
                   '\nADD ' + os.path.join("files", 'ssh') + ' ' + \
                   os.path.join(home_user_path, '.ssh') + \
                   "\nRUN sudo chown -R %s:%s %s" % (
-                    self.docker_user, self.docker_user, home_user_path) + \
-                  "\nWORKDIR " + home_user_path + \
+                      self.docker_user, self.docker_user, home_user_path) + \
                   "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
+                  "\nWORKDIR ${TRAVIS_BUILD_DIR}" + \
                   "\nRUN " + ' \\\n    && '.join(cmd_git_clone) + \
                   "\n"
         return cmd
@@ -361,7 +380,7 @@ class travis(object):
                 fname_run = os.path.join(
                     os.path.dirname(fname), '20-run.sh'
                 )
-                image_name = self.git_obj.owner + '/' + \
+                image_name = self.git_obj.owner + '-' + \
                     self.git_obj.repo + \
                     ":" + self.get_folder_name(self.revision)
                 image_name = image_name.lower()
