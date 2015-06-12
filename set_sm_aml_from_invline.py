@@ -14,12 +14,12 @@ _logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option('-po', default='4DM1NCHUCK', prompt='Password of Odoo',
+@click.option('-po', default='admin', prompt='Password of Odoo',
               help='Password of user Odoo')
-@click.option('-dbo', default='lodi_mayo', prompt='Database Odoo', help='DB Name')
-@click.option('-uo', default='nhomar@vauxoo.com', prompt='User Odoo', help='User of odoo')
+@click.option('-dbo', default='test', prompt='Database Odoo', help='DB Name')
+@click.option('-uo', default='admin', prompt='User Odoo', help='User of odoo')
 @click.option('-pod', default=8069, prompt='Port Odoo', help='Port of Odoo')
-@click.option('-du', default='odoo', prompt='Database User',
+@click.option('-du', default='admin', prompt='Database User',
               help='Name of database user')
 @click.option('-dp', default='1234', prompt='Database Password',
               help='Password of database user')
@@ -27,9 +27,9 @@ _logger = logging.getLogger(__name__)
               help='Port of Postgres')
 @click.option('-dh', default='localhost', prompt='Database Host',
               help='Host of Postgres')
-@click.option('-fini', prompt='Fecha de Inicio',
+@click.option('-fini', prompt='Fecha de Inicio (mm/dd/yyyy)',
               help='Fecha de Inicio')
-@click.option('-ffin', prompt='Fecha de Fin',
+@click.option('-ffin', prompt='Fecha de Fin (mm/dd/yyyy)',
               help='Fecha de Fin')
 def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     conect = oerplib.OERP('localhost', port=pod)
