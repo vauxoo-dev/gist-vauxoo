@@ -31,66 +31,12 @@ import os
 import re
 import shutil
 import stat
-import subprocess
 import types
 from sys import stdout
 from tempfile import gettempdir
 
 import yaml
-
-
-class git(object):
-
-    def __init__(self, repo_git, path):
-        self.repo_git = repo_git
-        self.path = path
-        self.repo_git_regex = r"(?P<host>(git@|https://)([\w\.@]+)(/|:))" + \
-            r"(?P<owner>[~\w,\-,\_]+)/" + \
-            r"(?P<repo>[\w,\-,\_]+)(.git){0,1}((/){0,1})"
-        match_object = re.search(self.repo_git_regex, repo_git)
-        if match_object:
-            self.host = match_object.group("host")
-            self.owner = match_object.group("owner")
-            self.repo = match_object.group("repo")
-        else:
-            self.host, self.owner, self.repo = False, False, False
-
-    def get_config_data(self, field=None):
-        if field is None:
-            field = "-l"
-        res = self.run(["config", field])
-        if res:
-            res = res.strip("\n").strip()
-        return res
-
-    def run(self, cmd):
-        """Execute git command in bash"""
-        cmd = ['git', '--git-dir=%s' % self.path] + cmd
-        # print "cmd", ' '.join(cmd)
-        try:
-            return subprocess.check_output(cmd)
-        except BaseException:
-            return None
-
-    def update(self):
-        """Get a repository git or update it"""
-        if not os.path.isdir(os.path.join(self.path)):
-            os.makedirs(self.path)
-        if not os.path.isdir(os.path.join(self.path, 'refs')):
-            subprocess.check_output([
-                'git', 'clone', '--bare', self.repo_git, self.path
-            ])
-        self.run(['gc', '--auto', '--prune=all'])
-        self.run(['fetch', '-p', 'origin', '+refs/heads/*:refs/heads/*'])
-        self.run(['fetch', '-p', 'origin', '+refs/pull/*/head:refs/pull/*'])
-
-    def show_file(self, git_file, sha):
-        result = self.run(["show", "%s:%s" % (sha, git_file)])
-        return result
-
-    def get_sha(self, revision):
-        result = self.run(["rev-parse", revision])
-        return result
+from git_run import GitRun
 
 
 # TODO: Change name of class and variables to cmd
@@ -148,7 +94,7 @@ class travis(object):
         self.git_project = git_project
         self.revision = revision
         git_path = self.get_repo_path(self.root_path)
-        self.git_obj = git(git_project, git_path)
+        self.git_obj = GitRun(git_project, git_path)
         self.travis_data = self.load_travis_file(revision)
         self.sha = self.git_obj.get_sha(revision)
         if not self.travis_data:
