@@ -39,6 +39,10 @@ class GitRmAllLog(object):
         self.git_url = git_url
         if root_path is None:
             root_path = gettempdir()
+        else:
+            root_path = os.path.expandvars(
+                os.path.expanduser(root_path)
+            )
         self.git_run_obj = GitRun(git_url, None)
         self.git_run_obj.path = os.path.join(
             root_path,
@@ -47,7 +51,7 @@ class GitRmAllLog(object):
         )
 
     def rm_all_log(self, items):
-        # self.git_run_obj.update()
+        self.git_run_obj.update()
         refs = self.git_run_obj.get_ref_data(['refs/heads']).keys()
         for ref in refs:
             self.git_run_obj.checkout_bare(ref)
@@ -69,10 +73,17 @@ def main():
         "items_to_delete",
         help="Specify files or folders to delete (split with commas).",
     )
+    parser.add_argument(
+        '--root-path', dest='root_path',
+        help="Root path to save scripts generated."
+             "\nDefault: 'tmp' dir of your O.S.",
+        default=None,
+    )
     args = parser.parse_args()
     git_repo_url = args.git_repo_url
     items_to_delete = args.items_to_delete
-    git_rm_all_log_obj = GitRmAllLog(git_repo_url)
+    root_path = args.root_path
+    git_rm_all_log_obj = GitRmAllLog(git_repo_url, root_path)
     git_rm_all_log_obj.rm_all_log(items_to_delete)
 
 
