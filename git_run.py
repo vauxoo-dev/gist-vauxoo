@@ -30,6 +30,13 @@ import re
 import subprocess
 
 
+def decode_utf(field):
+    try:
+        return field.decode('utf-8')
+    except UnicodeDecodeError:
+        return ''
+
+
 class GitRun(object):
 
     def __init__(self, repo_git, path):
@@ -46,6 +53,9 @@ class GitRun(object):
         else:
             self.host, self.owner, self.repo = False, False, False
 
+    def checkout_bare(self, branch):
+        return self.run(['symbolic-ref', 'HEAD', branch])
+
     def get_config_data(self, field=None):
         if field is None:
             field = "-l"
@@ -57,11 +67,31 @@ class GitRun(object):
     def run(self, cmd):
         """Execute git command in bash"""
         cmd = ['git', '--git-dir=%s' % self.path] + cmd
-        # print "cmd", ' '.join(cmd)
+        print "cmd list", cmd
+        print "cmd", ' '.join(cmd)
         try:
             return subprocess.check_output(cmd)
         except BaseException:
             return None
+
+    def get_ref_data(self, refs=None, fields=None):
+        if refs is None:
+            refs = ['refs/heads']
+        if fields is None:
+            fields = []
+        if 'refname' not in fields:
+            fields.append('refname')
+        # fields = ['refname','objectname','committerdate:iso8601','authorname','authoremail','subject','committername','committeremail']
+        fmt = "%00".join(["%("+field+")" for field in fields])
+        git_refs = self.run(['for-each-ref', '--format', fmt, '--sort=refname'] + refs)
+        git_refs = git_refs.strip()
+        refs = [[decode_utf(field) for field in line.split(
+            '\x00')] for line in git_refs.split('\n')]
+        res = {}
+        for data_field in refs:
+            subres = dict(zip(fields, data_field))
+            res[subres.pop('refname')] = subres
+        return res
 
     def update(self):
         """Get a repository git or update it"""
