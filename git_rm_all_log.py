@@ -71,7 +71,7 @@ def main():
     )
     parser.add_argument(
         "items_to_delete",
-        help="Specify files or folders to delete (split with commas).",
+        help="Specify files or folders to delete (split with spaces).",
     )
     parser.add_argument(
         '--root-path', dest='root_path',
