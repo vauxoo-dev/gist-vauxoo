@@ -50,6 +50,10 @@ class GitRun(object):
             self.host = match_object.group("host")
             self.owner = match_object.group("owner")
             self.repo = match_object.group("repo")
+        elif os.path.isdir(repo_git):
+            self.host = 'local'
+            self.owner = os.path.basename(repo_git)
+            self.repo = os.path.basename(os.path.dirname(repo_git))
         else:
             self.host, self.owner, self.repo = False, False, False
 
