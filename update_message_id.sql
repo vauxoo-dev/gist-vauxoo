@@ -6,6 +6,7 @@ FROM (
 	FROM mail_message
 	INNER JOIN (
 		SELECT TEXT(
+		-- We need to change this value by the value of HostName
 			'vauxoo70.vauxoo.com'
 		) AS current_hostname
 	    ) var 
