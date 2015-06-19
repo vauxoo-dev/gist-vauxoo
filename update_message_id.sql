@@ -1,3 +1,6 @@
+-- When the part of hostname into message_id not correspond with the current hostname
+-- the received messages into Odoo are not associated with corresponding thread 
+-- With this script we can to update hostname into message_id to keep the expected behavior
 UPDATE mail_message
 SET message_id = new_message_id
 FROM (
