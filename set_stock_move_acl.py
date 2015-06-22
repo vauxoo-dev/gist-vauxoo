@@ -27,7 +27,11 @@ _logger = logging.getLogger(__name__)
               help='Port of Postgres')
 @click.option('-dh', default='localhost', prompt='Database Host',
               help='Host of Postgres')
-def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
+@click.option('-fini', prompt='Fecha de Inicio (mm/dd/yyyy)',
+              help='Fecha de Inicio')
+@click.option('-ffin', prompt='Fecha de Fin (mm/dd/yyyy)',
+              help='Fecha de Fin')
+def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     conect = oerplib.OERP('localhost', port=pod)
     conect.login(user=uo, passwd=po, database=dbo)
     conp = psycopg2.connect("dbname='{dn}' user='{du}' host='{dh}' "
@@ -43,7 +47,9 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
         'stock.move', [
             ('product_id', 'in', product_ids),
             ('picking_id', '!=', False),
-            ('state', '=', 'done')])
+            ('state', '=', 'done'),
+            ('date', '>=', fini),
+            ('date', '<=', ffin)])
     pick_ids = []
     file_new = open('/tmp/moves_changeds.csv', 'wb')
     file_new.write('id, name, date, period\n')
