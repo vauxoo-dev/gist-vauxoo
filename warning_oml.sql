@@ -34,3 +34,9 @@ delete from ir_model where name='wizard.invoice.facturae.xml.v6';
 
 delete from ir_module_module where id in ( 
 select id from ir_module_module where name='l10n_facturae_groups_multipac_vauxoo');
+
+drop table wizard_accounting_mexican_statement_wizard;
+delete from ir_model where name='accounting.mexican.statement.wizard';
+
+delete from ir_model_constraint where model in ( select id from ir_model where name='accounting.mexican.statement.wizard');
+delete from ir_model_relation where model in ( select id from ir_model where name='accounting.mexican.statement.wizard');
