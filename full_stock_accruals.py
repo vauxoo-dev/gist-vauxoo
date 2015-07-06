@@ -30,6 +30,22 @@ _logger = logging.getLogger(__name__)
               help='Fecha de Inicio')
 @click.option('-ffin', prompt='Fecha de Fin (dd/mm/yyyy)',
               help='Fecha de Fin')
+def memoize(func):
+    """
+    Pro python Marty Alchin, Pag  75, Memoization
+    """
+    cache = {}
+
+    @functools.wraps(func)
+    def wrapper(*args):
+        if args in cache:
+            return cache[args]
+        result = func(*args)
+        cache[args] = result
+        return result
+    return wrapper
+
+
 def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     conect = oerplib.OERP('localhost', port=pod)
     conect.login(user=uo, passwd=po, database=dbo)
