@@ -249,8 +249,20 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
             {'sm_id': sm_id})
 
     print "Reconciling Invoices"
+
+    countai = 0
+    totalai = len(invoice_ids)
     for inv_id in invoice_ids:
-        conect.get('account.invoice').reconcile_stock_accrual([inv_id])
+        countai += 1
+        print "Reconciling Invoice [{count} / {total}]".format(
+            total=totalai,
+            count=countai,
+        )
+        try:
+            conect.get('account.invoice').reconcile_stock_accrual([inv_id])
+            print "Reconciled Done"
+        except:
+            print "Already reconciled"
     print "Finished At all"
 
     time_stop = time.ctime()
