@@ -183,34 +183,81 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
 
     # file_new.close()
 
+    invoice_ids = conect.search('account.invoice', [
+        ('date_invoice', '>=', fini),
+        ('date_invoice', '<=', ffin)])
+    # TODO: Shall this be done only for in_invoice and out_invoice
+
+    if not invoice_ids:
+        return True
+
+    inv_reads = conect.read(
+        'account.invoice', invoice_ids, ['id', 'move_id'])
+
+    count_ai = 0
+    total_ai = len(inv_reads)
+    ail_moves = {}
+
+    for inv_dict in inv_reads:
+        count_ai += 1
+
+        invoice_line = conect.search(
+            'account.invoice.line',
+            [('invoice_id', '=', inv_dict['id']), ('move_id', '<>', False)])
+        ail_reads = conect.read(
+            'account.invoice.line', invoice_line,
+            ['id', 'product_id', 'quantity', 'move_id'])
+        total_ail = len(ail_reads)
+        count_ail = 0
+        for ail_dic in ail_reads:
+            count_ail += 1
+            print "[{count} / {total}] [{count_ail} / {total_ail}]".format(
+                total=total_ai,
+                count=count_ai,
+                total_ail=total_ail,
+                count_ail=count_ail,
+                )
+            move_line = conect.search('account.move.line', [
+                ('product_id', '=', ail_dic['product_id'][0]),
+                ('move_id', '=', inv_dict['move_id'][0]),
+                ('quantity', '=', ail_dic['quantity'])
+                ])
+            if not move_line:
+                continue
+
+            if ail_moves.get(ail_dic['move_id'][0]):
+                ail_moves[ail_dic['move_id'][0]] += move_line
+            else:
+                ail_moves[ail_dic['move_id'][0]] = move_line
+
+    if not ail_moves:
+        print "No Invoice Lines to update"
+
+    print "Writing Stock move on AML for AIL"
+
+    totalsm = len(ail_moves)
+    countsm = 0
+    for sm_id, aml_idss in ail_moves.iteritems():
+        countsm += 1
+        print "sm [{count} / {total}]".format(
+            count=countsm,
+            total=totalsm,
+        )
+
+        conect.write(
+            'account.move.line', aml_idss,
+            {'sm_id': sm_id})
+
+    print "Reconciling Invoices"
+    for inv_id in invoice_ids:
+        conect.get('account.invoice').reconcile_stock_accrual([inv_id])
+    print "Finished At all"
+
     time_stop = time.ctime()
     print time_start
     print time_stop
 
     return True
-
-    invoice_ids = conect.search('account.invoice', [
-        ('date_invoice', '>=', fini),
-        ('date_invoice', '<=', ffin)])
-
-    invoice_line = conect.search(
-        'account.invoice.line',
-        [('invoice_id', 'in', invoice_ids), ('move_id', '<>', False)])
-    for inv_line in conect.browse('account.invoice.line', invoice_line):
-        move_line = conect.search('account.move.line', [
-            ('product_id', '=', inv_line.product_id.id),
-            ('move_id', '=', inv_line.invoice_id.move_id.id),
-            ('quantity', '=', inv_line.quantity)
-            ])
-        list_browse_acc_move_lines2 = conect.browse(
-            'account.move.line', move_line)
-        for line in list_browse_acc_move_lines2:
-            if line.account_id and line.account_id.reconcile:
-                conect.write(
-                    'account.move.line', line.id,
-                    {'sm_id': inv_line.move_id.id})
-
-    conect.get('account.invoice').reconcile_stock_accrual(invoice_ids)
 
 if __name__ == '__main__':
     change_aml()
