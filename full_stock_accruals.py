@@ -185,7 +185,9 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
 
     invoice_ids = conect.search('account.invoice', [
         ('date_invoice', '>=', fini),
-        ('date_invoice', '<=', ffin)])
+        ('date_invoice', '<=', ffin),
+        ('state', 'not in', ('cancel', 'draft')),
+        ])
     # TODO: Shall this be done only for in_invoice and out_invoice
 
     if not invoice_ids:
