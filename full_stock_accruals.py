@@ -33,12 +33,6 @@ _logger = logging.getLogger(__name__)
 def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     conect = oerplib.OERP('localhost', port=pod)
     conect.login(user=uo, passwd=po, database=dbo)
-    conp = psycopg2.connect("dbname='{dn}' user='{du}' host='{dh}' "
-                            "password='{dp}' port={dpo}".format(dn=dbo,
-                                                                du=du,
-                                                                dh=dh,
-                                                                dp=dp,
-                                                                dpo=dpo))
     ffin = datetime.datetime.strptime(ffin, '%d/%m/%Y').strftime('%m/%d/%Y')
     fini = datetime.datetime.strptime(fini, '%d/%m/%Y').strftime('%m/%d/%Y')
     product_ids = conect.search(
