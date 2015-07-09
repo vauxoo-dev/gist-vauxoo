@@ -74,6 +74,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
             ('product_id', 'in', product_ids),
             ('picking_id', '!=', False),
             ('state', '=', 'done'),
+            ('picking_type_id.code', '=', 'outgoing'),
             ('date', '>=', fini),
             ('date', '<=', ffin)])
     pick_ids = []
@@ -186,6 +187,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     invoice_ids = conect.search('account.invoice', [
         ('date_invoice', '>=', fini),
         ('date_invoice', '<=', ffin),
+        ('type', '=', 'out_invoice'),
         ('state', 'not in', ('cancel', 'draft')),
         ])
     # TODO: Shall this be done only for in_invoice and out_invoice
@@ -222,7 +224,8 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
             move_line = conect.search('account.move.line', [
                 ('product_id', '=', ail_dic['product_id'][0]),
                 ('move_id', '=', inv_dict['move_id'][0]),
-                ('quantity', '=', ail_dic['quantity'])
+                ('quantity', '=', ail_dic['quantity']),
+                ('account_id.reconcile', '=', True),
                 ])
             if not move_line:
                 continue
