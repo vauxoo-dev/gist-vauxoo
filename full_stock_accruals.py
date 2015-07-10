@@ -62,7 +62,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     def browse_period_state(obj, ids, context=None):
         return obj.browse(ids).state
 
-    conect = oerplib.OERP('localhost', port=pod)
+    conect = oerplib.OERP('localhost', port=pod, timeout=7200)
     conect.login(user=uo, passwd=po, database=dbo)
     account_period_obj = conect.get('account.period')
     ffin = datetime.datetime.strptime(ffin, '%d/%m/%Y').strftime('%m/%d/%Y')
@@ -77,7 +77,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
             ('picking_type_id.code', '=', 'outgoing'),
             ('date', '>=', fini),
             ('date', '<=', ffin)])
-    pick_ids = []
+    pick_ids = {}
 
     # file_new = open('/tmp/moves_changeds.csv', 'wb')
     # file_new.write('id, name, date, period\n')
@@ -86,19 +86,22 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     # it can be remember the last state of the period and the revert it back to
     # its previous state
     period_restore = {}
-    reads = conect.read('stock.move', move_ids, ['id', 'date', 'picking_id'])
+    reads = conect.read(
+        'stock.move', move_ids, ['id', 'date', 'picking_id', 'product_id'])
     total = len(reads)
     move_count = 0
     for move in reads:
+        move_id, product_id = move.get('id'), move.get('product_id')[0]
 
         move_count += 1
-        print "[{count} / {total}]".format(total=total, count=move_count)
+        print "Stock Reading [{count} / {total}]".format(
+            total=total, count=move_count)
 
-        if move.get('picking_id')[0] in pick_ids:
+        if (move_id, product_id) in pick_ids.keys():
             print "Picking already checked"
             continue
         else:
-            pick_ids.append(move.get('picking_id')[0])
+            pick_ids[(move_id, product_id)] = True
         date_move = datetime.datetime.strptime(
             str(move.get('date')), '%Y-%m-%d %H:%M:%S').date().strftime(
             '%Y-%m-%d')
@@ -107,19 +110,22 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
         # by using memoize technique
         period_id = find_period(account_period_obj, date_move)
         if not period_id:
+            print "No period found"
             continue
 
         period_state = browse_period_state(account_period_obj, period_id)
 
-        acc_m_ids = conect.search(
-            'account.move', [
+        aml_ids = conect.search(
+            'account.move.line', [
                 ('ref', '=', move.get('picking_id')[1]),
-                ('period_id', '=', period_id)
+                ('product_id', '=', product_id),
+                ('period_id', '=', period_id),
+                ('account_id.reconcile', '=', True),
             ])
 
-        if not acc_m_ids:
+        if not aml_ids:
             # We continue with next move, there nothing to do here
-            print "No Journal Entries"
+            print "No Journal Items to update"
             continue
 
         # we can save a lot of time by only opening once this record and after
@@ -128,29 +134,8 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
             account_period_obj.action_draft([period_id])
             period_restore[period_id] = period_state
 
-        count_am = 0
-        am_brws = conect.browse('account.move', acc_m_ids)
-        total_am = len(am_brws)
-        aml_ids = []
-        for acc_mv in am_brws:
-            count_am += 1
-            print "[{count} / {total}] [{count_am} / {total_am}] Reading Journal Entry {name}".format(
-                    count=move_count,
-                    total=total,
-                    count_am=count_am,
-                    total_am=total_am,
-                    name=acc_mv.name,
-                    )
-            # TODO: Optimize this is being done on all lines regardless
-            # reconcilable
-
-            aml_ids += acc_mv.line_id.ids
-
-            # aml_ids += [aml_brw.id for aml_brw in acc_mv.line_id
-            #            if aml_brw.account_id.reconcile]
-        if not aml_ids:
-            print "No Journal Items to update"
-            continue
+        print "Writing on {count} Journal Entry Lines for Stock Move".format(
+            count=len(aml_ids))
         conect.write(
             "account.move.line", aml_ids,
             {'sm_id': move.get("id")})
@@ -168,7 +153,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
         print "No Periods to Restore"
 
     for pid in period_restore.keys():
-        print "State id: {pid} restored".format(pid=pid)
+        print "Period State id: {pid} restored".format(pid=pid)
         wizard_period_close_id = conect.create(
             'account.period.close', {'sure': 1})
         conect.execute(
@@ -215,7 +200,9 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
         count_ail = 0
         for ail_dic in ail_reads:
             count_ail += 1
-            print "[{count} / {total}] [{count_ail} / {total_ail}]".format(
+            print (
+                "Invoice Reading [{count} / {total}] [{count_ail} /"
+                " {total_ail}]").format(
                 total=total_ai,
                 count=count_ai,
                 total_ail=total_ail,
@@ -238,13 +225,12 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
     if not ail_moves:
         print "No Invoice Lines to update"
 
-    print "Writing Stock move on AML for AIL"
 
     totalsm = len(ail_moves)
     countsm = 0
     for sm_id, aml_idss in ail_moves.iteritems():
         countsm += 1
-        print "sm [{count} / {total}]".format(
+        print "Writing Stock on AML for AIL [{count} / {total}]".format(
             count=countsm,
             total=totalsm,
         )
@@ -257,14 +243,17 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin):
 
     countai = 0
     totalai = len(invoice_ids)
+
     for inv_id in invoice_ids:
         countai += 1
-        print "Reconciling Invoice [{count} / {total}]".format(
+        print "Reconciling Invoice [{count} / {total}] id {inv_id}".format(
             total=totalai,
             count=countai,
+            inv_id=inv_id
         )
         try:
             conect.get('account.invoice').reconcile_stock_accrual([inv_id])
+            # time.sleep(2)
             print "Reconciled Done"
         except:
             print "Already reconciled"
