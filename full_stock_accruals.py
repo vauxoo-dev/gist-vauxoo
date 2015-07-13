@@ -72,7 +72,7 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin, upsm, upil, rc,
     account_period_obj = conect.get('account.period')
 
     ffin = datetime.datetime.strptime(ffin, '%Y-%m-%d').strftime('%Y-%m-%d')
-    fini = datetime.datetime.strptime(ffin, '%Y-%m-%d').strftime('%Y-%m-%d')
+    fini = datetime.datetime.strptime(fini, '%Y-%m-%d').strftime('%Y-%m-%d')
 
     if upsm:
         product_ids = conect.search(
