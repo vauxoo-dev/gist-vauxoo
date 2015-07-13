@@ -28,9 +28,9 @@ _logger = logging.getLogger(__name__)
               help='Port of Postgres')
 @click.option('-dh', default='localhost', prompt='Database Host',
               help='Host of Postgres')
-@click.option('-fini', prompt='Fecha de Inicio (dd/mm/yyyy)',
+@click.option('-fini', prompt='Fecha de Inicio (YYYY-MM-DD)',
               help='Fecha de Inicio')
-@click.option('-ffin', prompt='Fecha de Fin (dd/mm/yyyy)',
+@click.option('-ffin', prompt='Fecha de Fin (YYYY-MM-DD)',
               help='Fecha de Fin')
 @click.option('-upsm', default=0, prompt='Update Stock Move AML [0/1]',
               help='Update Stock Move AML')
@@ -70,8 +70,9 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh, fini, ffin, upsm, upil, rc,
     conect = oerplib.OERP('localhost', port=pod, timeout=7200)
     conect.login(user=uo, passwd=po, database=dbo)
     account_period_obj = conect.get('account.period')
-    ffin = datetime.datetime.strptime(ffin, '%d/%m/%Y').strftime('%m/%d/%Y')
-    fini = datetime.datetime.strptime(fini, '%d/%m/%Y').strftime('%m/%d/%Y')
+
+    ffin = datetime.datetime.strptime(ffin, '%Y-%m-%d').strftime('%Y-%m-%d')
+    fini = datetime.datetime.strptime(ffin, '%Y-%m-%d').strftime('%Y-%m-%d')
 
     if upsm:
         product_ids = conect.search(
