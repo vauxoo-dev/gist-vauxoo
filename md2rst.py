@@ -14,16 +14,20 @@ class MdtoRst(object):
     given path and change it to rst files.'
     """
 
-    epilog = (
-        "Odoo Developer Comunity Tool\n"
-        "Development by Katherine Zaoral (github: @zaoral)\n"
-        "Coded by Katherine Zaoral <kathy@vauxoo.com>.\n"
-        "Source code at git:vauxoo-dev/gist-vauxoo.\n")
+    epilog = '\n'.join([
+        "Odoo Developer Comunity Tool",
+        "Development by Katherine Zaoral (github: @zaoral)",
+        "Coded by Katherine Zaoral <kathy@vauxoo.com>.",
+        "Source code at git:vauxoo-dev/gist-vauxoo."
+    ])
 
-    description = (
-        'This script will search for all the README.md files for the'
-        ' given path and change it to rst files.'
-    )
+    description = """
+    This script will search for all the README.md files for the
+    given path and change it to rst files.
+
+    NOTE: This script will edit the principal addond path README.md
+    so if you want to not please check to remove this change.
+    """
 
     def __init__(self):
         """
@@ -48,6 +52,7 @@ class MdtoRst(object):
         parser = argparse.ArgumentParser(
             prog='md2rst',
             description=self.description,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=self.epilog)
 
         parser.add_argument(
