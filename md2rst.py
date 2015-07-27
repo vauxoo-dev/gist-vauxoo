@@ -118,7 +118,7 @@ class MdtoRst(object):
 
         for module in module_list:
             print 'Module: ' + module
-            os.system('cd {path} && mv README.md README.rst'.format(
+            os.system('cd {path} && git mv README.md README.rst'.format(
                 path=module))
         return True
 
