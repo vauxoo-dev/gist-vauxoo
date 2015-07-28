@@ -55,7 +55,7 @@ class travis(object):
         return yaml_loaded
 
     def get_folder_name(self, name):
-        for invalid_char in '@:/':
+        for invalid_char in '@:/#':
             name = name.replace(invalid_char, '_')
         return name
 
