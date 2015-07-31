@@ -186,7 +186,7 @@ class travis(object):
                     self.docker_user, self.docker_user) + \
                 '\n    && echo """%s"""' % (
                     cmd_str,
-                ) + ' > /entrypoint.sh \\' + \
+                ) + ' | sudo tee -a /entrypoint.sh \\' + \
                 '\n    && sudo chmod +x /entrypoint.sh'
             cmd_str += '\nENTRYPOINT /entrypoint.sh'
         return cmd_str
