@@ -181,12 +181,11 @@ class travis(object):
             cmd_str = self.extra_env_from_run + cmd_str
             cmd_str = self.scape_bash_command(cmd_str)
             cmd_str = '\\\\n'.join(cmd_str.strip('\n').split('\n'))
-            cmd_str = 'RUN sudo touch /entrypoint.sh \\' + \
-                '\n    && sudo chown %s:%s /entrypoint.sh \\' % (
-                    self.docker_user, self.docker_user) + \
-                '\n    && echo """%s"""' % (
+            cmd_str = 'RUN echo """%s"""' % (
                     cmd_str,
                 ) + ' | sudo tee -a /entrypoint.sh \\' + \
+                '\n    && sudo chown %s:%s /entrypoint.sh \\' % (
+                    self.docker_user, self.docker_user) + \
                 '\n    && sudo chmod +x /entrypoint.sh'
             cmd_str += '\nENTRYPOINT /entrypoint.sh'
         return cmd_str
@@ -264,6 +263,7 @@ class travis(object):
                 "git remote add origin " + project,
                 "git fetch -p origin %s" % (cmd_refs),
                 "git reset --hard " + self.revision,
+
             ]
             git_user_email = self.git_obj.get_config_data("user.email")
             if git_user_email:
@@ -288,10 +288,10 @@ class travis(object):
                   '\nUSER ' + self.docker_user + \
                   '\nADD ' + os.path.join("files", 'ssh') + ' ' + \
                   os.path.join(home_user_path, '.ssh') + \
+                  "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\nWORKDIR ${TRAVIS_BUILD_DIR}" + \
                   "\nRUN sudo chown -R %s:%s %s" % (
                       self.docker_user, self.docker_user, home_user_path) + \
-                  "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
                   "\nRUN " + ' \\\n    && '.join(cmd_git_clone) + \
                   "\n"
         return cmd
@@ -350,7 +350,7 @@ class travis(object):
             if fname_build:
                 with open(fname_build, "w") as fbuild:
                     fbuild.write(
-                        "docker build -t %s %s" % (
+                        "docker build $1 -t %s %s" % (
                             image_name,
                             os.path.dirname(fname)
                         )
@@ -360,7 +360,7 @@ class travis(object):
             if fname_run:
                 with open(fname_run, "w") as fbuild:
                     fbuild.write(
-                        "docker run $1 -itP %s" % (
+                        "docker run $1 -itP %s $2" % (
                             image_name
                         )
                     )
