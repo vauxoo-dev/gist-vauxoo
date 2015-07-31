@@ -288,10 +288,10 @@ class travis(object):
                   '\nUSER ' + self.docker_user + \
                   '\nADD ' + os.path.join("files", 'ssh') + ' ' + \
                   os.path.join(home_user_path, '.ssh') + \
+                  "\nWORKDIR ${TRAVIS_BUILD_DIR}" + \
                   "\nRUN sudo chown -R %s:%s %s" % (
                       self.docker_user, self.docker_user, home_user_path) + \
                   "\nENV TRAVIS_BUILD_DIR=%s" % (travis_build_dir) + \
-                  "\nWORKDIR ${TRAVIS_BUILD_DIR}" + \
                   "\nRUN " + ' \\\n    && '.join(cmd_git_clone) + \
                   "\n"
         return cmd
