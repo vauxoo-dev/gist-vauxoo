@@ -149,7 +149,6 @@ class DescriptionToHtml(object):
             content = self.prepare_content(html_description, summary)
 
             self.add_missing_dirs(index_file)
-            self.add_missing_footer_logo(module)
             self.add_missing_icon(module)
 
             with open(index_file, 'w') as ifile:
@@ -170,18 +169,6 @@ class DescriptionToHtml(object):
         if not os.path.exists(module_icon):
             os.system('cp {src} {dest}'.format(
                 src=self.module_icon, dest=module_icon))
-        return True
-
-    def add_missing_footer_logo(self, module):
-        """
-        create static/description/VAUXOO.png
-        @return True
-        """
-        footer_logo = os.path.join(
-            self.path, module, 'static/description/VAUXOO.png')
-        if not os.path.exists(footer_logo):
-            os.system('cp {src} {dest}'.format(
-                src=self.footer_logo, dest=footer_logo))
         return True
 
     def add_missing_dirs(self, index_file):
@@ -242,7 +229,6 @@ class DescriptionToHtml(object):
             self.template = hfile.read()
         with open(os.path.join(script_path, 'footer.html'), 'r') as hfile:
             self.footer = hfile.read()
-        self.footer_logo = os.path.join(script_path, 'VAUXOO.png')
         self.module_icon = os.path.join(script_path, 'icon.png')
         return True
 
