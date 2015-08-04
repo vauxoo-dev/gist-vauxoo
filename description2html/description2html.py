@@ -15,7 +15,7 @@ class DescriptionToHtml(object):
 
     """
     This object pretend to get a addons path and create the index.html files
-    for the odoo modules taking the information in the readme.md
+    for the odoo modules taking the information in the readme.rst
     and __openerp__.py
     """
 
@@ -27,7 +27,7 @@ class DescriptionToHtml(object):
 
     description = (
         'This object pretend to get a addons path and create the index.html'
-        ' files for the odoo modules taking the information in the readme.md'
+        ' files for the odoo modules taking the information in the readme.rst'
         ' and __openerp__.py'
     )
 
@@ -114,7 +114,7 @@ class DescriptionToHtml(object):
         root = self.path
         files = []
         search_files = [
-            '__openerp__.py', 'README.md', 'index.html']
+            '__openerp__.py', 'README.rst', 'index.html']
         for sfile in search_files:
             files += subprocess.Popen(
                 ['find', root, '-name', sfile],
@@ -130,7 +130,7 @@ class DescriptionToHtml(object):
         for module in module_list:
             os.system('echo Generating index.html module ' + module)
             openerp_py = os.path.join(root, module, '__openerp__.py')
-            readme_file = os.path.join(root, module, 'README.md')
+            readme_file = os.path.join(root, module, 'README.rst')
             index_file = os.path.join(
                 root, module, 'static/description/index.html')
 
