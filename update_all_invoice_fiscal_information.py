@@ -20,6 +20,6 @@ con.login(USER, PASS)
 invoice_ids = con.search('account.invoice', [])
 
 for invoice in con.browse('account.invoice', invoice_ids):
-    comment_currently = invoice.comment
-    con.write('account.invoice', invoice.id, {'comment': ' '})
-    con.write('account.invoice', invoice.id, {'comment': comment_currently})
+    name_invoice = invoice.name
+    con.write('account.invoice', invoice.id, {'name': ' '})
+    con.write('account.invoice', invoice.id, {'name': name_invoice})
