@@ -26,7 +26,5 @@ USER odoo
 RUN git config --global user.name julioserna \
     && git config --global user.email julio@vauxoo.com
 
-RUN chown -R odoo /home/odoo
-
 USER root
 RUN chown -R odoo:/home/odoo
