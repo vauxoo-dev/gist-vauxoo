@@ -1,0 +1,5 @@
+# Muestra pwd y git branch en term
+if [ -f /home/odoo/.git-prompt.sh ]; then
+    source /home/odoo/.git-prompt.sh
+    PS1="\034[1;36m[ \u@\e[0;36m\h ]\e[0;37m-\[[ \w ]\\n\$(__git_ps1) $: "
+fi
