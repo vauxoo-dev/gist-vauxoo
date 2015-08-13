@@ -261,7 +261,7 @@ class travis(object):
                 "git init ${TRAVIS_BUILD_DIR}",
                 "cd ${TRAVIS_BUILD_DIR}",
                 "git remote add origin " + project,
-                "git fetch -p origin %s" % (cmd_refs),
+                "git fetch --update-head-ok -p origin %s" % (cmd_refs),
                 "git reset --hard " + self.revision,
 
             ]
