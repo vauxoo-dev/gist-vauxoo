@@ -21,10 +21,5 @@ RUN apt-get update && apt-get install curl unzip && curl https://dl.ngrok.com/ng
     && unzip -o /tmp/ngrok.zip -d /usr/local/bin/ \
     && rm -rf /tmp/ngrok.zip
 
-USER odoo
-# Add git config data
-RUN git config --global user.name julioserna \
-    && git config --global user.email julio@vauxoo.com
-
 USER root
 RUN chown -R odoo:odoo /home/odoo
