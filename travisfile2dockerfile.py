@@ -214,6 +214,8 @@ class travis(object):
         for line in section_data:
             if line in ['global', 'matrix']:
                 continue
+            if not isinstance(line, str):
+                continue
             docker_env = ""
             for var, value in self.env_regex.findall(line):
                 if self.command_format == 'bash':
