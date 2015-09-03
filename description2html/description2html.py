@@ -5,8 +5,8 @@ import argparse
 import argcomplete
 import os
 import rst2html
-import BeautifulSoup
-# import bs4
+# import BeautifulSoup
+import bs4
 import subprocess
 import pdb
 
@@ -39,6 +39,7 @@ class DescriptionToHtml(object):
         self.args = self.argument_parser()
         self.path = self.args['path']
 
+        self.pretty_option = self.args.get('pretty_style', False)
         self.get_html_parts()
 
         if self.args.get('no_confirm', False):
@@ -65,10 +66,17 @@ class DescriptionToHtml(object):
 
         parser.add_argument(
             '-p', '--path',
-            metavar='PATH',
+            metavar='path',
             type=str,
             required=True,
-            help=('The module Path you want to apply the transformation'))
+            help=('the module path you want to apply the transformation'))
+
+        parser.add_argument(
+            '--pretty-style',
+            action='store_true',
+            help='Create the index.html file using the odoo ccs style. '
+                 ' Divide the README titles into visible sections.'
+                 ' WARNING: This functionality still beta.')
 
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
@@ -146,7 +154,7 @@ class DescriptionToHtml(object):
             # Call @nhomar's script.
             html_description = rst2html.html.rst2html(description)
 
-            content = self.prepare_content(html_description, summary)
+            content = self.prepare_content(html_description, name, summary)
 
             self.add_missing_dirs(index_file)
             self.add_missing_icon(module)
@@ -181,35 +189,75 @@ class DescriptionToHtml(object):
             os.makedirs(os.path.dirname(index_file))
         return True
 
-    def prepare_content(self, html_description, summary):
+    def prepare_content(self, html_description, name, summary):
         """
         Prepare Content
         """
         try:
-            content = (
-                '<section class="oe_container">\n'
-                + html_description +
-                '</section>\n'
-            )
-            soup = BeautifulSoup.BeautifulSoup(content)
-            if soup.section.div:
-                soup.section.div['class'] = 'oe_row oe_spaced'
-                del soup.section.div['id']
-            if soup.section.div.h1:
-                soup.section.div.h1.name = 'h2'
-                soup.section.div.h2['class'] = 'oe_slogan'
+            soup = bs4.BeautifulSoup(html_description)
             if summary:
-                summary_tag = BeautifulSoup.Tag(soup, name='h3')
+                summary_tag = bs4.Tag(soup, name='h3')
                 summary_tag.string = summary
-                soup.section.div.insert(2, summary_tag)
-            if soup.section.div.p:
-                soup.section.div.p['class'] = 'oe_mt32'
-                # pdiv_tag = bs4.Tag(soup, name='div')
-                # pdiv_tag['class'] = 'oe_span12'
-                # soup.section.div.p.wrap(pdiv_tag)
-                # pdb.set_trace()
+                title_section = soup.findAll('div', attrs={
+                    'class': 'section', 'id': name.replace(' ', '-')})
+                title_section.insert(2, summary_tag)
+            for p_tag in soup.findAll('p'):
+                p_tag['class'] = 'oe_mt32'
+
+            for image_tag in soup.findAll('img'):
+                image_tag['class'] = 'oe_picture oe_screenshot'
+
+            for tt_tag in soup.findAll('tt'):
+                tt_tag.name = 'code'
+
+            for maintainer_section in soup.findAll(id='maintainer'):
+                maintainer_section.replaceWith('')
+
+            if not self.pretty_option:
+                doc_div = soup.findAll('div', attrs={'class': 'document'})
+                if doc_div:
+                    doc_div = doc_div[0]
+                    doc_div['id'] = 'description'
+                    doc_div.name = 'section'
+                    doc_div['class'] = 'oe_container'
+
+            if soup.div.h1:
+                soup.div.h1.name = 'h2'
+                soup.div.h2['class'] = 'oe_slogan'
+
+            flag = True
+            for div_section in soup.findAll('div', attrs={'class': 'section'}):
+                if self.pretty_option:
+                    div_section['class'] = 'section oe_row oe_spaced'
+                    section_tag = bs4.Tag(soup, name='section')
+                    section_tag['class'] = 'oe_container'
+                    if flag:
+                        flag = False
+                    else:
+                        section_tag['class'] = 'oe_container oe_dark'
+                        flag = True
+                    div_section.wrap(section_tag)
+                else:
+                    div_section['class'] = 'section oe_span12'
+
+            # for h2_tag in soup.findall('h2'):
+            #     h2_tag.name = 'h3'
+            #     h2_tag['class'] = 'oe_slogan'
+
+            if self.pretty_option:
+                for h1_tag in soup.findAll('h1'):
+                    h1_tag.name = 'h2'
+                    h1_tag['class'] = 'oe_slogan'
+
+            head_tag = bs4.Tag(soup, name='head')
+            style_tag = bs4.Tag(soup, name='style')
+            style_tag.string = '.backgrounds{background-color:#fff;color:#a41d35}'
+            head_tag.insert(0, style_tag)
+            soup.html.insert(0, head_tag)
+
+            footer_tag = bs4.BeautifulSoup(self.footer)
+            soup.body.insert(len(soup.body.contents), footer_tag.html.body.section)
             content = soup.prettify()
-            content = self.header + content + self.footer
         except Exception as e:
             pdb.set_trace()
             exit()
