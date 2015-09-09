@@ -221,9 +221,11 @@ class DescriptionToHtml(object):
                     doc_div.name = 'section'
                     doc_div['class'] = 'oe_container'
 
-            if soup.div.h1:
-                soup.div.h1.name = 'h2'
-                soup.div.h2['class'] = 'oe_slogan'
+            # The first h1 is the title.
+            title = soup.find('h1')
+            if title:
+                title.name = 'h2'
+                title['class'] = 'oe_slogan'
 
             flag = True
             for div_section in soup.findAll('div', attrs={'class': 'section'}):
