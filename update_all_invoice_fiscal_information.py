@@ -3,11 +3,11 @@ import oerplib
 import os
 import sys
 
-HOST= ''
-PORT= 
-DB= ''
-USER= ''
-PASS= ''
+HOST= '127.0.0.1'
+PORT= 8069
+DB= 'xml2jinja4'
+USER= 'admin'
+PASS= 'a'
 
 con = oerplib.OERP(
 server=HOST,
@@ -18,8 +18,17 @@ port=PORT,
 con.login(USER, PASS)
 
 invoice_ids = con.search('account.invoice', [])
-
+invoice_error = []
 for invoice in con.browse('account.invoice', invoice_ids):
-    name_invoice = invoice.name
-    con.write('account.invoice', invoice.id, {'name': ' '})
-    con.write('account.invoice', invoice.id, {'name': name_invoice})
+    invoice_number = invoice.id
+    try:
+        name_invoice = invoice.name
+        con.write('account.invoice', invoice.id, {'name': ' '})
+        con.write('account.invoice', invoice.id, {'name': name_invoice})
+    except Exception:
+        invoice_error.append(invoice_number)
+if invoice_error:
+    print "This invoice has a error: "
+    print invoice_error
+else:
+    print 'No errors'
