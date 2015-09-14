@@ -3,11 +3,11 @@ import oerplib
 import os
 import sys
 
-HOST= '127.0.0.1'
-PORT= 8069
-DB= 'xml2jinja4'
-USER= 'admin'
-PASS= 'a'
+HOST= ''
+PORT= 
+DB= ''
+USER= ''
+PASS= ''
 
 con = oerplib.OERP(
 server=HOST,
