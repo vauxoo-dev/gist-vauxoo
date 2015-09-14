@@ -37,8 +37,7 @@ class DescriptionToHtml(object):
         @return: None
         """
         self.args = self.argument_parser()
-        self.path = self.args['path']
-
+        self.path = os.path.abspath(self.args['path'])
         self.pretty_option = self.args.get('pretty_style', False)
         self.get_html_parts()
 
@@ -130,10 +129,15 @@ class DescriptionToHtml(object):
         files.sort()
         files = [item.strip() for item in files]
 
-        module_list = os.walk(root).next()[1]
-        if module_list.count('.git'):
-            module_list.remove('.git')
-        module_list.sort()
+        if os.path.isfile(os.path.join(root, '__openerp__.py')):
+            module_list = [os.path.basename(root)]
+            root = os.path.split(root)[0]
+            self.path = root
+        else:
+            module_list = os.walk(root).next()[1]
+            if module_list.count('.git'):
+                module_list.remove('.git')
+            module_list.sort()
 
         for module in module_list:
             os.system('echo Generating index.html module ' + module)
