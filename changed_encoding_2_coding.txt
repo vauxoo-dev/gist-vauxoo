@@ -1,0 +1,2 @@
+find . -name "*.py" -exec sed -i '' 's/\# -\*- encoding\: utf\-8 -\*-/# coding: utf-8/g' {} \;
+find . -name "*.py" -exec sed -i '' 's/\# -\*- coding\: utf\-8 -\*-/# coding: utf-8/g' {} \;
