@@ -177,10 +177,11 @@ class DescriptionToMarkdown(object):
             name=module_name,
             title="=" * len(module_name),
             description=description)
-
-        path = os.path.join(os.path.dirname(m_file), 'README.md')
-        with open(path, 'w') as readmefile:
-            readmefile.write(content)
+        if not (os.path.isfile(os.path.dirname(m_file)+'/README.md' or
+                os.path.dirname(m_file)+'/readme.md')):
+            path = os.path.join(os.path.dirname(m_file), 'README.md')
+            with open(path, 'w') as readmefile:
+                readmefile.write(content)
         return True
 
 
