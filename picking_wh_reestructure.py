@@ -14,10 +14,10 @@ _logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option('-po', default='4DM1NCHUCK', prompt='Password of Odoo',
+@click.option('-po', default='admin', prompt='Password of Odoo',
               help='Password of user Odoo')
-@click.option('-dbo', default='lodi_test_wh', prompt='Database Odoo', help='DB Name')
-@click.option('-uo', default='nhomar@vauxoo.com', prompt='User Odoo', help='User of odoo')
+@click.option('-dbo', default='database', prompt='Database Odoo', help='DB Name')
+@click.option('-uo', default='admin', prompt='User Odoo', help='User of odoo')
 @click.option('-pod', default=8069, prompt='Port Odoo', help='Port of Odoo')
 @click.option('-du', default='odoo', prompt='Database User',
               help='Name of database user')
