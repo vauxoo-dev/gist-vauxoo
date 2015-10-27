@@ -1,5 +1,6 @@
 import sys
 import os
+from lxml import etree
 
 def remove_depreciated(files):
     filex = open(files)
@@ -22,6 +23,8 @@ def remove_depreciated(files):
 
 path = sys.argv[1]
 for dirpath, dnames, fnames in os.walk( path ):
+    if '.git' in dirpath:
+        continue
     for f in fnames:
         if f.endswith(".xml"):
             fname = (os.path.join(dirpath, f))
