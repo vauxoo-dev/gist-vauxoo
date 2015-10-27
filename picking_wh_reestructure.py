@@ -40,18 +40,20 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
     picking_type_loc = {1: 1521, 19: 1562}  # se coloca la ubicacion de acuerdo al picking_type
     for picking_type in picking_type_loc.keys():
         purchase_no_confirmed = conect.search('purchase.order', [
-            ('state', 'in', ('draft', 'confirmed')),
+            ('state', '=', 'draft'),
             ('picking_type_id', '=', picking_type)
             ])
-        for po in conect.browse('purchase.order', purchase_no_confirmed):
-            conect.write('purchase.order', po.id, {'location_id': picking_type_loc[picking_type]})
+        print purchase_no_confirmed, "purchase on algo"
+        conect.write('purchase.order', purchase_no_confirmed, {'location_id': picking_type_loc[picking_type]})
 
         purchase_ids = conect.search('purchase.order', [
             ('state', '=', "approved"),
             ('picking_type_id', '=', picking_type)
             ])
         for po in conect.browse('purchase.order', purchase_ids):
+            print po.location_id, "----------before"
             conect.write('purchase.order', po.id, {'location_id': picking_type_loc[picking_type]})
+            print po.location_id, "----------After"
             for picking_received in po.picking_ids:
                 if picking_received.state == 'assigned':
                     wz_trans_id = conect.create(
@@ -67,7 +69,8 @@ def change_aml(po, dbo, uo, pod, du, dp, dpo, dh):
                             'product_uom_id': line.product_id.uom_id.id})
                     conect.get('stock.transfer_details').do_detailed_transfer(
                         [wz_trans_id])
+                print picking_received.state, "----------picking status"
             # Para cancelar el o los restantes de la  orden de compra Entrada->Existencias
-            conect.get('stock.picking').action_cancel(conect.search('stock.picking', [('origin', 'like', po.name), ('state', '!=', 'done')]))
+            conect.get('stock.picking').action_cancel(conect.search('stock.picking', [('origin', 'like', po.name), ('state', '=', 'assigned')]))
 if __name__ == '__main__':
     change_aml()
