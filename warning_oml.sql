@@ -45,3 +45,4 @@ delete from ir_model_relation where model in ( select id from ir_model where nam
 DELETE FROM ir_module_module WHERE name = 'l10n_mx_facturae_group_show_wizards'
 DELETE FROM res_groups WHERE name = 'Show Default Wizards FacturaE'
 DELETE FROM ir_model_data WHERE module = 'l10n_mx_facturae_group_show_wizards'
+DELETE FROM ir_model_data WHERE name = 'module_l10n_mx_facturae_group_show_wizards'
