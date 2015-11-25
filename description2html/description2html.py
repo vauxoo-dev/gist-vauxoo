@@ -246,6 +246,9 @@ class DescriptionToHtml(object):
                 else:
                     div_section['class'] = 'section oe_span12'
 
+            for table_tag in soup.findAll('table'):
+                table_tag['border'] = 0
+
             # for h2_tag in soup.findall('h2'):
             #     h2_tag.name = 'h3'
             #     h2_tag['class'] = 'oe_slogan'
