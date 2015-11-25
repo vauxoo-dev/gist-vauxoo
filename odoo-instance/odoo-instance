@@ -1,0 +1,220 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import argcomplete
+import os
+import json
+import pandas
+
+
+class OerpInstance(object):
+
+    """
+    This python object pretend to check and update an instance branchs.
+    """
+
+    epilog = """
+    Openerp Developer Comunity Tool
+    Development by Katherine Zaoral (lp:~kathy-zaoral)
+    Coded by Katherine Zaoral <kathy@vauxoo.com>.
+    Source code at lp:~kathy-zaoral/+junk/tools."""
+
+    def __init__(self):
+        """
+        Initialization of the class.
+        @return: None
+        """
+        self.set_repos()
+        self.args = self.argument_parser()
+        self.env = self.args['env']
+        self.confirm_run(self.args)
+        return None
+
+    def argument_parser(self):
+        """
+        This function create the help command line, manage and filter the
+        parameters of this script (default values, choices values).
+        @return dictionary of the arguments.
+        """
+        parser = argparse.ArgumentParser(
+            prog='scriptName',
+            description='WhatTheScriptDoes',
+            epilog=self.epilog)
+
+        parser.add_argument(
+            '--check', action='store_true',
+            help=('Check the status of the repos.'))
+
+        parser.add_argument(
+            '--update', action='store_true',
+            help=('Update the repos.'))
+
+        parser.add_argument(
+            '--paths', action='store_true',
+            help=('View the local path for instance.'))
+
+        parser.add_argument(
+            '--merged', action='store_true',
+            help=('Check the merged branchs.'))
+
+        parser.add_argument(
+            '--no-merged', action='store_true',
+            help=('Show the development branchs.'))
+
+        parser.add_argument(
+            'env',
+            metavar='ENV',
+            type=str,
+            default='vauxoo',
+            choices=self.repos.keys(),
+            help=('The enviroment to check/update.'))
+
+        argcomplete.autocomplete(parser)
+        return parser.parse_args().__dict__
+
+    def confirm_run(self, args):
+        """
+        Manual confirmation before runing the script. Very usefull.
+        @param args: dictionary of arguments.
+        @return True or exit the program in the confirm is no.
+        """
+        print'\n... Configuration of Parameters Set'
+        for (parameter, value) in args.iteritems():
+            print '%s = %s' % (parameter, value)
+
+        confirm_flag = False
+        while confirm_flag not in ['y', 'n']:
+            confirm_flag = raw_input(
+                'Confirm the run with the above parameters? [y/n]: ')
+            if confirm_flag == 'y':
+                print 'The script parameters were confirmed by the user'
+            elif confirm_flag == 'n':
+                print 'The user cancel the operation'
+                exit()
+            else:
+                print 'The entry is not valid, please enter y or n.'
+        return True
+
+    def set_repos(self):
+        """
+        Set the repos configurated for every enviroment.
+        @return True
+        """
+        self.repos = dict()
+        # TODO need to be set as a command line parameter and save it by
+        # default.
+        config_dir = '/home/kathy/vx/config'
+        for config_file in os.listdir(config_dir):
+            data = dict()
+            if config_file.endswith(".json"):
+                with open(os.path.join(config_dir, config_file), 'r') as data_file:
+                    data = json.load(data_file)
+                self.repos.update({config_file[:-5]: data})
+        return True
+
+    def run(self):
+        """
+        run the given command in the command line.
+        @return True
+        """
+        self.args['check'] and self.check_instance()
+        self.args['update'] and self.update_instance()
+        self.args['merged'] and self.merged_branches()
+        self.args['no_merged'] and self.no_merged_branches()
+        self.args['paths'] and self.paths_instance()
+        return True
+
+    def print_repo_data(self, repo, branch):
+        """
+        @return True
+        """
+        print ' '.join([
+            '\nName:  ', repo,
+            '\nPath:  ', branch['path'],
+            '\nBranch:', branch['branch'],
+        ])
+        return True
+
+    def print_repo_data_oneline(self, repo, branch):
+        """
+        @return True
+        """
+        print '\t\t'.join([
+            'Name:  ', repo,
+            'Path:  ', branch['path'],
+            'Branch:', branch['branch'],
+        ])
+        return True
+
+    def check_instance(self):
+        """
+        This method check thre revnos of the branchs associated to the
+        instance.
+        @return True
+        """
+        print '\nCheck {env} branches'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git log --oneline -1'.format(path=path))
+            os.system('cd {path} && git status -sb'.format(path=path))
+        return True
+
+    def update_instance(self):
+        """
+        this method update the branches of the fiven instance.
+        @return True.
+        """
+        print '\nUpdate the {env} branches'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git log --oneline -1'.format(path=path))
+            os.system('cd {path} && git pull'.format(path=path))
+        return True
+
+    def paths_instance(self):
+        """
+        this method show the branches information for a given instance.
+        @return True.
+        """
+        print '\nInstance addons path {env}'.format(env=self.env)
+        data = self.repos[self.env]
+        df = pandas.DataFrame(data.values(), index=data.keys())
+        print df.path
+        return True
+
+    def merged_branches(self):
+        """
+        this method check if there are merged branchs that can be deleted.
+        @return true.
+        """
+        print '\nCheck merged in {env} branches'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git branch --merged'.format(path=path))
+        return True
+
+    def no_merged_branches(self):
+        """
+        this method check if there are merged branchs that can be deleted.
+        @return true.
+        """
+        print '\nCheck merged in {env} branches'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git branch --no-merged'.format(path=path))
+        return True
+
+
+
+def main():
+    obj = OerpInstance()
+    obj.run()
+    return True
+
+if __name__ == '__main__':
+    main()

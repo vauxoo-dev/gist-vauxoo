@@ -1,0 +1,78 @@
+{
+    "Vauxoo/odoo/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/odoo",
+        "branch": "8.0-vauxoo"
+    },
+    "Vauxoo/yoytec/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/yoytec",
+        "branch": "8.0"
+    },
+    "Vauxoo/pylint-conf/master": {
+        "path": "/home/kathy/vx/git/vauxoo/pylint-conf",
+        "branch": "master"
+    },
+    "Vauxoo/odoo/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/odoo/addons",
+        "branch": "8.0-vauxoo"
+    },
+    "Vauxoo/hr/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/hr",
+        "branch": "8.0"
+    },
+    "Vauxoo/odoo-panama/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/odoo-panama",
+        "branch": "8.0"
+    },
+    "Vauxoo/panama-dv/master": {
+        "path": "/home/kathy/vx/git/vauxoo/panama-dv",
+        "branch": "master"
+    },
+    "Vauxoo/addons-vauxoo/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/addons-vauxoo",
+        "branch": "8.0"
+    },
+    "Vauxoo/stock-logistics-workflow/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/stock-logistics-workflow",
+        "branch": "8.0"
+    },
+    "Vauxoo/rma/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/rma",
+        "branch": "8.0"
+    },
+    "Vauxoo/website_multi_image/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/website_multi_image",
+        "branch": "8.0"
+    },
+    "Vauxoo/product-attribute/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/product-attribute",
+        "branch": "8.0"
+    },
+    "Vauxoo/odoo-themes/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/odoo-themes",
+        "branch": "8.0"
+    },
+    "Vauxoo/odoo-snippets/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/odoo-snippets",
+        "branch": "8.0"
+    },
+    "Vauxoo/SerpentCS_Contributions-v8/master": {
+        "path": "/home/kathy/vx/git/vauxoo/SerpentCS_Contributions-v8",
+        "branch": "master"
+    },
+    "Vauxoo/server-tools/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/server-tools",
+        "branch": "8.0"
+    },
+    "Vauxoo/partner-contact/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/partner-contact",
+        "branch": "8.0"
+    },
+    "Vauxoo/crm/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/crm",
+        "branch": "8.0"
+    },
+    "Vauxoo/web/8.0": {
+        "path": "/home/kathy/vx/git/vauxoo/web",
+        "branch": "8.0"
+    }
+}
