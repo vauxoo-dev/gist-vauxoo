@@ -1,0 +1,4 @@
+argparse
+argcomplete
+bs4
+pdb

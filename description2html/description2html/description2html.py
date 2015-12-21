@@ -274,16 +274,11 @@ class DescriptionToHtml(object):
 
     def get_html_parts(self):
         """
-        go to the this package data folder and get the head, template and
-        footer.
+        go to the this package data folder and get the footer file.
         """
         script_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
             'data')
-        with open(os.path.join(script_path, 'head.html'), 'r') as hfile:
-            self.header = hfile.read()
-        with open(os.path.join(script_path, 'template.html'), 'r') as hfile:
-            self.template = hfile.read()
         with open(os.path.join(script_path, 'footer.html'), 'r') as hfile:
             self.footer = hfile.read()
         self.module_icon = os.path.join(script_path, 'icon.png')
