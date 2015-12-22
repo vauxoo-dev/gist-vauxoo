@@ -1,4 +1,4 @@
 argparse
 argcomplete
-bs4
+beautifulsoup4
 pdb
