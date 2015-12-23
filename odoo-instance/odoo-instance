@@ -28,7 +28,6 @@ class OerpInstance(object):
         self.set_repos()
         self.args = self.argument_parser()
         self.env = self.args['env']
-        self.confirm_run(self.args)
         return None
 
     def argument_parser(self):
@@ -38,40 +37,62 @@ class OerpInstance(object):
         @return dictionary of the arguments.
         """
         parser = argparse.ArgumentParser(
-            prog='scriptName',
-            description='WhatTheScriptDoes',
+            prog='odoo-instance',
+            description='Given a list of instance branches will check/modify',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             epilog=self.epilog)
+        common = self.get_common_args()
+        subparsers = parser.add_subparsers(dest='action')
 
-        parser.add_argument(
-            '--check', action='store_true',
+        subparsers.add_parser(
+            'status',
+            parents=[common],
             help=('Check the status of the repos.'))
 
-        parser.add_argument(
-            '--update', action='store_true',
+        subparsers.add_parser(
+            'update',
+            parents=[common],
             help=('Update the repos.'))
 
-        parser.add_argument(
-            '--paths', action='store_true',
+        subparsers.add_parser(
+            'paths',
+            parents=[common],
             help=('View the local path for instance.'))
 
-        parser.add_argument(
-            '--merged', action='store_true',
+        subparsers.add_parser(
+            'merged',
+            parents=[common],
             help=('Check the merged branchs.'))
 
-        parser.add_argument(
-            '--no-merged', action='store_true',
+        subparsers.add_parser(
+            'no-merged',
+            parents=[common],
             help=('Show the development branchs.'))
 
-        parser.add_argument(
-            'env',
-            metavar='ENV',
-            type=str,
-            default='vauxoo',
-            choices=self.repos.keys(),
-            help=('The enviroment to check/update.'))
+        subparsers.add_parser(
+            'clean',
+            parents=[common],
+            help=('Clean out all the branchs.'))
+
+        subparsers.add_parser(
+            'checkout',
+            parents=[common],
+            help=('Will checkout to change to master branches.'))
 
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
+
+    def get_common_args(self):
+        """
+        Create a parent parser with the repeat arguments.
+        """
+        common = argparse.ArgumentParser(add_help=False)
+        common.add_argument(
+            'env', metavar='instance', type=str,
+            default='vauxoo',
+            choices=self.repos.keys(),
+            help=('The enviroment to check/update.'))
+        return common
 
     def confirm_run(self, args):
         """
@@ -118,11 +139,15 @@ class OerpInstance(object):
         run the given command in the command line.
         @return True
         """
-        self.args['check'] and self.check_instance()
-        self.args['update'] and self.update_instance()
-        self.args['merged'] and self.merged_branches()
-        self.args['no_merged'] and self.no_merged_branches()
-        self.args['paths'] and self.paths_instance()
+        action = self.args.get('action', False)
+
+        action == 'status' and self.check_instance()
+        action == 'update' and self.update_instance()
+        action == 'merged' and self.merged_branches()
+        action == 'no_merged' and self.no_merged_branches()
+        action == 'clean' and self.clean_branches()
+        action == 'paths' and self.paths_instance()
+        action == 'checkout' and self.checkout_branches()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -153,7 +178,7 @@ class OerpInstance(object):
         instance.
         @return True
         """
-        print '\nCheck {env} branches'.format(env=self.env)
+        print '\nCheck status of {env} branches'.format(env=self.env)
         for (repo, branch) in self.repos[self.env].iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
@@ -166,6 +191,7 @@ class OerpInstance(object):
         this method update the branches of the fiven instance.
         @return True.
         """
+        self.confirm_run(self.args)
         print '\nUpdate the {env} branches'.format(env=self.env)
         for (repo, branch) in self.repos[self.env].iteritems():
             path = branch['path']
@@ -209,6 +235,29 @@ class OerpInstance(object):
             os.system('cd {path} && git branch --no-merged'.format(path=path))
         return True
 
+    def clean_branches(self):
+        self.confirm_run(self.args)
+        print '\nClean branches in {env}'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git clean -dxf'.format(path=path))
+        return True
+
+    def checkout_branches(self):
+        """
+        This method change the branchs to the one defined as the master.
+        git checkout master
+        @return True
+        """
+        self.confirm_run(self.args)
+        print '\nCheck status of {env} branches'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git checkout {branch}'.format(
+                path=path, branch=branch['branch']))
+        return True
 
 
 def main():
