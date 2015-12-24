@@ -15,10 +15,10 @@ class OerpInstance(object):
     """
 
     epilog = """
-    Openerp Developer Comunity Tool
-    Development by Katherine Zaoral (lp:~kathy-zaoral)
-    Coded by Katherine Zaoral <kathy@vauxoo.com>.
-    Source code at lp:~kathy-zaoral/+junk/tools."""
+    Odoo Community Tool.
+    Source code at git@github.com:vauxoo-dev/gist-vauxoo
+    Development/Coded by Katherine Zaoral <kathy@vauxoo.com> (github @zaoral)
+    """
 
     def __init__(self):
         """
@@ -125,7 +125,7 @@ class OerpInstance(object):
         self.repos = dict()
         # TODO need to be set as a command line parameter and save it by
         # default.
-        config_dir = '/home/kathy/vx/config'
+        config_dir = os.path.split(__file__)[0]
         for config_file in os.listdir(config_dir):
             data = dict()
             if config_file.endswith(".json"):

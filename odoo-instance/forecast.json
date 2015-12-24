@@ -1,0 +1,14 @@
+{
+    "Vauxoo/forecast/8.0": {
+        "path": "/root/build/Vauxoo/forecast",
+        "branch": "8.0"
+    },
+    "Vauxoo/web/8.0": {
+        "path": "/root/web",
+        "branch": "8.0"
+    },
+    "Vauxoo/addons-vauxoo/8.0": {
+        "path": "/root/addons-vauxoo",
+        "branch": "8.0"
+    }
+}
