@@ -1,78 +1,78 @@
 {
-    "Vauxoo/odoo/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/odoo",
-        "branch": "8.0-vauxoo"
-    },
     "Vauxoo/yoytec/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/yoytec",
+        "path": "/root/build/Vauxoo/yoytec",
         "branch": "8.0"
     },
-    "Vauxoo/pylint-conf/master": {
-        "path": "/home/kathy/vx/git/vauxoo/pylint-conf",
-        "branch": "master"
-    },
-    "Vauxoo/odoo/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/odoo/addons",
-        "branch": "8.0-vauxoo"
-    },
     "Vauxoo/hr/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/hr",
+        "path": "/root/hr",
         "branch": "8.0"
     },
     "Vauxoo/odoo-panama/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/odoo-panama",
+        "path": "/root/odoo-panama",
         "branch": "8.0"
     },
-    "Vauxoo/panama-dv/master": {
-        "path": "/home/kathy/vx/git/vauxoo/panama-dv",
-        "branch": "master"
-    },
     "Vauxoo/addons-vauxoo/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/addons-vauxoo",
+        "path": "/root/addons-vauxoo",
         "branch": "8.0"
     },
     "Vauxoo/stock-logistics-workflow/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/stock-logistics-workflow",
+        "path": "/root/stock-logistics-workflow",
         "branch": "8.0"
     },
     "Vauxoo/rma/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/rma",
+        "path": "/root/rma",
         "branch": "8.0"
     },
     "Vauxoo/website_multi_image/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/website_multi_image",
+        "path": "/root/website_multi_image",
         "branch": "8.0"
     },
     "Vauxoo/product-attribute/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/product-attribute",
+        "path": "/root/product-attribute",
         "branch": "8.0"
     },
     "Vauxoo/odoo-themes/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/odoo-themes",
+        "path": "/root/odoo-themes",
         "branch": "8.0"
     },
     "Vauxoo/odoo-snippets/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/odoo-snippets",
+        "path": "/root/odoo-snippets",
         "branch": "8.0"
     },
     "Vauxoo/SerpentCS_Contributions-v8/master": {
-        "path": "/home/kathy/vx/git/vauxoo/SerpentCS_Contributions-v8",
+        "path": "/root/SerpentCS_Contributions-v8",
         "branch": "master"
     },
     "Vauxoo/server-tools/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/server-tools",
+        "path": "/root/server-tools",
         "branch": "8.0"
     },
     "Vauxoo/partner-contact/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/partner-contact",
+        "path": "/root/partner-contact",
         "branch": "8.0"
     },
     "Vauxoo/crm/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/crm",
+        "path": "/root/crm",
         "branch": "8.0"
     },
     "Vauxoo/web/8.0": {
-        "path": "/home/kathy/vx/git/vauxoo/web",
+        "path": "/root/web",
+        "branch": "8.0"
+    },
+    "Vauxoo/forecast/8.0": {
+        "path": "/root/forecast",
+        "branch": "8.0"
+    },
+    "Vauxoo/addons-yelizariev/8.0": {
+        "path": "/root/addons-yelizariev",
+        "branch": "8.0"
+    },
+    "Vauxoo/website/8.0": {
+        "path": "/root/website",
+        "branch": "8.0"
+    },
+    "Vauxoo/fiscal-printer/8.0": {
+        "path": "/root/fiscal-printer",
         "branch": "8.0"
     }
 }
