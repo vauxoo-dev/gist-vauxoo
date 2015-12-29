@@ -70,7 +70,7 @@ class PotGenerator(object):
             '-p', '--port',
             metavar='PORT',
             type=str,
-            default='8069',  # TODO verify is this is or is another port? 10000
+            default='8069',
             help='Port to use to connect to the database')
 
         parser.add_argument(
@@ -78,6 +78,11 @@ class PotGenerator(object):
             metavar='MODULE PATH',
             type=str,
             help='The module path')
+
+        parser.add_argument(
+            '--version',
+            action='version',
+            version='%(prog)s 8.0.2.0.0')
 
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
@@ -119,10 +124,9 @@ class PotGenerator(object):
         run the given command in the command line.
         @return True
         """
-        SERVER = self.args.get('sever')
+        SERVER = self.args.get('server')
         DB = self.args.get('db')
         PORT = self.args.get('port')
-        SRC_PATH = self.args.get('module_path')
 
         # Static variables (for the moment).
         USER = 'admin'
@@ -137,15 +141,10 @@ class PotGenerator(object):
         # self.reset_db(oerp, DB, USER, PASSWD)
         self.login_db(oerp, USER, PASSWD)
 
-        dir_names = self.get_modules(SRC_PATH)
-        installed_dict = self.install_modules(oerp, dir_names)
-
-        dir_names = installed_dict.keys()
-        dir_names.sort()
-        dir_names.reverse()
-
-        self.generate_pot_files(oerp, dir_names, SRC_PATH)
-        print 'Templating is DONE'
+        modules_data = self.get_modules()
+        modules_data = self.install_modules(oerp, modules_data)
+        self.generate_pot_files(oerp, modules_data)
+        print '\nTemplating is DONE\n'
 
     def commit_new_pot(self, dir_name, SRC_PATH):
         """
@@ -183,87 +182,105 @@ class PotGenerator(object):
 
         self.csv = csv
 
-    def generate_pot_files(self, oerp, dir_names, SRC_PATH):
+    def generate_pot_files(self, oerp, modules_data):
         """
         #POT FILES GENERATION
         """
-        for dir_name in dir_names:
-            directory = '%s/%s' % (SRC_PATH, dir_name)
-            if not os.path.exists(directory + '/i18n'):
-                new_dir_name = directory + '/i18n'
-                os.mkdir(new_dir_name)
-
-            module_ids = oerp.execute(
-                'ir.module.module', 'search',
-                [('name', '=', dir_name), ('state', '=', 'installed')])
-            if not module_ids:
-                continue
+        print "\n>> Generationg POT files ...\n"
+        ordered_module_list = sorted(modules_data.keys())
+        for module_name in ordered_module_list:
+            module_attr = modules_data.get(module_name)
+            module_path = module_attr.get('path')
+            i18n_folder = os.path.join(module_path, 'i18n')
+            if not os.path.exists(i18n_folder):
+                os.mkdir(i18n_folder)
+            module_id = module_attr.get('id')
             lang_wzd_id = oerp.execute(
                 'base.language.export', 'create', {
                     'lang': '__new__',
                     'format': 'po',
-                    'modules': [(4, dir_names[dir_name])]  # TODO be carefull
-                    })
+                    'modules': [(4, module_id)],
+                })
             oerp.execute(
                 'base.language.export', 'act_getfile',
                 [lang_wzd_id])
             data = oerp.execute(
                 'base.language.export', 'read', lang_wzd_id, ['data'])['data']
 
-            file_name = directory + '/i18n/%s.pot' % dir_name
+            # Write pot file
+            file_name = os.path.join(i18n_folder, module_name + '.pot')
             with open(file_name, 'w') as tt_file:
                 tt_file.write(base64.decodestring(data))
-            print '[%s] pot_file Generated' % dir_name.upper()
-            self.commit_new_pot(dir_name, SRC_PATH)
+            print 'module %s' % module_name
 
-    def get_modules(self, SRC_PATH):
+            # self.commit_new_pot(module_name, module_path)
+
+    def get_modules(self):
         """
         Review the module path and return the list of modules inside.
         """
+        print "\n>> Finding Odoo modules\n"
+        SRC_PATH = self.args.get('module-path')
         if not os.path.exists(SRC_PATH):
             print 'Directory not found: ' + SRC_PATH
-        dir_names = os.listdir(SRC_PATH)
-        dir_names = [dir_name
-                     for dir_name in dir_names
-                     if not dir_name.startswith('.')]
-        # TODO this need to be improve. Need to identify is the current
-        # folder is a Odoo module. If not then iterate and get the list of all
-        # the Odoo modules.
+            exit()
 
-    def install_modules(self, oerp, dir_names):
+        # Find modules
+        openerp_py = subprocess.Popen(
+            ['find', SRC_PATH, '-name', '__openerp__.py'],
+            stdout=subprocess.PIPE).stdout.readlines()
+
+        if not openerp_py:
+            print 'There is not modules in the given path'
+            exit()
+        else:
+            openerp_py = [item.strip() for item in openerp_py]
+            modules_data = {}
+            for item in openerp_py:
+                module_path = os.path.split(item)[0]
+                modules_data.update({
+                    os.path.basename(module_path): {
+                        'path': module_path}
+                })
+            ordered_module_list = sorted(modules_data.keys())
+            for module_name in ordered_module_list:
+                print 'module ' + module_name
+        return modules_data
+
+    def install_modules(self, oerp, modules_data):
         """
         Install modules in the module path.
         """
+        print "\n>> Installing Modules ...\n"
         module_obj = oerp.get('ir.module.module')
         uninstallable_ids = []
-        installed_dict = {}
         installed_dir_names = []
-        for dir_name in dir_names:
+        for module in modules_data.keys():
             module_id = module_obj.search(
-                [('name', '=', dir_name), ('state', '!=', 'uninstallable')])
+                [('name', '=', module), ('state', '!=', 'uninstallable')])
             if module_id:
                 installed_module_id = module_obj.search(
-                    [('name', '=', dir_name), ('state', '=', 'installed')])
+                    [('name', '=', module), ('state', '=', 'installed')])
                 if not installed_module_id:
                     try:
                         module_obj.button_immediate_install(module_id)
-                        installed_dir_names.append(dir_name)
-                        print '[%s] installed successfully' % dir_name.upper()
-                        installed_dict[dir_name] = module_id[0]
+                        installed_dir_names.append(module)
+                        print '[%s] installed successfully' % module
                     except:
                         uninstallable_ids += module_id
                         module_id = module_obj.search(
                             [('state', '=', 'to install')])
-                        print '[%s] unmet dependencies' % dir_name.upper()
+                        print '[%s] unmet dependencies' % module
                         module_obj.button_install_cancel(module_id)
+                        modules_data.pop(module)
                 else:
-                    print '[%s] already installed' % dir_name.upper()
-                    installed_dir_names.append(dir_name)
-                    installed_dict[dir_name] = module_id[0]
+                    installed_dir_names.append(module)
+                modules_data.get(module).update({'id': module_id[0]})
             else:
-                print '[%s] unavailable to install' % dir_name.upper()
+                print '[%s] unavailable to install' % module
+                modules_data.pop(module)
         # TODO print summary with the errors.
-        return installed_dict
+        return modules_data
 
     def login_db(self, oerp, USER, PASSWD):
         """
