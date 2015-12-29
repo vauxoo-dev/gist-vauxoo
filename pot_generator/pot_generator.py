@@ -17,10 +17,11 @@ class PotGenerator(object):
 
     epilog = (
         "Odoo Developer Comunity Tool\n"
+        "Source code at git@github.com:vauxoo-dev/gist-vauxoo\n\n"
         "Contributors:\n"
-        " - Saul Gonzalez\n"
-        " - Katherine Zaoral <kathy@vauxoo.com> (github@zaoral)\n"
-        "Source code at git@github.com:vauxoo-dev/gist-vauxoo\n")
+        " - Saul Gonzalez <saul@vauxoo.com>\n"
+        " - Humberto Arocha <hbto@vauxoo.com> (github@hbto)\n"
+        " - Katherine Zaoral <kathy@vauxoo.com> (github@zaoral)\n\n")
 
     def __init__(self):
         """
