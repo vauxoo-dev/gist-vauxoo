@@ -55,7 +55,6 @@ class PotGenerator(object):
             '-s', '--server',
             metavar='SERVER',
             type=str,
-            required=True,
             default='localhost',
             help='The server name where the odoo instance is running')
 
@@ -63,7 +62,6 @@ class PotGenerator(object):
             '-d', '--db',
             metavar='DATABASE',
             type=str,
-            required=True,
             default='openerp_test',
             help='The database where will be extract the pot files')
 
@@ -71,15 +69,13 @@ class PotGenerator(object):
             '-p', '--port',
             metavar='PORT',
             type=str,
-            required=True,
             default='8069',  # TODO verify is this is or is another port? 10000
             help='Port to use to connect to the database')
 
         parser.add_argument(
-            '-m', '--module-path',
-            metavar='PATH',
+            'module-path',
+            metavar='MODULE PATH',
             type=str,
-            required=True,
             help='The module path')
 
         argcomplete.autocomplete(parser)
