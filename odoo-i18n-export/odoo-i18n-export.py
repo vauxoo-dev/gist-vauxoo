@@ -9,10 +9,10 @@ import subprocess
 import oerplib
 
 
-class PotGenerator(object):
+class OdooI18nExport(object):
 
     """
-    This object pretend to generate the pot files for a given module.
+    This object pretend to generate the i18n files for a given module(s).
     """
 
     epilog = (
@@ -42,8 +42,9 @@ class PotGenerator(object):
         @return dictionary of the arguments.
         """
         parser = argparse.ArgumentParser(
-            prog='pot-generator',
-            description='Generate por file for a given module or module path',
+            prog='odoo-i18n-export',
+            description='Generate pot and es.po files for a given module or'
+                        ' module path',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=self.epilog)
 
@@ -64,7 +65,7 @@ class PotGenerator(object):
             metavar='DATABASE',
             type=str,
             default='openerp_test',
-            help='The database where will be extract the pot files')
+            help='The database where will be extract the i18n files')
 
         parser.add_argument(
             '-p', '--port',
@@ -80,9 +81,17 @@ class PotGenerator(object):
             help='The module path')
 
         parser.add_argument(
+            '-f', '--translation-file',
+            metavar='FILE_TYPE',
+            type=str,
+            default='pot',
+            choices=['pot', 'es_ES', 'all'],
+            help='The translations files to export')
+
+        parser.add_argument(
             '--version',
             action='version',
-            version='%(prog)s 8.0.2.0.0')
+            version='%(prog)s 8.0.3.0.0')
 
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
@@ -140,13 +149,14 @@ class PotGenerator(object):
 
         # self.reset_db(oerp, DB, USER, PASSWD)
         self.login_db(oerp, USER, PASSWD)
+        self.install_languages(oerp)
 
         modules_data = self.get_modules()
         modules_data = self.install_modules(oerp, modules_data)
-        self.generate_pot_files(oerp, modules_data)
+        self.generate_i18n_files(oerp, modules_data)
         print '\nTemplating is DONE\n'
 
-    def commit_new_pot(self, dir_name, SRC_PATH):
+    def commit_new_i18n(self, dir_name, SRC_PATH):
         """
         Make a commit with the new Pot File.
         """
@@ -182,7 +192,7 @@ class PotGenerator(object):
 
         self.csv = csv
 
-    def generate_pot_files(self, oerp, modules_data):
+    def generate_i18n_files(self, oerp, modules_data):
         """
         #POT FILES GENERATION
         """
@@ -195,25 +205,52 @@ class PotGenerator(object):
             if not os.path.exists(i18n_folder):
                 os.mkdir(i18n_folder)
             module_id = module_attr.get('id')
-            lang_wzd_id = oerp.execute(
-                'base.language.export', 'create', {
-                    'lang': '__new__',
-                    'format': 'po',
-                    'modules': [(4, module_id)],
-                })
-            oerp.execute(
-                'base.language.export', 'act_getfile',
-                [lang_wzd_id])
-            data = oerp.execute(
-                'base.language.export', 'read', lang_wzd_id, ['data'])['data']
 
-            # Write pot file
-            file_name = os.path.join(i18n_folder, module_name + '.pot')
-            with open(file_name, 'w') as tt_file:
-                tt_file.write(base64.decodestring(data))
-            print 'module %s' % module_name
+            #  Get translation configuration
+            i18n_config = self.get_i18n_config(i18n_folder, module_name)
 
-            # self.commit_new_pot(module_name, module_path)
+            for i18n in i18n_config.values():
+                lang_wzd_id = oerp.execute(
+                    'base.language.export', 'create', {
+                        'lang': i18n.get('lang'),
+                        'format': 'po',
+                        'modules': [(4, module_id)],
+                    })
+                oerp.execute(
+                    'base.language.export', 'act_getfile',
+                    [lang_wzd_id])
+                data = oerp.execute(
+                    'base.language.export', 'read', lang_wzd_id,
+                    ['data'])['data']
+
+                # Write i18n file
+                with open(i18n.get('file_name'), 'w') as tt_file:
+                    tt_file.write(base64.decodestring(data))
+                print 'module %s' % module_name
+
+            # self.commit_new_i18n(module_name, module_path)
+
+    def get_i18n_config(self, i18n_folder, module_name):
+        """
+        Get translation configuration taking into account the option
+        configured in the command line
+        """
+        i18n_files = self.args.get('translation_file')
+        i18n_config = {
+            'pot': {'lang': '__new__',
+                    'file_name': os.path.join(
+                        i18n_folder, module_name + '.pot')},
+            'es_ES': {'lang': 'es_ES',
+                      'file_name': os.path.join(
+                          i18n_folder, 'es.po')},
+        }
+        if i18n_files == 'all':
+            pass
+        elif i18n_files == 'pot':
+            i18n_config.pop('es_ES')
+        elif i18n_files == 'es_ES':
+            i18n_config.pop('pot')
+        return i18n_config
 
     def get_modules(self):
         """
@@ -246,6 +283,25 @@ class PotGenerator(object):
             for module_name in ordered_module_list:
                 print 'module ' + module_name
         return modules_data
+
+    def install_languages(self, oerp):
+        """
+        Install es_ES language.
+        """
+        print "\n>> Install Languages...\n"
+
+        i18n_files = self.args.get('translation_file')
+        if i18n_files == 'pot':
+            pass
+        else:
+            lang_obj = oerp.get('res.lang')
+            lang_code = 'es_ES'
+            lang_id = lang_obj.search([('code', '=', lang_code)])
+            if not lang_id:
+                wiz_id = oerp.execute('base.language.install', 'create', {
+                    'lang': lang_code})
+                oerp.execute('base.language.install', 'lang_install',
+                             [wiz_id])
 
     def install_modules(self, oerp, modules_data):
         """
@@ -305,7 +361,7 @@ class PotGenerator(object):
 
 
 def main():
-    obj = PotGenerator()
+    obj = OdooI18nExport()
     obj.run()
     return True
 

@@ -1,5 +1,0 @@
-#!/bin/bash
-cd
-git clone git@github.com:vauxoo-dev/gist-vauxoo
-echo "alias pot-generator='${HOME}/gist-vauxoo/pot_generator/pot_generator.py'" >> ${HOME}/.profile
-source ${HOME}/.profile
