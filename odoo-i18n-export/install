@@ -1,5 +1,4 @@
 #!/bin/bash
-cd
-git clone git@github.com:vauxoo-dev/gist-vauxoo
-echo "alias odoo-i18n-export='${HOME}/gist-vauxoo/odoo-i18n-export/odoo-i18n-export.py'" >> ${HOME}/.profile
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
+echo "alias odoo-i18n-export='${DIR}/odoo-i18n-export.py'" >> ${HOME}/.profile
 source ${HOME}/.profile

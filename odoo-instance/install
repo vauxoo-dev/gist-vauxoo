@@ -1,5 +1,4 @@
 #!/bin/bash
-# cd
-# git clone git@github.com:vauxoo-dev/gist-vauxoo
-echo "alias odoo-instance='${HOME}/gist-vauxoo/odoo-instance/odoo-instance'" >> ${HOME}/.profile
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
+echo "alias odoo-instance='${DIR}/odoo-instance'" >> ${HOME}/.profile
 source ${HOME}/.profile
