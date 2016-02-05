@@ -65,7 +65,7 @@ class OerpInstance(object):
             help=('Check the merged branchs.'))
 
         subparsers.add_parser(
-            'no-merged',
+            'unmerged',
             parents=[common],
             help=('Show the development branchs.'))
 
@@ -144,7 +144,7 @@ class OerpInstance(object):
         action == 'status' and self.check_instance()
         action == 'update' and self.update_instance()
         action == 'merged' and self.merged_branches()
-        action == 'no_merged' and self.no_merged_branches()
+        action == 'unmerged' and self.unmerged_branches()
         action == 'clean' and self.clean_branches()
         action == 'paths' and self.paths_instance()
         action == 'checkout' and self.checkout_branches()
@@ -223,12 +223,12 @@ class OerpInstance(object):
             os.system('cd {path} && git branch --merged'.format(path=path))
         return True
 
-    def no_merged_branches(self):
+    def unmerged_branches(self):
         """
         this method check if there are merged branchs that can be deleted.
         @return true.
         """
-        print '\nCheck merged in {env} branches'.format(env=self.env)
+        print '\nCheck unmerged branchs in {env} instance'.format(env=self.env)
         for (repo, branch) in self.repos[self.env].iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
