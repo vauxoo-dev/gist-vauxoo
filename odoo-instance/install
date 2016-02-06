@@ -1,4 +1,6 @@
 #!/bin/bash
+pip install argcomplete
+activate-global-python-argcomplete
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
 echo "alias odoo-instance='${DIR}/odoo-instance'" >> ${HOME}/.profile
 source ${HOME}/.profile
