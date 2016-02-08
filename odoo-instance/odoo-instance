@@ -88,7 +88,7 @@ class OerpInstance(object):
         """
         common = argparse.ArgumentParser(add_help=False)
         common.add_argument(
-            'env', metavar='instance', type=str,
+            '--env', metavar='instance', type=str,
             default='vauxoo',
             choices=self.repos.keys(),
             help=('The enviroment to check/update.'))
