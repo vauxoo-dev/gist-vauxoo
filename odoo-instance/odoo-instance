@@ -70,6 +70,11 @@ class OerpInstance(object):
             help=('Show the development branchs.'))
 
         subparsers.add_parser(
+            'stash',
+            parents=[common],
+            help=('Show stash in branchs.'))
+
+        subparsers.add_parser(
             'clean',
             parents=[common],
             help=('Clean out all the branchs.'))
@@ -145,6 +150,7 @@ class OerpInstance(object):
         action == 'update' and self.update_instance()
         action == 'merged' and self.merged_branches()
         action == 'unmerged' and self.unmerged_branches()
+        action == 'stash' and self.stash_list()
         action == 'clean' and self.clean_branches()
         action == 'paths' and self.paths_instance()
         action == 'checkout' and self.checkout_branches()
@@ -233,6 +239,18 @@ class OerpInstance(object):
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git branch --no-merged'.format(path=path))
+        return True
+
+    def stash_list(self):
+        """
+        show the stash saves in the branchs.
+        @return true.
+        """
+        print '\nCheck stash list in {env} instance'.format(env=self.env)
+        for (repo, branch) in self.repos[self.env].iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git stash list'.format(path=path))
         return True
 
     def clean_branches(self):
