@@ -166,22 +166,19 @@ class OerpInstance(object):
         """
         @return True
         """
-        print ' '.join([
-            '\nName:  ', repo,
-            '\nPath:  ', branch['path'],
-            '\nBranch:', branch['branch'],
-        ])
+        self.print_repo_data_oneline(repo, branch)
+        # print ' '.join([
+        #     '\nName:  ', repo,
+        #     '\nPath:  ', branch['path'],
+        #     '\nBranch:', branch['branch'],
+        # ])
         return True
 
     def print_repo_data_oneline(self, repo, branch):
         """
         @return True
         """
-        print '\t\t'.join([
-            'Name:  ', repo,
-            'Path:  ', branch['path'],
-            'Branch:', branch['branch'],
-        ])
+        print '\n** ' + repo
         return True
 
     def check_instance(self):
