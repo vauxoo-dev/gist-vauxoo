@@ -144,6 +144,12 @@ class OerpInstance(object):
         run the given command in the command line.
         @return True
         """
+
+        self.cr_repo = self.repos.get(self.env, False)
+        if not self.cr_repo:
+            print 'Dont find repository json file'
+            exit()
+
         action = self.args.get('action', False)
 
         action == 'status' and self.check_instance()
@@ -185,7 +191,7 @@ class OerpInstance(object):
         @return True
         """
         print '\nCheck status of {env} branches'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git log --oneline -1'.format(path=path))
@@ -199,7 +205,7 @@ class OerpInstance(object):
         """
         self.confirm_run(self.args)
         print '\nUpdate the {env} branches'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git log --oneline -1'.format(path=path))
@@ -223,7 +229,7 @@ class OerpInstance(object):
         @return true.
         """
         print '\nCheck merged in {env} branches'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git branch --merged'.format(path=path))
@@ -235,7 +241,7 @@ class OerpInstance(object):
         @return true.
         """
         print '\nCheck unmerged branchs in {env} instance'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git branch --no-merged'.format(path=path))
@@ -247,7 +253,7 @@ class OerpInstance(object):
         @return true.
         """
         print '\nCheck stash list in {env} instance'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git stash list'.format(path=path))
@@ -256,7 +262,7 @@ class OerpInstance(object):
     def clean_branches(self):
         self.confirm_run(self.args)
         print '\nClean branches in {env}'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git clean -dxf'.format(path=path))
@@ -270,7 +276,7 @@ class OerpInstance(object):
         """
         self.confirm_run(self.args)
         print '\nCheck status of {env} branches'.format(env=self.env)
-        for (repo, branch) in self.repos[self.env].iteritems():
+        for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git checkout {branch}'.format(
