@@ -1,0 +1,1 @@
+./odoo_server $1_base $1 duplicate yoytec_base               # create the base database for any yoytec module from the main

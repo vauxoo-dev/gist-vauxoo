@@ -1,0 +1,45 @@
+#!/bin/bash
+BD=$1
+MODULE=$2
+TASK=$3
+ACT=" "
+TEST=$4
+ODOO_SERVER="$HOME/vx/git/vauxoo/odoo/odoo.py"
+CONFIG_FILE="$HOME/.openerp_serverrc"
+
+echo "Data Base: ${BD}"
+echo "Module(s): ${MODULE}"
+
+if [ $# -ge 3 ]; then
+    if [ $3 == 'all' ];then
+        dropdb $BD --if-exists
+        createdb -O $USER -T template0 -E utf-8 $BD
+        ACT="-i $MODULE"
+    elif [ $3 == 'duplicate' ];then
+        dropdb $BD --if-exists
+        BASEDB=$4
+        echo createdb -O $USER -T $BASEDB -E utf-8 $BD
+        createdb -O $USER -T $BASEDB -E utf-8 $BD
+        ACT="-i $MODULE"
+        TEST="--test-enable --log-level=test"
+    elif [ $3 == 'update' ];then
+        ACT="-u $MODULE"
+    elif [ $3 == 'install' ];then
+        ACT="-i $MODULE"
+    fi
+fi
+
+if [ $# -ge 4 ]; then
+    if [ $4 == 'test' ];then
+        TEST="--test-enable --log-level=test"
+    else
+        TEST=" "
+    fi
+fi
+
+echo " SERVER OPTIONS: $ACT $TEST"
+echo ""
+echo ""
+
+$ODOO_SERVER -c $CONFIG_FILE --db-filter=$BD -d $BD $ACT $TEST
+# --logfile=$HOME/data_dir/odoo.log

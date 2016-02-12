@@ -1,0 +1,1 @@
+./odoo_server $1 $1 duplicate $1_base                        # Create database to test using the depends data base to improve time
