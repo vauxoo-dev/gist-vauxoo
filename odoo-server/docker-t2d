@@ -1,0 +1,31 @@
+#!/bin/bash
+DOCKERPATH=$1
+EXTRA_PARAMS=''
+ONLY_RUN=$2
+
+if [ -z "$DOCKERPATH" ]; then
+    echo "Please pass the t2d generate folder to create/run the image"
+    echo
+    exit
+fi
+
+if [ -z "$ONLY_RUN" ]; then
+    echo '------------'
+    echo "Create image"
+    echo '------------'
+    $DOCKERPATH/10-build.sh --no-cache
+else
+    echo "Skip create image..."
+fi
+
+echo
+echo '-------------'
+echo "Run container"
+echo '-------------'
+
+if [ ! -z "$DOCKER_HOST" ]; then
+    EXTRA_PARAMS="--run-extra-args='-m 8g --device-write-bps=/dev/sda:10mb --device-read-bps=/dev/sda:10mb --device-write-bps=/dev/md2:10mb --device-read-bps=/dev/md2:10mb --device-write-bps=/dev/sdb:10mb --device-read-bps=/dev/sdb:10mb'"
+fi
+
+echo $DOCKERPATH/20-run.sh "--entrypoint=bash ${EXTRA_PARAMS}"
+$DOCKERPATH/20-run.sh "--entrypoint=bash ${EXTRA_PARAMS}"

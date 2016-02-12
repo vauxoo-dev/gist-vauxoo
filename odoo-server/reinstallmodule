@@ -1,0 +1,170 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
+
+"""
+This script have the goals to create openerp database and install modules in a
+more easy way re-using already created databases.
+"""
+
+import oerplib
+import argparse
+
+
+def arguments():
+    """
+    Define the command parameters for the script.
+    """
+
+    parser = argparse.ArgumentParser(
+        prog='install module',
+        description='xxx.',
+        epilog="""
+    Openerp Developer Comunity Tool
+    Development by Vauxoo Team (lp:~vauxoo)
+    Coded by Katherine Zaoral <kathy@vauxoo.com>.""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument(
+        '-m', '--module-name',
+        metavar='MODULE_NAME',
+        type=str,
+        nargs='+',
+        required=True,
+        help='name of the module to install.')
+
+    parser.add_argument(
+        '-d', '--depends-db',
+        metavar='DP_DATABASE',
+        type=str,
+        help='name of the database with the dependencies installed.')
+
+    parser.add_argument(
+        '-n', '--test-db',
+        metavar='DATABASE_NAME',
+        type=str,
+        required=True,
+        help='name of the data base to create.')
+
+    parser.add_argument(
+        '--with-demo', action='store_true',
+        help='tells if use data demo or not when creating the data base.')
+
+    parser.add_argument(
+        '--user',
+        default='admin',
+        help='tells database user.')
+
+    parser.add_argument(
+        '--password',
+        default='admin',
+        help='tells database password.')
+
+    parser.add_argument(
+        '--server',
+        default='localhost',
+        help='openerp instance server dir.')
+
+    parser.add_argument(
+        '--port',
+        default='10000',
+        help='openerp instance port.')
+
+    return parser.parse_args()
+
+
+def confirm_run(args):
+    """
+    Manual confirmation before runing the script. Very usefull.
+    """
+    print'\n... Configuration of Parameters Set'
+    for (parameter, value) in args.__dict__.iteritems():
+        print '%s = %s' % (parameter, value)
+
+    confirm_flag = False
+    while confirm_flag not in ['y', 'n']:
+        confirm_flag = raw_input(
+            'Confirm the run with the above parameters? [y/n]: ')
+        if confirm_flag == 'y':
+            print 'The script parameters were confirmed by the user'
+        elif confirm_flag == 'n':
+            print 'The user cancel the operation'
+            exit()
+        else:
+            print 'The entry is not valid, please enter y or n.'
+    return True
+
+
+def run(args, oerp):
+    """
+    The script core: delete, create data base and install module
+    """
+    module_name_list = args.module_name
+    dep_db = args.depends_db
+    test_db = args.test_db
+    demo_flag = args.with_demo
+
+    print '\nWeb Service to install \'%s\' modules' % (module_name_list,)
+
+    print 'Eliminando la bd \'%s\'' % (test_db,)
+    oerp.db.drop(args.password, test_db)
+
+    if dep_db:
+        # revisar si ya esta creada la base de datos de dependencia, si si
+        # pasar y ducplicar, sino crear desde 0.
+        print 'Duplicando la base de datos \'%s\' en \'%s\'' % (dep_db, test_db)
+        oerp.db.duplicate_database(args.password, dep_db, test_db)
+    else:
+        # Create a database (process blocked until the end of the operation)
+        print 'No hay DB de dependencias creando desde cero a %s' % (test_db)
+        oerp.db.create_database(
+            args.password,
+            test_db,
+            demo_flag,
+            'en_US',
+            args.password)
+
+    print 'Logeando en la Base de Datos de prueba \'%s\'' % (test_db,)
+    oerp.login(database=test_db)
+
+    print 'Actualizando lista de modulos'
+    module_obj = oerp.get('ir.module.module')
+    update, add = module_obj.update_list()
+    # base.module.update wizard. update_module()
+    # self.write(cr, uid, ids, {'update': update, 'add': add, 'state': 'done'},
+    #            context=context)
+
+    print 'Instalando modulos...'
+    for module_name in module_name_list:
+        print 'Instalando modulo \'%s\'' % (module_name,)
+        module_id = module_obj.search([('name', '=', module_name)])
+        print 'module_id', module_id
+        module_obj.button_immediate_install(module_id)
+
+    print 'Finalizado...\n'
+    return True
+
+
+def server_connection(args):
+    """
+    Initialize de openerp server conextion.
+    """
+    oerp = oerplib.OERP(
+        server=args.server,
+        protocol='xmlrpc',
+        port=args.port)
+    oerp.config['timeout'] = 4000
+    return oerp
+
+
+def main():
+    """
+    run the main process.
+    """
+    args = arguments()
+    confirm_run(args)
+    oerp = server_connection(args)
+    run(args, oerp)
+
+if __name__ == '__main__':
+    main()

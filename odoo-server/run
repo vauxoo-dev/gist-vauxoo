@@ -1,0 +1,1 @@
+./odoo_server $1 $1                                          # run the instance for the given module
