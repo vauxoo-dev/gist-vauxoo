@@ -74,6 +74,16 @@ else:
     for indx, item in enumerate(users):
         set_users = users[item]
         set_users2 = users2[item]
-        assert set(set_users).difference(
-            set_users2) == set(set_users2).difference(set_users)
+        try:
+            assert set(set_users).difference(
+                set_users2) == set(set_users2).difference(set_users)
+        except:
+            print "There are diferences:"
+            print "Instance1: "+ server2 + str(port2)
+            print "set(users).difference(users2)" + set(set_users).difference(set_users2)
+            print "Instance2: "+ server + str(port)
+            print "set(users2).difference(users)" + set(set_users2).difference(set_users)
+            print "######################"
+
+
     print "There are not differences beetwen the 2 instances."
