@@ -79,10 +79,11 @@ else:
                 set_users2) == set(set_users2).difference(set_users)
         except:
             print "There are diferences:"
+            print item
             print "Instance1: "+ server2 + str(port2)
-            print "set(users).difference(users2)" + set(set_users).difference(set_users2)
+            print set(set_users).difference(set_users2)
             print "Instance2: "+ server + str(port)
-            print "set(users2).difference(users)" + set(set_users2).difference(set_users)
+            print set(set_users2).difference(set_users)
             print "######################"
 
 
