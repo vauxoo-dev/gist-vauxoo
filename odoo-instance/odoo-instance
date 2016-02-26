@@ -89,6 +89,11 @@ class OerpInstance(object):
             parents=[common],
             help=('Will fetch all the new data in instance branches.'))
 
+        subparsers.add_parser(
+            'diff',
+            parents=[common],
+            help=('Will show the diff of the current changes.'))
+
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
 
@@ -166,6 +171,7 @@ class OerpInstance(object):
         action == 'paths' and self.paths_instance()
         action == 'checkout' and self.checkout_branches()
         action == 'fetch' and self.fetch_branches()
+        action == 'diff' and self.diff_branches()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -275,12 +281,22 @@ class OerpInstance(object):
         """
         run git fetch --all to update branchs
         """
-        self.confirm_run(self.args)
         print '\nfetch branches in {env}'.format(env=self.env)
         for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git fetch --all'.format(path=path))
+        return True
+
+    def diff_branches(self):
+        """
+        run git diff
+        """
+        print '\ndiff branches in {env}'.format(env=self.env)
+        for (repo, branch) in self.cr_repo.iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git diff'.format(path=path))
         return True
 
     def checkout_branches(self):
