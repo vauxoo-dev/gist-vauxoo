@@ -1,0 +1,5 @@
+#!/bin/bash
+CONTAINER_ID=$1
+PORT="$(docker port $CONTAINER_ID 8069)"
+echo ${PORT}
+xdg-open http://${PORT}
