@@ -84,6 +84,11 @@ class OerpInstance(object):
             parents=[common],
             help=('Will checkout to change to master branches.'))
 
+        subparsers.add_parser(
+            'fetch',
+            parents=[common],
+            help=('Will fetch all the new data in instance branches.'))
+
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
 
@@ -160,6 +165,7 @@ class OerpInstance(object):
         action == 'clean' and self.clean_branches()
         action == 'paths' and self.paths_instance()
         action == 'checkout' and self.checkout_branches()
+        action == 'fetch' and self.fetch_branches()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -263,6 +269,18 @@ class OerpInstance(object):
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git clean -dxf'.format(path=path))
+        return True
+
+    def fetch_branches(self):
+        """
+        run git fetch --all to update branchs
+        """
+        self.confirm_run(self.args)
+        print '\nfetch branches in {env}'.format(env=self.env)
+        for (repo, branch) in self.cr_repo.iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git fetch --all'.format(path=path))
         return True
 
     def checkout_branches(self):
