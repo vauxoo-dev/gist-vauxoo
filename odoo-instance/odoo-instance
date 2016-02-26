@@ -94,6 +94,12 @@ class OerpInstance(object):
             parents=[common],
             help=('Will show the diff of the current changes.'))
 
+        subparsers.add_parser(
+            'reset',
+            parents=[common],
+            help=('Will run git reset --hard. Remove all the staged/unstaged'
+                  ' changes'))
+
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
 
@@ -172,6 +178,7 @@ class OerpInstance(object):
         action == 'checkout' and self.checkout_branches()
         action == 'fetch' and self.fetch_branches()
         action == 'diff' and self.diff_branches()
+        action == 'reset' and self.reset_branches()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -297,6 +304,18 @@ class OerpInstance(object):
             path = branch['path']
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git diff'.format(path=path))
+        return True
+
+    def reset_branches(self):
+        """
+        run git reset --hard
+        """
+        self.confirm_run(self.args)
+        print '\ndiff branches in {env}'.format(env=self.env)
+        for (repo, branch) in self.cr_repo.iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git reset --hard'.format(path=path))
         return True
 
     def checkout_branches(self):
