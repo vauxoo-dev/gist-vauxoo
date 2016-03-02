@@ -100,6 +100,11 @@ class OerpInstance(object):
             help=('Will run git reset --hard. Remove all the staged/unstaged'
                   ' changes'))
 
+        subparsers.add_parser(
+            'summary',
+            parents=[common],
+            help=('Will show status, diff, stash, unmerged of every branch'))
+
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
 
@@ -179,6 +184,7 @@ class OerpInstance(object):
         action == 'fetch' and self.fetch_branches()
         action == 'diff' and self.diff_branches()
         action == 'reset' and self.reset_branches()
+        action == 'summary' and self.branch_summary()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -332,6 +338,31 @@ class OerpInstance(object):
             os.system('cd {path} && git checkout {branch}'.format(
                 path=path, branch=branch['branch']))
         return True
+
+    def branch_summary(self):
+        self.confirm_run(self.args)
+        print '\nSummary of {env} branches'.format(env=self.env)
+        for (repo, branch) in self.cr_repo.iteritems():
+            path = branch['path']
+            self.print_repo_data(repo, branch)
+
+            # TODO overwrite this method and all methods to only run the
+            # command inside the method and have a global method to make the
+            # iteration for every branch
+
+            # status
+            print '\n> Status'
+            os.system('cd {path} && git log --oneline -1'.format(path=path))
+            os.system('cd {path} && git status -sb'.format(path=path))
+            # diff
+            print '\n> Differences'
+            os.system('cd {path} && git diff'.format(path=path))
+            # stash
+            print '\n> Stash list'
+            os.system('cd {path} && git stash list'.format(path=path))
+            # unermeged
+            print '\n> Unmerged branchs'
+            os.system('cd {path} && git branch --no-merged'.format(path=path))
 
 
 def main():
