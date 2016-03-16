@@ -7,6 +7,11 @@ import os
 import json
 import pandas
 
+import logging
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s: %(message)s',
+    level=logging.DEBUG)
+
 
 class OerpInstance(object):
 
@@ -28,6 +33,7 @@ class OerpInstance(object):
         self.set_repos()
         self.args = self.argument_parser()
         self.env = self.args['env']
+        self.confirm_required = True
         return None
 
     def argument_parser(self):
@@ -105,6 +111,18 @@ class OerpInstance(object):
             parents=[common],
             help=('Will show status, diff, stash, unmerged of every branch'))
 
+        # New clean powered methods
+        subparsers.add_parser(
+            'restart',
+            parents=[common],
+            help=('Will clean all to start new environment'
+                  ' with updated branches and databases'))
+
+        subparsers.add_parser(
+            'database_reset',
+            parents=[common],
+            help=('Will drop current databases and create a new ones'))
+
         argcomplete.autocomplete(parser)
         return parser.parse_args().__dict__
 
@@ -126,6 +144,9 @@ class OerpInstance(object):
         @param args: dictionary of arguments.
         @return True or exit the program in the confirm is no.
         """
+        if not self.confirm_required:
+            return True
+
         print'\n... Configuration of Parameters Set'
         for (parameter, value) in args.iteritems():
             print '%s = %s' % (parameter, value)
@@ -185,6 +206,8 @@ class OerpInstance(object):
         action == 'diff' and self.diff_branches()
         action == 'reset' and self.reset_branches()
         action == 'summary' and self.branch_summary()
+        action == 'restart' and self.create_instance()
+        action == 'database_reset' and self.create_database()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -289,6 +312,58 @@ class OerpInstance(object):
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git clean -dxf'.format(path=path))
         return True
+
+    def create_instance(self):
+        """
+        Will make this:
+
+            git reset --hard
+            git checkout {master}
+            git fetch --all
+            dropdb openerp_test
+            dropdb openerp_template
+            /root/maintainer-quality-tools/travis/clone_oca_dependencies
+            TEST_ENABLE=0 /entrypoint.sh
+        """
+        self.confirm_run(self.args)
+        print '\nNew development instance for {env}'.format(env=self.env)
+
+        self.confirm_required = False
+
+        logging.info('Clean instance branches')
+        self.reset_branches()
+        self.checkout_branches()
+        self.update_instance()
+        self.fetch_branches()
+
+        logging.info('Updated Branches status')
+        self.check_instance()
+
+        logging.info('Download new python and odoo dependencies')
+        os.system(
+            '/root/maintainer-quality-tools/travis/clone_oca_dependencies')
+
+        self.create_database()
+        return True
+
+    def create_database(self):
+        """
+        Drop old databases and create new one
+        """
+        logging.info('Create new databases from scratch')
+        logging.info('Start postgres server')
+        os.system(
+            '/etc/init.d/postgresql start'
+            ' && wait')
+
+        logging.info('Drop old openerp_test and openerp_template databases')
+        os.system(
+            'dropdb openerp_test --if-exist'
+            ' && dropdb openerp_template --if-exist')
+
+        logging.info('Create new database with installed modules')
+        os.system(
+            'TEST_ENABLE=0 /entrypoint.sh')
 
     def fetch_branches(self):
         """
