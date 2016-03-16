@@ -26,17 +26,16 @@ print "*" * 10, "Parameters in the correct way without sql injection"
 parameters = (10, (1, 2, 3))
 res = cr_execute(query, *parameters)
 print "res: ", res
-
 # Console Result:
 # ********** Parameters in the correct way without sql injection
 # res:  SELECT amount, id FROM table WHERE amount=10, id IN (1, 2, 3)
 
-print "*" * 10, "Parameters in the bad way"
+print "*" * 10, "Parameters in the bad way with sql injection"
 parameters = (10, ';update injection..;',)
 res = cr_execute(query % parameters)
 print "res: ", res
 # Console Result:
-# ********** Parameters in the bad way
+# ********** Parameters in the bad way with sql injection
 # res:  SELECT amount, id FROM table WHERE amount=10, id IN ;update injection..;
 
 print "*" * 10, "Parameters in the correct way with sql injection"
