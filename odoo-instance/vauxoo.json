@@ -74,5 +74,9 @@
     "Vauxoo/fiscal-printer/8.0": {
         "path": "/root/fiscal-printer",
         "branch": "8.0"
+    },
+    "Vauxoo/odoo-apps/8.0": {
+        "path": "/root/odoo-apps",
+        "branch": "8.0"
     }
 }
