@@ -354,7 +354,7 @@ class OerpInstance(object):
         logging.info('Start postgres server')
         os.system(
             '/etc/init.d/postgresql start'
-            ' && wait')
+            ' && wait && echo ready postgres server')
 
         logging.info('Drop old openerp_test and openerp_template databases')
         os.system(
