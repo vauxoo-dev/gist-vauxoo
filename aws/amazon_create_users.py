@@ -1,6 +1,20 @@
 #! /usr/bin/env python
 # -*- encoding: utf-8 -*-
-__version__='1.0.0'
+import click
+import csv
+import re
+import ConfigParser
+import requests
+import json
+from premailer import transform
+from jinja2 import Environment, FileSystemLoader
+from subprocess import check_output, STDOUT
+from os.path import join
+from os.path import dirname
+from os.path import expanduser
+
+__version__ = '1.0.0'
+
 '''
 Hacking:
 
@@ -12,28 +26,18 @@ TODO::
 
         http://docs.aws.amazon.com/cli/latest/userguide/generate-cli-skeleton.html
 '''
-import click
-import csv
-import re
-import ConfigParser
-import requests
-import json
-from premailer import transform
-from jinja2 import Template, Environment, FileSystemLoader
-from subprocess import check_output, STDOUT
-from os.path import isdir
-from os.path import join
-from os.path import dirname
-from os.path import expanduser
 
-goes_out=[]
+
+goes_out = []
 PROFILE = 'default'
+
 
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
     click.echo('Version: %s' % __version__)
     ctx.exit()
+
 
 def call_command(command):
     try:
@@ -42,16 +46,13 @@ def call_command(command):
     except Exception, e:
         return e.output
 
+
 def list_users(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
     click.echo('Version: %s' % __version__)
     return call_command(['aws', 'iam', 'list-users', '--profile', PROFILE])
 
-def save_outout(out_file):
-    if not value or ctx.resilient_parsing:
-        return
-    click.echo('From save')
 
 def shell_check(func):
     def special_match(strg, search=re.compile(r'[^a-z0-9.]').search):
@@ -60,10 +61,12 @@ def shell_check(func):
         return func(strg)
     return special_match
 
+
 @shell_check
 def create_key(login):
-    return call_command(['aws', 'iam', 'create-access-key', '--user-name', login,
-                         '--profile', PROFILE])
+    return call_command(['aws', 'iam', 'create-access-key', '--user-name',
+                         login, '--profile', PROFILE])
+
 
 @shell_check
 def create_user(login):
@@ -72,20 +75,23 @@ def create_user(login):
     return call_command(['aws', 'iam', 'create-user', '--user-name', login,
                          '--profile', PROFILE])
 
+
 def add_group(login, group='files'):
-    return call_command(['aws', 'iam', 'add-user-to-group', '--user-name', login,
-                         '--group-name', group, '--profile', PROFILE])
+    return call_command(['aws', 'iam', 'add-user-to-group', '--user-name',
+                         login, '--group-name', group, '--profile', PROFILE])
+
 
 def send_amazon(element, group='files'):
     login = element.get('login')
-    click.echo('--- Working on %s '% login)
+    click.echo('--- Working on %s ' % login)
     res = {
         'user': create_user(login),
         'group': add_group(login, group),
         'key': create_key(login)
     }
-    click.echo('--- Ready on %s '% login)
+    click.echo('--- Ready on %s ' % login)
     return res
+
 
 def create_users(in_file, group='files'):
     click.echo('Creating from %s' % in_file.name)
@@ -94,6 +100,7 @@ def create_users(in_file, group='files'):
         created = send_amazon(row, group)
         sent = send_message(created)
         click.echo(sent)
+
 
 def send_message(data, mailgun_profile='sandbox'):
     def read_config_mailgun(section):
@@ -104,12 +111,13 @@ def send_message(data, mailgun_profile='sandbox'):
         email_from = config.get(section, 'email_from')
         template = config.get(section, 'template')
         return (api_key, domain, email_from, template)
+
     def send_simple_message(api_key, domain, email_from, subject, email_to,
                             body, text=''):
-        url = "https://api.mailgun.net/v3/{domain}/messages".format(domain=domain)
+        url = "https://api.mailgun.net/v3/{domain}/messages".format(domain=domain)  # noqa
         click.echo(url)
         data = {
-                "from":email_from,
+                "from": email_from,
                 "to": email_to,
                 "subject": subject,
                 "html": body,
@@ -131,13 +139,13 @@ def send_message(data, mailgun_profile='sandbox'):
         key = json.loads(data.get('key'))
         click.echo('User Dict')
         click.echo(user)
-        html = template.render(info = {
+        html = transform(template.render(info={
                                        'user': user,
                                        'key': key,
-                                       })
+                                       }))
         sent = send_simple_message(env_vars[0], env_vars[1], env_vars[2],
                                    subject,
-                                   [user[u'User'][u'UserName']], transform(html))
+                                   [user[u'User'][u'UserName']], html)
         click.echo(sent.text)
     except Exception, e:
         click.echo('Error sending:')
@@ -152,6 +160,7 @@ def send_message(data, mailgun_profile='sandbox'):
 #           auth=("api", api_key),
 #           data=data_dict)
 
+
 @click.command()
 @click.argument('names', nargs=-1)
 @click.option('--i', type=click.File('rb'))
@@ -164,6 +173,17 @@ def send_message(data, mailgun_profile='sandbox'):
 def main(names, i=None, p=None, n=None, g=None):
     '''Simple cli interface to create and set a group to an user in amazon in a
     documented manner and importing them from a csv file.:
+
+    \b
+    BEFORE USE THIS SCRIPT:
+    -----------------------
+
+    In order to send emails properly you need to copy the file
+    templates/mailgun.ini into the .config folder on your user home.
+
+    Read the doc of mailgun to understand the parameters.:
+
+    https://documentation.mailgun.com/quickstart-sending.html
 
     Remember configure a different user before do this which allow create
     users::
@@ -212,6 +232,7 @@ def main(names, i=None, p=None, n=None, g=None):
         $ ./amazon_create_users.py --l > file_to_save.json
 
     The csv file just need to have a column called `login`::
+
     '''
     global PROFILE
     if p is not None:
@@ -219,9 +240,10 @@ def main(names, i=None, p=None, n=None, g=None):
     click.echo(names)
     if i:
         click.echo('Reading %s' % i.name)
-        if g is None: g='files'
+        if g is None:
+            g = 'files'
         create_users(i, g)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
