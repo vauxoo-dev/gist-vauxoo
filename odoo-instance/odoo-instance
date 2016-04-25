@@ -325,6 +325,25 @@ class OerpInstance(object):
             /root/maintainer-quality-tools/travis/clone_oca_dependencies
             TEST_ENABLE=0 /entrypoint.sh
         """
+
+        print (
+            "\n\tThe next actions will be done:"
+            "\n\n\t  1. Clean instance branches"
+            "\n\t     git reset --hard"
+            "\n\t     git checkout master"
+            "\n\t     git pull"
+            "\n\t     git fetch --all"
+            "\n\n\t  2. Updated Branches status"
+            "\n\t     git log --oneline -1"
+            "\n\t     git status -sb"
+            "\n\n\t  3. Download new python and odoo dependencies"
+            "\n\t     clone_oca_dependencies"
+            "\n\n\t  4. Create databases"
+            "\n\t     dropdb openerp_test"
+            "\n\t     dropdb openerp_template"
+            "\n\t     TEST_ENANLE=0 /entrypoint.sh"
+        )
+
         self.confirm_run(self.args)
         print '\nNew development instance for {env}'.format(env=self.env)
 
