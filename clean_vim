@@ -1,0 +1,5 @@
+#!/bin/bash
+rm -fv /root/.vimbackup/*
+rm -fv /root/.vimswap/*
+rm -fv /root/.vimundo/*
+rm -fv /root/.vimviews/*
