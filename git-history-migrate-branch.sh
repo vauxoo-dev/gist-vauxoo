@@ -1,4 +1,18 @@
 #!/bin/bash
+
+# In order for this script to work you must:
+# - have git installed
+# - have hub installed
+# - configure your hub config file like:
+# ~/.config/hub
+
+# github.com:
+# - user: USER
+#   oauth_token: TOKEN
+#   protocol: https
+
+# TOKEN must be created in github / setting / Personal Access Tokens
+
 while IFS='' read -r module || [[ -n "$module" ]]; do
     echo "Module: $module"
 
@@ -44,6 +58,9 @@ while IFS='' read -r module || [[ -n "$module" ]]; do
     echo "Pushing history for $module module to vauxoo-dev/account"
     git push vauxoo-dev 8.0-git-history-$module-hbto
 
+    echo "Making a pull request to vauxoo/account"
+    hub pull-request -b vauxoo:8.0 -h vauxoo-dev:8.0-git-history-$module-hbto -m "[REM] Landing $module module from vauxoo/addons-vauxoo"
+
     echo "Deleting Source & Destination Folders"
     cd ..
     rm -rf cp_src cp_dst
@@ -67,7 +84,7 @@ while IFS='' read -r module || [[ -n "$module" ]]; do
     git push vauxoo-dev 8.0-git-history-$module-hbto
 
     echo "Making a pull request to vauxoo/account"
-    hub pull-request -b vauxoo/account:8.0 -m "[ADD] Moving $module module from vauxoo/addons-vauxoo"
+    hub pull-request -b vauxoo:8.0 -h vauxoo-dev:8.0-git-history-$module-hbto -m "[ADD] Moving $module module from vauxoo/addons-vauxoo"
 
     echo "Deleting Source Folder"
     cd ..
