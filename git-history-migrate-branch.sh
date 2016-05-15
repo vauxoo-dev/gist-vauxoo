@@ -13,81 +13,135 @@
 
 # TOKEN must be created in github / setting / Personal Access Tokens
 
-while IFS='' read -r module || [[ -n "$module" ]]; do
-    echo "Module: $module"
-
-    echo "Moving inside xDev Folder"
-    cd ~/xDev/git
-
-    echo "Copying addons-vauxoo"
-    cp -r addons-vauxoo cp_src
-    echo "Moving inside cp_src to migrate $module"
-    cd cp_src/
-
-    echo "Checking out stable branch 8.0 on Source Branch"
-    git checkout 8.0
-
-    echo "Checking out to new branch 8.0-git-history-$module-hbto"
-    git checkout -b 8.0-git-history-$module-hbto
-
-    echo "Rewriting cp_src branch for $module module"
-    git filter-branch --subdirectory-filter $module -- --all
-    mkdir $module
-    git mv -k * $module
-    git commit -am "[GIT] $module Git history"
+ROOT_DIR=~/xDev/git
+DST=account
+SRC=addons-vauxoo
+DEV=hbto
+VER=8.0
 
 
-    echo "Moving inside xDev Folder"
-    cd ~/xDev/git
-    echo "Copying vauxoo/account"
-    cp -r vx-account    cp_dst
-    echo "Moving inside cp_dst to migrage $module"
-    cd cp_dst/
-    echo "Checking out to new branch 8.0-git-history-$module-hbto"
-    git checkout -b 8.0-git-history-$module-hbto
+echo "Moving inside $ROOT_DIR Folder"
+cd $ROOT_DIR
 
-    echo "Adding local cp_src repo"
-    git remote add cp_src ../cp_src
+while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
+    echo "Module: $MODULE"
 
-    echo "Fetching local cp_src repo"
-    git fetch cp_src
+    echo "Moving inside $ROOT_DIR Folder"
+    cd $ROOT_DIR
 
-    echo "Merging history branch from cp_src repo"
-    git merge cp_src/8.0-git-history-$module-hbto --commit
+    echo "Duplicating $SRC Folder to tmp-$SRC Folder"
+    cp -r $SRC/ tmp-$SRC
 
-    echo "Pushing history for $module module to vauxoo-dev/account"
-    git push vauxoo-dev 8.0-git-history-$module-hbto
+    echo "Moving inside tmp-$SRC to migrate $MODULE"
+    cd tmp-$SRC
 
-    echo "Making a pull request to vauxoo/account"
-    hub pull-request -b vauxoo:8.0 -h vauxoo-dev:8.0-git-history-$module-hbto -m "[REM] Landing $module module from vauxoo/addons-vauxoo"
+    echo "Checking out stable branch $VER on $SRC Branch"
+    git checkout $VER
+    git fetch vauxoo-dev
 
-    echo "Deleting Source & Destination Folders"
-    cd ..
-    rm -rf cp_src cp_dst
+    echo "Checking out to new branch $VER-tmp-$MODULE-$DEV"
+    git checkout -b $VER-tmp-$MODULE-$DEV
 
-    echo "Copying addons-vauxoo to delete $module module"
-    cp -r addons-vauxoo cp_src
-    echo "Moving inside cp_src to delete $module module"
-    cd cp_src/
+    echo "Rewriting $SRC branch for $MODULE module"
+    git filter-branch --subdirectory-filter $MODULE -- --all
+    mkdir $MODULE
+    git mv -k * $MODULE
+    git commit -am "[GIT] $MODULE Git history"
 
-    echo "Checking out stable branch 8.0 on Source Branch"
-    git checkout 8.0
 
-    echo "Checking out to new branch 8.0-git-history-$module-hbto"
-    git checkout -b 8.0-git-history-$module-hbto
+    echo "Moving inside $ROOT_DIR Folder"
+    cd $ROOT_DIR
 
-    echo "Removing $module module from addons-vauxoo"
-    git rm -rf $module
-    git commit -am "[REM] $module got moved to vauxoo/account project"
+    echo "Moving inside $DST to migrate $MODULE"
+    cd $DST/
+
+    echo "Checking out stable branch $VER on $DST Branch"
+    git checkout $VER
+    git fetch vauxoo-dev
+
+    echo "Checking out to new branch $VER-git-history-$MODULE-$DEV"
+    git checkout -b $VER-git-history-$MODULE-$DEV
+
+    echo "Adding local $SRC repo"
+    git remote add $SRC ../tmp-$SRC
+
+    echo "Fetching local $SRC repo"
+    git fetch $SRC
+
+    echo "Merging history branch from $SRC repo"
+    git merge $SRC/$VER-tmp-$MODULE-$DEV --commit
+
+    echo "Pushing history for $MODULE module to vauxoo-dev/$DST"
+    git push -f vauxoo-dev $VER-git-history-$MODULE-$DEV
+    git fetch vauxoo-dev
+
+    echo "Making a pull request to vauxoo/$DST"
+    hub pull-request -b vauxoo:$VER -h vauxoo-dev:$VER-git-history-$MODULE-$DEV -m "[ADD] Landing $MODULE module from vauxoo/$DST" -i https://github.com/Vauxoo/$DST/issues/3
+
+    echo "Deleting module branch on $DST Project"
+    git checkout $VER
+    git fetch vauxoo-dev
+    git branch -D $VER-git-history-$MODULE-$DEV
+
+    echo "Moving inside $ROOT_DIR Folder"
+    cd $ROOT_DIR
+
+    echo "Moving inside $SRC to delete $MODULE module"
+    rm -rf tmp-$SRC
+
+    echo "Moving inside $SRC to migrate $MODULE"
+    cd $SRC
+
+    echo "Checking out stable branch $VER on $SRC Branch"
+    git checkout $VER
+    git fetch vauxoo-dev
+
+    echo "Checking out to new branch $VER-git-history-$MODULE-$DEV"
+    git checkout -b $VER-git-history-$MODULE-$DEV
+
+    echo "Removing $MODULE module from $SRC"
+    git rm -rf $MODULE
+    git commit -am "[REM] $MODULE got moved to vauxoo/$DST project"
 
     echo "Pushing branch to vauxoo-dev development project"
-    git push vauxoo-dev 8.0-git-history-$module-hbto
+    git push -f vauxoo-dev $VER-git-history-$MODULE-$DEV
+    git fetch vauxoo-dev
 
-    echo "Making a pull request to vauxoo/account"
-    hub pull-request -b vauxoo:8.0 -h vauxoo-dev:8.0-git-history-$module-hbto -m "[ADD] Moving $module module from vauxoo/addons-vauxoo"
+    echo "Making a pull request to vauxoo/$SRC"
+    hub pull-request -b vauxoo:$VER -h vauxoo-dev:$VER-git-history-$MODULE-$DEV -m "[ADD] Landing $MODULE module from vauxoo/$SRC" -i https://github.com/Vauxoo/$SRC/issues/932
 
-    echo "Deleting Source Folder"
-    cd ..
-    rm -rf cp_src
+    echo "Deleting module branch on Src Project"
+    git checkout $VER
+    git fetch vauxoo-dev
+    git branch -D $VER-git-history-$MODULE-$DEV
+
+    echo "Switching to Lodi Project"
+    cd $ROOT_DIR/lodigroup
+    git checkout $VER
+    git pull
+    git fetch vauxoo-dev
+
+    echo "Checking out to new branch $VER-git-history-$MODULE-$DEV"
+    git checkout -b $VER-git-history-$MODULE-$DEV
+
+    echo "Adding Dependency on Lodigroup to Vauxoo/$DST dev branch"
+    sed  "/$SRC/d" oca_dependencies.txt > oca_dependencies.bak
+    mv oca_dependencies.bak oca_dependencies.txt
+    echo "$SRC git@github.com:Vauxoo-dev/$SRC.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
+    echo "$DST git@github.com:Vauxoo-dev/$DST.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
+    git commit -am "[DUMMY] $MODULE got moved to vauxoo/$DST project"
+
+    echo "Pushing branch to vauxoo-dev development project"
+    git push -f vauxoo-dev $VER-git-history-$MODULE-$DEV
+    git fetch vauxoo-dev
+
+    echo "Making a pull request to vauxoo/lodigroup"
+    hub pull-request -b vauxoo:$VER -h vauxoo-dev:$VER-git-history-$MODULE-$DEV -m "[DUMMY] Moving $MODULE module from vauxoo/$SRC" -i https://github.com/Vauxoo/$DST/issues/3
+
+    echo "Deleting module branch on Lodigroup Project"
+    git checkout $VER
+    git fetch vauxoo-dev
+    git branch -D $VER-git-history-$MODULE-$DEV
 
 done < "$1"
+echo 'END'
