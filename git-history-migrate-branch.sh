@@ -144,46 +144,52 @@ while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     git fetch vauxoo-dev
     git branch -D $VER-git-history-$MODULE-$DEV
 
-    echo "Switching to Lodi Project"
-    cd $ROOT_DIR/lodigroup
-    git checkout $VER
-    git pull
-    git fetch vauxoo-dev
+    echo "Creating DUMMY Pull Request on Affected Projects"
+    while IFS='' read -r INSTANCE || [[ -n "$INSTANCE" ]]; do
+        echo "Instance: $INSTANCE"
 
-    echo "Checking out to new branch $VER-git-history-$MODULE-$DEV"
-    git checkout -b $VER-git-history-$MODULE-$DEV
+        echo "Switching to $INSTANCE Project"
+        cd $ROOT_DIR/$INSTANCE
+        git checkout $VER
+        git pull
+        git fetch vauxoo-dev
 
-    echo "Adding Dependency on Lodigroup to Vauxoo/$DST dev branch"
-    sed  "/$SRC/d" oca_dependencies.txt > oca_dependencies.bak
-    mv oca_dependencies.bak oca_dependencies.txt
-    echo "$SRC git@github.com:Vauxoo-dev/$SRC.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
-    echo "$DST git@github.com:Vauxoo-dev/$DST.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
-    git commit -am "[DUMMY] $MODULE got moved to vauxoo/$DST project"
+        echo "Checking out to new branch $VER-git-history-$MODULE-$DEV"
+        git checkout -b $VER-git-history-$MODULE-$DEV
 
-    echo "Pushing branch to vauxoo-dev development project"
-    git push -f vauxoo-dev $VER-git-history-$MODULE-$DEV
-    git fetch vauxoo-dev
+        echo "Adding Dependency on $INSTANCE to Vauxoo/$DST dev branch"
+        sed  "/$SRC/d" oca_dependencies.txt > oca_dependencies.bak
+        mv oca_dependencies.bak oca_dependencies.txt
+        echo "$SRC git@github.com:Vauxoo-dev/$SRC.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
+        echo "$DST git@github.com:Vauxoo-dev/$DST.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
+        git commit -am "[DUMMY] $MODULE got moved to vauxoo/$DST project"
 
-    echo "Making a pull request to vauxoo/lodigroup"
-    title="[DUMMY] Moving $MODULE module from vauxoo/$SRC"
-    body="Related to https://github.com/Vauxoo/$DST/issues/3"
-    head="vauxoo-dev:$VER-git-history-$MODULE-$DEV"
-    base=$VER
+        echo "Pushing branch to vauxoo-dev development project"
+        git push -f vauxoo-dev $VER-git-history-$MODULE-$DEV
+        git fetch vauxoo-dev
 
-    POST="{ \
-                \"title\": \""$title"\", \
-                \"body\": \""$body"\", \
-                \"head\": \""$head"\", \
-                \"base\": \""$base"\" \
-            }"
-    URL=https://api.github.com/repos/vauxoo/lodigroup/pulls
-    PR="curl -H $AUTH -d '$POST' $URL"
-    eval $PR
+        echo "Making a pull request to vauxoo/$INSTANCE"
+        title="[DUMMY] Moving $MODULE module from vauxoo/$SRC"
+        body="Related to https://github.com/Vauxoo/$DST/issues/3"
+        head="vauxoo-dev:$VER-git-history-$MODULE-$DEV"
+        base=$VER
 
-    echo "Deleting module branch on Lodigroup Project"
-    git checkout $VER
-    git fetch vauxoo-dev
-    git branch -D $VER-git-history-$MODULE-$DEV
+        POST="{ \
+                    \"title\": \""$title"\", \
+                    \"body\": \""$body"\", \
+                    \"head\": \""$head"\", \
+                    \"base\": \""$base"\" \
+                }"
+        URL=https://api.github.com/repos/vauxoo/$INSTANCE/pulls
+        PR="curl -H $AUTH -d '$POST' $URL"
+        eval $PR
+
+        echo "Deleting module branch on $INSTANCE Project"
+        git checkout $VER
+        git fetch vauxoo-dev
+        git branch -D $VER-git-history-$MODULE-$DEV
+
+    done < "$2"
 
 done < "$1"
 echo 'END'
