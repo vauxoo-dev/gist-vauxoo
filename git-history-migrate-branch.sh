@@ -13,11 +13,14 @@
 
 # TOKEN must be created in github / setting / Personal Access Tokens
 
+HOME_DIR=~/
 ROOT_DIR=~/xDev/git
 DST=account
 SRC=addons-vauxoo
 DEV=hbto
 VER=8.0
+TOKEN=$(cat $HOME_DIR/token.txt)
+AUTH="\"""Authorization: token $TOKEN""\""
 
 
 echo "Moving inside $ROOT_DIR Folder"
@@ -76,7 +79,20 @@ while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     git fetch vauxoo-dev
 
     echo "Making a pull request to vauxoo/$DST"
-    hub pull-request -b vauxoo:$VER -h vauxoo-dev:$VER-git-history-$MODULE-$DEV -m "[ADD] Landing $MODULE module from vauxoo/$DST" -i https://github.com/Vauxoo/$DST/issues/3
+    title="[ADD] Landing $MODULE module from vauxoo/$DST"
+    body="Related to https://github.com/Vauxoo/$DST/issues/3"
+    head="vauxoo-dev:$VER-git-history-$MODULE-$DEV"
+    base=$VER
+
+    POST="{ \
+                \"title\": \""$title"\", \
+                \"body\": \""$body"\", \
+                \"head\": \""$head"\", \
+                \"base\": \""$base"\" \
+            }"
+    URL=https://api.github.com/repos/vauxoo/$DST/pulls
+    PR="curl -H $AUTH -d '$POST' $URL"
+    eval $PR
 
     echo "Deleting module branch on $DST Project"
     git checkout $VER
@@ -108,9 +124,22 @@ while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     git fetch vauxoo-dev
 
     echo "Making a pull request to vauxoo/$SRC"
-    hub pull-request -b vauxoo:$VER -h vauxoo-dev:$VER-git-history-$MODULE-$DEV -m "[ADD] Landing $MODULE module from vauxoo/$SRC" -i https://github.com/Vauxoo/$SRC/issues/932
+    title="[REM] Moving $MODULE module from vauxoo/$DST"
+    body="Related to https://github.com/Vauxoo/$SRC/issues/932"
+    head="vauxoo-dev:$VER-git-history-$MODULE-$DEV"
+    base=$VER
 
-    echo "Deleting module branch on Src Project"
+    POST="{ \
+                \"title\": \""$title"\", \
+                \"body\": \""$body"\", \
+                \"head\": \""$head"\", \
+                \"base\": \""$base"\" \
+            }"
+    URL=https://api.github.com/repos/vauxoo/$SRC/pulls
+    PR="curl -H $AUTH -d '$POST' $URL"
+    eval $PR
+
+    echo "Deleting module branch on $SRC Project"
     git checkout $VER
     git fetch vauxoo-dev
     git branch -D $VER-git-history-$MODULE-$DEV
@@ -136,7 +165,20 @@ while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     git fetch vauxoo-dev
 
     echo "Making a pull request to vauxoo/lodigroup"
-    hub pull-request -b vauxoo:$VER -h vauxoo-dev:$VER-git-history-$MODULE-$DEV -m "[DUMMY] Moving $MODULE module from vauxoo/$SRC" -i https://github.com/Vauxoo/$DST/issues/3
+    title="[DUMMY] Moving $MODULE module from vauxoo/$SRC"
+    body="Related to https://github.com/Vauxoo/$DST/issues/3"
+    head="vauxoo-dev:$VER-git-history-$MODULE-$DEV"
+    base=$VER
+
+    POST="{ \
+                \"title\": \""$title"\", \
+                \"body\": \""$body"\", \
+                \"head\": \""$head"\", \
+                \"base\": \""$base"\" \
+            }"
+    URL=https://api.github.com/repos/vauxoo/lodigroup/pulls
+    PR="curl -H $AUTH -d '$POST' $URL"
+    eval $PR
 
     echo "Deleting module branch on Lodigroup Project"
     git checkout $VER
