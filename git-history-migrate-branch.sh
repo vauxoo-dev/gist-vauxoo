@@ -13,8 +13,8 @@
 
 # TOKEN must be created in github / setting / Personal Access Tokens
 
-HOME_DIR=~/
-ROOT_DIR=~/xDev/git
+HOME_DIR=/tmp
+ROOT_DIR=$HOME_DIR/branches
 DST=account
 SRC=addons-vauxoo
 DEV=hbto
@@ -22,15 +22,58 @@ VER=8.0
 TOKEN=$(cat $HOME_DIR/token.txt)
 AUTH="\"""Authorization: token $TOKEN""\""
 
+echo "Moving inside $HOME_DIR Folder"
+cd $HOME_DIR
+
+if [ ! -d "$ROOT_DIR" ]; then
+    echo "Creating Folder $ROOT_DIR"
+    mkdir -p $ROOT_DIR
+fi
 
 echo "Moving inside $ROOT_DIR Folder"
 cd $ROOT_DIR
+
+for REPO in $SRC $DST
+do
+    echo "Checking if Folder $REPO already exists"
+    if [ -d "$REPO" ]; then
+        echo "Deleting Folder $REPO"
+        rm -rf $REPO
+    fi
+    echo "Cloning $REPO Project"
+    git clone git@github.com:Vauxoo/$REPO
+    cd $REPO
+    echo "Adding remote development branch to $REPO"
+    git remote add vauxoo-dev git@github.com:Vauxoo-dev/$REPO
+    echo "Switching back to $ROOT_DIR"
+    cd $ROOT_DIR
+done
+
+while IFS='' read -r REPO || [[ -n "$REPO" ]]; do
+    echo "Checking if Folder $REPO already exists"
+    if [ -d "$REPO" ]; then
+        echo "Deleting Folder $REPO"
+        rm -rf $REPO
+    fi
+    echo "Cloning $REPO Project"
+    git clone git@github.com:Vauxoo/$REPO
+    cd $REPO
+    echo "Adding remote development branch to $REPO"
+    git remote add vauxoo-dev git@github.com:Vauxoo-dev/$REPO
+    echo "Switching back to $ROOT_DIR"
+    cd $ROOT_DIR
+done < "$2"
 
 while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     echo "Module: $MODULE"
 
     echo "Moving inside $ROOT_DIR Folder"
     cd $ROOT_DIR
+
+    if [ -d "tmp-$SRC" ]; then
+        echo "Deleting Folder tmp-$SRC"
+        rm -rf tmp-$SRC
+    fi
 
     echo "Duplicating $SRC Folder to tmp-$SRC Folder"
     cp -r $SRC/ tmp-$SRC
@@ -102,7 +145,7 @@ while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     echo "Moving inside $ROOT_DIR Folder"
     cd $ROOT_DIR
 
-    echo "Moving inside $SRC to delete $MODULE module"
+    echo "Deleting  tmp-$SRC Because after being used is useless"
     rm -rf tmp-$SRC
 
     echo "Moving inside $SRC to migrate $MODULE"
