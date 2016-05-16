@@ -1,17 +1,14 @@
 #!/bin/bash
-
-# In order for this script to work you must:
-# - have git installed
-# - have hub installed
-# - configure your hub config file like:
-# ~/.config/hub
-
-# github.com:
-# - user: USER
-#   oauth_token: TOKEN
-#   protocol: https
-
-# TOKEN must be created in github / setting / Personal Access Tokens
+#/Usage: git-history-migrate-branch.sh module-list.txt instance-list.txt
+# module-list.txt is a list of odoo modules to be migrated from a project to
+# another. Must be one line per module.
+# instance-list.txt is a list of odoo projects which are affected by the
+# migration of this modules. Must be one line per instance.
+# token.txt must be located on $HOME_DIR
+# To create TOKEN you must go to github.com / Settings / Personal Access Token
+# and create a new one. Beware: TOKEN is like a password so it be kept safe.
+# Scripted by:
+# Humberto Arocha <hbto@vauxoo.com>
 
 HOME_DIR=/tmp
 ROOT_DIR=$HOME_DIR/branches
