@@ -7,6 +7,10 @@
 # token.txt must be located on $HOME_DIR
 # To create TOKEN you must go to github.com / Settings / Personal Access Token
 # and create a new one. Beware: TOKEN is like a password so it be kept safe.
+
+# This could be helpful for rewriting history on project
+# https://developer.atlassian.com/blog/2015/08/grafting-earlier-history-with-git/
+
 # Scripted by:
 # Humberto Arocha <hbto@vauxoo.com>
 
