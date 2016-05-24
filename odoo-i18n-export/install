@@ -1,4 +1,7 @@
 #!/bin/bash
+pip install oerplib
+pip install argparse
+pip install argcomplete
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}"  )" && pwd  )"
 echo "alias odoo-i18n-export='${DIR}/odoo-i18n-export.py'" >> ${HOME}/.profile
 source ${HOME}/.profile
