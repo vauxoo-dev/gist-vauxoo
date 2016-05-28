@@ -10,6 +10,9 @@ The output of this script was:
  cursor 1 - update row and commit
  cursor 1 - read again (updated cache) [(1, 'Moy')]
  cursor 2 - read again (outdated cache) [(1, 'Sales Journal - (test)')]
+
+FYI odoo use ISOLATION_LEVEL_REPEATABLE_READ more info here:
+https://github.com/odoo/odoo/blob/b08642c21cb345aa0778bdc9754425eb9ac9faa7/openerp/sql_db.py#L69-L128
 """
 
 import psycopg2
