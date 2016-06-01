@@ -1,5 +1,5 @@
 #!/bin/bash
-#/Usage: git-history-migrate-branch.sh module-list.txt instance-list.txt
+#/Usage: git-history-migrate-branch.sh module-list.txt Source-repo Destination-repo
 # module-list.txt is a list of odoo modules to be migrated from a project to
 # another. Must be one line per module.
 # instance-list.txt is a list of odoo projects which are affected by the
@@ -17,13 +17,13 @@
 HOME_DIR=/tmp
 ROOT_DIR=$HOME_DIR/branches
 USR_DST=vauxoo
-USR_SRC=hbto
-DST=account
-SRC=addons-vauxoo
+USR_SRC=vauxoo
+SRC=$2
+DST=$3
 DEV=hbto
 VER=8.0
-TOKEN=$(cat $HOME_DIR/token.txt)
-AUTH="\"""Authorization: token $TOKEN""\""
+# TOKEN=$(cat $HOME_DIR/token.txt)
+# AUTH="\"""Authorization: token $TOKEN""\""
 
 echo "Moving inside $HOME_DIR Folder"
 cd $HOME_DIR
@@ -61,21 +61,6 @@ echo "Adding remote development branch to $DST"
 git remote add vauxoo-dev git@github.com:Vauxoo-dev/$DST
 echo "Switching back to $ROOT_DIR"
 cd $ROOT_DIR
-
-# while IFS='' read -r REPO || [[ -n "$REPO" ]]; do
-#     echo "Checking if Folder $REPO already exists"
-#     if [ -d "$REPO" ]; then
-#         echo "Deleting Folder $REPO"
-#         rm -rf $REPO
-#     fi
-#     echo "Cloning $REPO Project"
-#     git clone git@github.com:Vauxoo/$REPO
-#     cd $REPO
-#     echo "Adding remote development branch to $REPO"
-#     git remote add vauxoo-dev git@github.com:Vauxoo-dev/$REPO
-#     echo "Switching back to $ROOT_DIR"
-#     cd $ROOT_DIR
-# done < "$2"
 
 while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     echo "Module: $MODULE"
@@ -151,53 +136,6 @@ while IFS='' read -r MODULE || [[ -n "$MODULE" ]]; do
     echo "Pushing branch to $USR_SRC project"
     git push -f $USR_SRC $VER
 
-    # echo "Creating DUMMY Pull Request on Affected Projects"
-    # while IFS='' read -r INSTANCE || [[ -n "$INSTANCE" ]]; do
-    #     echo "Instance: $INSTANCE"
-
-    #     echo "Switching to $INSTANCE Project"
-    #     cd $ROOT_DIR/$INSTANCE
-    #     git checkout $VER
-    #     git pull
-    #     git fetch vauxoo-dev
-
-    #     echo "Checking out to new branch $VER-git-history-$MODULE-$DEV"
-    #     git checkout -b $VER-git-history-$MODULE-$DEV
-
-    #     echo "Adding Dependency on $INSTANCE to $USR_DST/$DST dev branch"
-    #     sed  "/$SRC/d" oca_dependencies.txt > oca_dependencies.bak
-    #     mv oca_dependencies.bak oca_dependencies.txt
-    #     echo "$SRC git@github.com:Vauxoo-dev/$SRC.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
-    #     echo "$DST git@github.com:Vauxoo-dev/$DST.git $VER-git-history-$MODULE-$DEV" >> oca_dependencies.txt
-    #     git commit -am "[DUMMY] $MODULE got moved to $USR_DST/$DST project"
-
-    #     echo "Pushing branch to vauxoo-dev development project"
-    #     git push -f vauxoo-dev $VER-git-history-$MODULE-$DEV
-    #     git fetch vauxoo-dev
-
-    #     echo "Making a pull request to vauxoo/$INSTANCE"
-    #     title="[DUMMY] Moving $MODULE module from vauxoo/$SRC"
-    #     body="Related to https://github.com/Vauxoo/$DST/issues/3"
-    #     head="vauxoo-dev:$VER-git-history-$MODULE-$DEV"
-    #     base=$VER
-
-    #     POST="{ \
-    #                 \"title\": \""$title"\", \
-    #                 \"body\": \""$body"\", \
-    #                 \"head\": \""$head"\", \
-    #                 \"base\": \""$base"\" \
-    #             }"
-    #     URL=https://api.github.com/repos/vauxoo/$INSTANCE/pulls
-    #     PR="curl -H $AUTH -d '$POST' $URL"
-    #     eval $PR
-
-    #     echo "Deleting module branch on $INSTANCE Project"
-    #     git checkout $VER
-    #     git fetch vauxoo-dev
-    #     git branch -D $VER-git-history-$MODULE-$DEV
-
-    # done < "$2"
-
 done < "$1"
 
-echo 'END'
+
