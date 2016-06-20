@@ -330,9 +330,8 @@ class OerpInstance(object):
             "\n\tThe next actions will be done:"
             "\n\n\t  1. Clean instance branches"
             "\n\t     git reset --hard"
-            "\n\t     git checkout master"
+            "\n\t     git checkout <master>"
             "\n\t     git pull"
-            "\n\t     git fetch --all"
             "\n\n\t  2. Updated Branches status"
             "\n\t     git log --oneline -1"
             "\n\t     git status -sb"
@@ -353,7 +352,6 @@ class OerpInstance(object):
         self.reset_branches()
         self.checkout_branches()
         self.update_instance()
-        self.fetch_branches()
 
         logging.info('Updated Branches status')
         self.check_instance()
