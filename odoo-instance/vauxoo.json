@@ -78,5 +78,13 @@
     "Vauxoo/odoo-apps/8.0": {
         "path": "/root/odoo-apps",
         "branch": "8.0"
+    },
+    "Vauxoo/stock-logistics-warehouse/8.0": {
+        "path": "/root/stock-logistics-warehouse",
+        "branch": "8.0"
+    },
+    "Vauxoo/ecommerce/8.0": {
+        "path": "/root/ecommerce",
+        "branch": "8.0"
     }
 }
