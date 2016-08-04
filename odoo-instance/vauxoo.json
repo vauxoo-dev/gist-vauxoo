@@ -11,6 +11,10 @@
         "path": "/root/odoo-panama",
         "branch": "8.0"
     },
+    "Vauxoo/account/8.0": {
+        "path": "/root/account",
+        "branch": "8.0"
+    },
     "Vauxoo/addons-vauxoo/8.0": {
         "path": "/root/addons-vauxoo",
         "branch": "8.0"
