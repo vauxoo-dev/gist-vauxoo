@@ -86,5 +86,21 @@
     "Vauxoo/ecommerce/8.0": {
         "path": "/root/ecommerce",
         "branch": "8.0"
+    },
+    "Vauxoo/odoo-ifrs/8.0": {
+        "path": "/root/odoo-ifrs",
+        "branch": "8.0"
+    },
+    "Vauxoo/odoo-afrs/8.0": {
+        "path": "/root/odoo-afrs",
+        "branch": "8.0"
+    },
+    "Vauxoo/stock-logistics-barcode/8.0": {
+        "path": "/root/stock-logistics-barcode",
+        "branch": "8.0"
+    },
+    "Vauxoo/stock-logistics-tracking/8.0": {
+        "path": "/root/stock-logistics-tracking",
+        "branch": "8.0"
     }
 }
