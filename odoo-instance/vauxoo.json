@@ -102,5 +102,9 @@
     "Vauxoo/stock-logistics-tracking/8.0": {
         "path": "/root/stock-logistics-tracking",
         "branch": "8.0"
+    },
+    "Vauxoo/purchase/8.0": {
+        "path": "/root/purchase",
+        "branch": "8.0"
     }
 }
