@@ -1,0 +1,190 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import argcomplete
+import oerplib
+
+
+VERSION = '8.0.0.0.1'
+
+
+class ResetLanguage(object):
+    """Script to reset a language in Odoo"""
+
+    epilog = (
+        "Contributors:\n"
+        " - Erick Birbe <erick@vauxoo.com> (github@erickcion)\n\n")
+
+    def __init__(self):
+        """Initialization of the class.
+        @return: None
+        """
+        self.args = self.argument_parser()
+        if self.args.get('no_confirm', False):
+            pass
+        else:
+            self.confirm_run(self.args)
+        return None
+
+    def argument_parser(self):
+        """This function create the help command line, manage and filter the
+        parameters of this script (default values, choices values).
+        @return dictionary of the arguments.
+        """
+        parser = argparse.ArgumentParser(
+            prog='reset-language',
+            description='Reset a given language from an Odoo instance',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=self.epilog)
+
+        parser.add_argument(
+            '--no-confirm',
+            action='store_true',
+            help='Ask user for confirmation to the user. Default is True')
+
+        parser.add_argument(
+            '-s', '--server',
+            metavar='SERVER',
+            type=str,
+            default='localhost',
+            help='The server name where the odoo instance is running')
+
+        parser.add_argument(
+            '-d', '--db',
+            metavar='DATABASE',
+            type=str,
+            required=True,
+            help='The database where will be extract the i18n files')
+
+        parser.add_argument(
+            '-p', '--port',
+            metavar='PORT',
+            type=str,
+            default='8069',
+            help='Port to use to connect to the database')
+
+        parser.add_argument(
+            '--user',
+            metavar='USERNAME',
+            type=str,
+            default='admin',
+            help='Odoo user that will perform the action')
+
+        parser.add_argument(
+            '--pass',
+            metavar='PASSWORD',
+            type=str,
+            default='admin',
+            help='Password for the user')
+
+        parser.add_argument(
+            '-l', '--languages',
+            metavar='LANG_CODE',
+            type=str,
+            nargs='+',
+            required=True,
+            help='List of languages codes that will be processed')
+
+        parser.add_argument(
+            '--version',
+            action='version',
+            version='%(prog)s ' + VERSION)
+
+        argcomplete.autocomplete(parser)
+        return parser.parse_args().__dict__
+
+    def confirm_run(self, args):
+        """Manual confirmation before runing the script. Very usefull.
+        @param args: dictionary of arguments.
+        @return True or exit the program in the confirm is no.
+        """
+        print 'Parameters set:'
+        for (parameter, value) in args.iteritems():
+            print '%s = %s' % (parameter, value)
+
+        question = 'Confirm the run with the above parameters?'
+        answer = 'The script parameters were confirmed by the user'
+        self.confirmation(question, answer)
+        return True
+
+    def confirmation(self, question, answer):
+        """Manual confirmation for the user.
+        @return True or exit the program in the confirmation in negative.
+        """
+        confirm_flag = False
+        while confirm_flag not in ['y', 'n']:
+            confirm_flag = raw_input(question + ' [y/n]: ').lower()
+            if confirm_flag == 'y':
+                print answer
+            elif confirm_flag == 'n':
+                print 'The user cancel the operation'
+                exit()
+            else:
+                print 'The entry is not valid, please enter y or n.'
+        return True
+
+    def run(self):
+        """Run the given command in the command line.
+        @return True
+        """
+        SERVER = self.args.get('server')
+        DB = self.args.get('db')
+        PORT = self.args.get('port')
+
+        # Static variables (for the moment).
+        PROTOCOL = 'xmlrpc'
+        TIMEOUT = 4000
+
+        self.oerp = oerplib.OERP(
+            server=SERVER, database=DB, protocol=PROTOCOL, port=PORT,
+            timeout=TIMEOUT)
+
+        self.login_db()
+        self.remove_languages()
+        self.install_languages()
+
+    def remove_languages(self):
+        """Remove selected languages."""
+        lang_codes = self.args.get('languages')
+        lang_obj = self.oerp.get('res.lang')
+        lang_ids = lang_obj.search([('code', 'in', lang_codes)])
+        # We must deactivate languages first
+        lang_obj.write(lang_ids, {
+            'active': False,
+        })
+        print "Removing languages", lang_codes
+        lang_obj.unlink(lang_ids)
+        print "... Done"
+
+    def install_languages(self):
+        """Install selected languages"""
+        lang_codes = self.args.get('languages')
+        lang_obj = self.oerp.get('res.lang')
+        for code in lang_codes:
+            lang_id = lang_obj.search([('code', '=', code)])
+            if not lang_id:
+                print "Installing Language %s..." % code
+                wiz_id = self.oerp.execute('base.language.install', 'create', {
+                    'lang': code})
+                self.oerp.execute('base.language.install', 'lang_install',
+                             [wiz_id])
+                print "... Done"
+            else:
+                print "%s already installed, doing nothing.\n" % code
+
+    def login_db(self):
+        """Login into the database"""
+        self.oerp.login(
+            user=self.args.get('user'),
+            passwd=self.args.get('pass')
+        )
+
+
+def main():
+    obj = ResetLanguage()
+    obj.run()
+    return True
+
+if __name__ == '__main__':
+    main()
