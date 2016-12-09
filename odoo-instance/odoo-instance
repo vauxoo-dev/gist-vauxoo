@@ -111,6 +111,11 @@ class OerpInstance(object):
             parents=[common],
             help=('Will show status, diff, stash, unmerged of every branch'))
 
+        subparsers.add_parser(
+            'current_commit',
+            parents=[common],
+            help=('Will show current commit number'))
+
         # New clean powered methods
         subparsers.add_parser(
             'restart',
@@ -208,6 +213,7 @@ class OerpInstance(object):
         action == 'summary' and self.branch_summary()
         action == 'restart' and self.create_instance()
         action == 'database_reset' and self.create_database()
+        action == 'current_commit' and self.current_commit()
         return True
 
     def print_repo_data(self, repo, branch):
@@ -241,6 +247,20 @@ class OerpInstance(object):
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git log --oneline -1'.format(path=path))
             os.system('cd {path} && git status -sb'.format(path=path))
+        return True
+
+    def current_commit(self):
+        """
+        This method check thre revnos of the branchs associated to the
+        instance.
+        @return True
+        """
+        print '\nShow the commit revision numbers of {env} branches'.format(
+            env=self.env)
+        for (repo, branch) in self.cr_repo.iteritems():
+            self.print_repo_data(repo, branch)
+            os.system('cd {path} && git rev-parse HEAD'.format(
+                path=branch['path']))
         return True
 
     def update_instance(self):
