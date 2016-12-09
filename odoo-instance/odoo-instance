@@ -85,10 +85,14 @@ class OerpInstance(object):
             parents=[common],
             help=('Clean out all the branchs.'))
 
-        subparsers.add_parser(
+        checkout_command = subparsers.add_parser(
             'checkout',
             parents=[common],
             help=('Will checkout to change to master branches.'))
+        checkout_command.add_argument(
+            '--checkout-commit', metavar='PATH', type=str,
+            help=('Update the addons path with the commit given:'
+                  ' git checkout commit'))
 
         subparsers.add_parser(
             'fetch',
@@ -444,11 +448,23 @@ class OerpInstance(object):
         """
         self.confirm_run(self.args)
         print '\nCheck status of {env} branches'.format(env=self.env)
+
+        checkout_file = self.args.get('checkout_commit', False)
+        if checkout_file:
+            with open(checkout_file, 'r') as data_file:
+                data = json.load(data_file)
+            self.cr_repo.update(data)
+
         for (repo, branch) in self.cr_repo.iteritems():
             path = branch['path']
             self.print_repo_data(repo, branch)
-            os.system('cd {path} && git checkout {branch}'.format(
-                path=path, branch=branch['branch']))
+            checkout_command = 'cd {path} && git checkout '.format(path=path)
+            commit_sha = branch.get('commit', False)
+            checkout_command += commit_sha or branch.get('branch')
+            # TODO when activate the logging and the -v print the information
+            # about the command that will be run
+            # print checkout_command
+            os.system(checkout_command)
         return True
 
     def branch_summary(self):
