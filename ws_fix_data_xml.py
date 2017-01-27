@@ -45,13 +45,13 @@ for record in invoice_ids:
     except:
         OERP_CONNECT.get('account.invoice').write(record.get('id'), {'xml_signed': base64.decodestring(record.get('xml_signed'))})
         attachment = OERP_CONNECT.get('ir.attachment').search([
-            ('mimetype', '=', 'application/xml'),
+            ('name', 'ilike', 'xml'),
             ('res_model', '=', 'account.invoice'),
             ('res_id', '=', record.get('id'))])
         for att in OERP_CONNECT.get('ir.attachment').browse(attachment):
             if not att.datas:
                 continue
             try:
-                objectify.fromstring(att.datas.encode("UTF-8"))
+                objectify.fromstring(base64.decodestring(att.datas))
             except Exception as ex:
-                OERP_CONNECT.get('ir.attachment').write(att.id, {'datas': base64.encodestring(base64.decodestring(att.datas).decode("UTF-8").encode("UTF-8"))})
+                OERP_CONNECT.get('ir.attachment').write(att.id, {'datas': base64.encodestring(base64.decodestring(base64.decodestring(att.datas)).decode("UTF-8").encode("UTF-8"))})
