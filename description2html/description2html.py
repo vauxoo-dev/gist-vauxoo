@@ -121,7 +121,7 @@ class DescriptionToHtml(object):
         root = self.path
         files = []
         search_files = [
-            '__openerp__.py', 'README.rst', 'index.html']
+            '__openerp__.py', '__manifest__.py', 'README.rst', 'index.html']
         for sfile in search_files:
             files += subprocess.Popen(
                 ['find', root, '-name', sfile],
@@ -129,7 +129,8 @@ class DescriptionToHtml(object):
         files.sort()
         files = [item.strip() for item in files]
 
-        if os.path.isfile(os.path.join(root, '__openerp__.py')):
+        if os.path.isfile(os.path.join(root, '__openerp__.py')) or \
+           os.path.isfile(os.path.join(root, '__manifest__.py')):
             module_list = [os.path.basename(root)]
             root = os.path.split(root)[0]
             self.path = root
@@ -147,8 +148,10 @@ class DescriptionToHtml(object):
                 root, module, 'static/description/index.html')
 
             if openerp_py not in files:
-                not_modules.append(module)
-                continue
+                openerp_py = os.path.join(root, module, '__manifest__.py')
+                if openerp_py not in files:
+                    not_modules.append(module)
+                    continue
 
             # Get module data
             description = ''
