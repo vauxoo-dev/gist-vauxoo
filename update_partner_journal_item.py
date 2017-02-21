@@ -83,6 +83,23 @@ move_dict = {
     28817: 153,
     28824: 71,
     28299: 57,
+    24682: 38,
+    24680: 33,
+    28892: 33,
+    28819: 33,
+    28224: 33,
+    28634: 33,
+    26919: 253,
+    26905: 334,
+    26624: 33,
+    26939: 416,
+    28898: 334,
+    32321: 72,
+    33443: 169,
+    28621: 69,
+    28620: 43,
+    24372: 365,
+    24594: 346,
 }
 for move in move_dict:
     OERP_CONNECT.execute('account.move', 'button_cancel', [move])
@@ -113,15 +130,13 @@ for journal in journal_ids:
             OERP_CONNECT.execute('account.move', 'post', [move.id])
             fixeds.extend(move.line_ids.ids)
             continue
-        else:
-            move_tax = [l.id for l in move.line_ids if l.account_id.id in acc_tax]
-            if len(move_tax) == 1:
-                move_tax = aml_obj.browse(move_tax[0])
-                invoice = invoice_obj.search(['|', ('amount_tax', '=', move_tax.credit), ('amount_tax', '=', move_tax.debit), ('state', '=', 'paid')])
-                if len(invoice) == 1:
-                    OERP_CONNECT.execute('account.move', 'button_cancel', [move.id])
-                    partner = invoice_obj.browse(invoice[0]).partner_id.id
-                    aml_obj.write(move.line_ids.ids, {'partner_id': partner})
-                    OERP_CONNECT.execute('account.move', 'post', [move.id])
-                    fixeds.extend(move.line_ids.ids)
+        elif invoice:
+            partner = []
+            [partner.append(i.partner_id.id) for i in invoice_obj.browse(invoice) if i.partner_id.id not in partner]
+            if len(partner) == 1:
+                OERP_CONNECT.execute('account.move', 'button_cancel', [move.id])
+                aml_obj.write(move.line_ids.ids, {'partner_id': partner[0]})
+                OERP_CONNECT.execute('account.move', 'post', [move.id])
+                fixeds.extend(move.line_ids.ids)
                 continue
+    
