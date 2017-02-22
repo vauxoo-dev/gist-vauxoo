@@ -89,7 +89,10 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
                 continue
             attribute_ids = Attribute.search([('name', '=', attribute)])
             attribute_id = attribute_ids and attribute_ids[0] or \
-                Attribute.create({'name': attribute})
+                Attribute.create({
+                    'name': attribute,
+                    'type': 'select',
+                    'create_variant': False})
             value_ids = []
             for attribute_value in row[attribute].split(','):
                 if attribute_value.strip() in IGNORE_VALS:
