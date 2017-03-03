@@ -23,6 +23,16 @@ IGNORE_KEYS = ['id', 'Precio']
 # Use to ignore attributes with this values
 IGNORE_VALS = ['', 'N.A', 'N.A.']
 
+# Attributes type mapper
+ATTRIBUTE_TYPE = {
+    'select': [
+        'Organismo de la norma de correspondencia',
+        'Tipo de Norma',
+        'Sector',
+        'ICS',
+    ],
+}
+
 
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
@@ -75,6 +85,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         product_vals = {
             'type': 'service',
             'categ_id': odoo.env.ref('inteco.product_category_1_1').id,
+            'website_published': True,
         }
         # avoid use basic fields as attributes
         ignore_attributes = IGNORE_KEYS
@@ -87,11 +98,15 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         for attribute in row:
             if attribute in ignore_attributes:
                 continue
+            attribute_type = 'hidden'
+            for ttype in ATTRIBUTE_TYPE:
+                if ATTRIBUTE_TYPE[ttype] == attribute:
+                    attribute_type = ttype
             attribute_ids = Attribute.search([('name', '=', attribute)])
             attribute_id = attribute_ids and attribute_ids[0] or \
                 Attribute.create({
                     'name': attribute,
-                    'type': 'select',
+                    'type': attribute_type,
                     'create_variant': False})
             value_ids = []
             for attribute_value in row[attribute].split(','):
