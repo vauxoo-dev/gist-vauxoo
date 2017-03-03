@@ -33,6 +33,8 @@ ATTRIBUTE_TYPE = {
     ],
 }
 
+CATEGORY_KEY = 'Sector'
+
 
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
@@ -73,18 +75,22 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
     odoo.login(db, user, pwd)
 
     ProductTemplate = odoo.env['product.template']
+    ProductCategory = odoo.env['product.category']
     Attribute = odoo.env['product.attribute']
     AttributeValue = odoo.env['product.attribute.value']
+    default_category = odoo.env.ref('inteco.product_category_1_1')
 
     csv_file = open(path, 'r')
     csv_rows = csv.DictReader(csv_file)
 
     count = 0
     for row in csv_rows:
+        categ_ids = ProductCategory.search([('name', '=', row[CATEGORY_KEY])])
+        categ_id = categ_ids and categ_ids[0] or default_category.id
         # prepare product values
         product_vals = {
             'type': 'service',
-            'categ_id': odoo.env.ref('inteco.product_category_1_1').id,
+            'categ_id': categ_id,
             'website_published': True,
         }
         # avoid use basic fields as attributes
