@@ -117,7 +117,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
                 continue
             attribute_type = 'hidden'
             for ttype in ATTRIBUTE_TYPE:
-                if ATTRIBUTE_TYPE[ttype] == attribute:
+                if attribute in ATTRIBUTE_TYPE[ttype]:
                     attribute_type = ttype
             attribute_ids = Attribute.search([('name', '=', attribute)])
             attribute_id = attribute_ids and attribute_ids[0] or \
