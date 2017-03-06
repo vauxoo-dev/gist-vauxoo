@@ -33,7 +33,11 @@ ATTRIBUTE_TYPE = {
     ],
 }
 
+# Column in csv that correspond to product category
 CATEGORY_KEY = 'Sector'
+
+# CSV file language
+LANG = 'es_CR'
 
 
 def print_version(ctx, param, value):
@@ -78,15 +82,22 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
     ProductCategory = odoo.env['product.category']
     Attribute = odoo.env['product.attribute']
     AttributeValue = odoo.env['product.attribute.value']
-    default_category = odoo.env.ref('inteco.product_category_1_1')
+    # define a default category
+    default_categ_id = odoo.env.ref('inteco.product_category_1_1').id
+    # get all categories that will be used to search in csv data
+    categ_ids = ProductCategory.search([('parent_id', '=', default_categ_id)])
+    categories = {
+        categ.with_context(lang=LANG).name.encode('utf8'): categ.id
+        for categ in ProductCategory.browse(categ_ids)
+    }
 
     csv_file = open(path, 'r')
     csv_rows = csv.DictReader(csv_file)
-
     count = 0
     for row in csv_rows:
-        categ_ids = ProductCategory.search([('name', '=', row[CATEGORY_KEY])])
-        categ_id = categ_ids and categ_ids[0] or default_category.id
+        # search if category for the row exist on the category list
+        categ_id = row[CATEGORY_KEY] in categories and \
+            categories[row[CATEGORY_KEY]] or default_categ_id
         # prepare product values
         product_vals = {
             'type': 'service',
@@ -106,7 +117,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
                 continue
             attribute_type = 'hidden'
             for ttype in ATTRIBUTE_TYPE:
-                if ATTRIBUTE_TYPE[ttype] == attribute:
+                if attribute in ATTRIBUTE_TYPE[ttype]:
                     attribute_type = ttype
             attribute_ids = Attribute.search([('name', '=', attribute)])
             attribute_id = attribute_ids and attribute_ids[0] or \
