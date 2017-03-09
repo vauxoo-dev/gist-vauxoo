@@ -14,8 +14,11 @@ MAX_LINES = 10000000
 FIELDS_MAPPER = {
     'name': ['Nombre'],
     'default_code': ['Codigo'],
-    'description_sale': ['Objeto y campo de aplicaci\xc3\xb3n']
+    'description_sale': ['Objeto y campo de aplicaci\xc3\xb3n'],
+    'list_price': ['Precio Final'],
 }
+
+FLOAT_FIELDS = ['list_price']
 
 # Use to ignore some csv headers
 IGNORE_KEYS = ['id', 'Precio']
@@ -80,15 +83,17 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
 
     ProductTemplate = odoo.env['product.template']
     ProductCategory = odoo.env['product.category']
+    WebsiteCategory = odoo.env['product.public.category']
     Attribute = odoo.env['product.attribute']
     AttributeValue = odoo.env['product.attribute.value']
     # define a default category
     default_categ_id = odoo.env.ref('inteco.product_category_1_1').id
+    website_categ_id = odoo.env.ref('inteco.product_public_category_1_1').id
     # get all categories that will be used to search in csv data
-    categ_ids = ProductCategory.search([('parent_id', '=', default_categ_id)])
+    categ_ids = WebsiteCategory.search([('parent_id', '=', website_categ_id)])
     categories = {
         categ.with_context(lang=LANG).name.encode('utf8'): categ.id
-        for categ in ProductCategory.browse(categ_ids)
+        for categ in WebsiteCategory.browse(categ_ids)
     }
 
     csv_file = open(path, 'r')
@@ -97,17 +102,20 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
     for row in csv_rows:
         # search if category for the row exist on the category list
         categ_id = row[CATEGORY_KEY] in categories and \
-            categories[row[CATEGORY_KEY]] or default_categ_id
+            categories[row[CATEGORY_KEY]] or website_categ_id
         # prepare product values
         product_vals = {
             'type': 'service',
-            'categ_id': categ_id,
+            'categ_id': default_categ_id,
+            'public_categ_ids': [(4, categ_id)],
             'website_published': True,
         }
         # avoid use basic fields as attributes
         ignore_attributes = IGNORE_KEYS
         for field, possible_keys in FIELDS_MAPPER.iteritems():
-            match = [{field: row[key].replace('\n', '').strip()}
+            match = [{field: field in FLOAT_FIELDS and
+                      float(row[key].replace('\n', '').strip()) or
+                      row[key].replace('\n', '').strip()}
                      for key in row if key in possible_keys]
             product_vals.update(match and match[0] or {})
             ignore_attributes += possible_keys
