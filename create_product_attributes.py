@@ -88,7 +88,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
     AttributeValue = odoo.env['product.attribute.value']
     # define a default category
     default_categ_id = odoo.env.ref('inteco.product_category_1_1').id
-    website_categ_id = odoo.env.ref('inteco.product_public_category_1_1').id
+    website_categ_id = odoo.env.ref('inteco.product_public_category_1').id
     # get all categories that will be used to search in csv data
     categ_ids = WebsiteCategory.search([('parent_id', '=', website_categ_id)])
     categories = {
@@ -107,7 +107,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         product_vals = {
             'type': 'service',
             'categ_id': default_categ_id,
-            'public_categ_ids': [(4, categ_id)],
+            'public_categ_ids': [(6, 0, [categ_id])],
             'website_published': True,
         }
         # avoid use basic fields as attributes
