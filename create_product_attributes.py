@@ -82,6 +82,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
     odoo.login(db, user, pwd)
 
     ProductTemplate = odoo.env['product.template']
+    ProductProduct = odoo.env['product.product']
     ProductCategory = odoo.env['product.category']
     WebsiteCategory = odoo.env['product.public.category']
     Attribute = odoo.env['product.attribute']
@@ -152,6 +153,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
                     'attribute_id': attribute_id,
                     'value_ids': value_ids
                 })]
+
         if attribute_line_ids:
             product_vals.update({'attribute_line_ids': attribute_line_ids})
 
@@ -161,6 +163,12 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         if product_ids:
             ProductTemplate.browse(product_ids).attribute_line_ids.unlink()
             ProductTemplate.write(product_ids, product_vals)
+            # FIX-ME: apparently when remove attribute is removed the variant
+            # now we need to add the default code to the new variant created
+            product_variant_id = ProductTemplate.browse(
+                product_ids).product_variant_id.id
+            ProductProduct.write(product_variant_id, {
+                'default_code': product_vals['default_code']})
             print '>>>> Updated attributes for product:', product_vals['name']
         else:
             ProductTemplate.create(product_vals)
