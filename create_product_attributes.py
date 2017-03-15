@@ -18,8 +18,6 @@ FIELDS_MAPPER = {
     'list_price': ['Precio Final'],
 }
 
-FLOAT_FIELDS = ['list_price']
-
 # Use to ignore some csv headers
 IGNORE_KEYS = ['id', 'Precio']
 
@@ -96,6 +94,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         categ.with_context(lang=LANG).name.encode('utf8'): categ.id
         for categ in WebsiteCategory.browse(categ_ids)
     }
+    all_products = []
 
     csv_file = open(path, 'r')
     csv_rows = csv.DictReader(csv_file)
@@ -114,9 +113,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         # avoid use basic fields as attributes
         ignore_attributes = IGNORE_KEYS
         for field, possible_keys in FIELDS_MAPPER.iteritems():
-            match = [{field: field in FLOAT_FIELDS and
-                      float(row[key].replace('\n', '').strip()) or
-                      row[key].replace('\n', '').strip()}
+            match = [{field: row[key].replace('\n', '').strip()}
                      for key in row if key in possible_keys]
             product_vals.update(match and match[0] or {})
             ignore_attributes += possible_keys
@@ -157,27 +154,43 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         if attribute_line_ids:
             product_vals.update({'attribute_line_ids': attribute_line_ids})
 
-        product_ids = ProductTemplate.search([
-            ('name', '=', product_vals['name']),
-            ('default_code', '=', product_vals['default_code'])])
-        if product_ids:
-            ProductTemplate.browse(product_ids).attribute_line_ids.unlink()
-            ProductTemplate.write(product_ids, product_vals)
+        product_tmpl_ids = len(row.get('id', '')) > 0 and [int(row['id'])] or \
+            ProductTemplate.search([
+                ('name', '=', product_vals['name']),
+                ('default_code', '=', product_vals['default_code'])])
+
+        if product_tmpl_ids:
+            product_tmpl_id = product_tmpl_ids[0]
+            ProductTemplate.browse(product_tmpl_id).attribute_line_ids.unlink()
+            ProductTemplate.write(product_tmpl_id, product_vals)
             # FIX-ME: apparently when remove attribute is removed the variant
             # now we need to add the default code to the new variant created
             product_variant_id = ProductTemplate.browse(
-                product_ids).product_variant_id.id
+                product_tmpl_id).product_variant_id.id
             ProductProduct.write(product_variant_id, {
                 'default_code': product_vals['default_code']})
             print '>>>> Updated attributes for product:', product_vals['name']
         else:
-            ProductTemplate.create(product_vals)
+            product_tmpl_ids = [ProductTemplate.create(product_vals)]
             print '>>>> Created new product:', product_vals['name']
+
+        all_products += product_tmpl_ids
 
         if count == MAX_LINES:
             quit()
 
         count += 1
+
+    product_tmpl_ids = ProductTemplate.search([
+        ('id', 'not in', all_products),
+        ('categ_id', '=', default_categ_id),
+    ])
+
+    ProductTemplate.write(product_tmpl_ids, {
+        'active': False,
+        'website_published': False})
+
+    print '>>>> Products inactivated: ', product_tmpl_ids
 
 
 if __name__ == '__main__':
