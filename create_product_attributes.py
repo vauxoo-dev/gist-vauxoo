@@ -18,8 +18,6 @@ FIELDS_MAPPER = {
     'list_price': ['Precio Final'],
 }
 
-FLOAT_FIELDS = ['list_price']
-
 # Use to ignore some csv headers
 IGNORE_KEYS = ['id', 'Precio']
 
@@ -115,9 +113,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         # avoid use basic fields as attributes
         ignore_attributes = IGNORE_KEYS
         for field, possible_keys in FIELDS_MAPPER.iteritems():
-            match = [{field: field in FLOAT_FIELDS and
-                      float(row[key].replace('\n', '').strip()) or
-                      row[key].replace('\n', '').strip()}
+            match = [{field: row[key].replace('\n', '').strip()}
                      for key in row if key in possible_keys]
             product_vals.update(match and match[0] or {})
             ignore_attributes += possible_keys
@@ -189,7 +185,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
     ])
 
     ProductTemplate.browse(product_tmpl_ids).unlink()
-    print '>>>> Products deleted: ', all_products
+    print '>>>> Products deleted: ', product_tmpl_ids
 
 
 if __name__ == '__main__':
