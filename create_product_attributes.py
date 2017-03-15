@@ -96,6 +96,7 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         categ.with_context(lang=LANG).name.encode('utf8'): categ.id
         for categ in WebsiteCategory.browse(categ_ids)
     }
+    all_products = []
 
     csv_file = open(path, 'r')
     csv_rows = csv.DictReader(csv_file)
@@ -157,27 +158,38 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         if attribute_line_ids:
             product_vals.update({'attribute_line_ids': attribute_line_ids})
 
-        product_ids = ProductTemplate.search([
+        product_tmpl_ids = ProductTemplate.search([
             ('name', '=', product_vals['name']),
             ('default_code', '=', product_vals['default_code'])])
-        if product_ids:
-            ProductTemplate.browse(product_ids).attribute_line_ids.unlink()
-            ProductTemplate.write(product_ids, product_vals)
+        if product_tmpl_ids:
+            product_tmpl_id = product_tmpl_ids[0]
+            ProductTemplate.browse(product_tmpl_id).attribute_line_ids.unlink()
+            ProductTemplate.write(product_tmpl_id, product_vals)
             # FIX-ME: apparently when remove attribute is removed the variant
             # now we need to add the default code to the new variant created
             product_variant_id = ProductTemplate.browse(
-                product_ids).product_variant_id.id
+                product_tmpl_id).product_variant_id.id
             ProductProduct.write(product_variant_id, {
                 'default_code': product_vals['default_code']})
             print '>>>> Updated attributes for product:', product_vals['name']
         else:
-            ProductTemplate.create(product_vals)
+            product_tmpl_ids = [ProductTemplate.create(product_vals)]
             print '>>>> Created new product:', product_vals['name']
+
+        all_products += product_tmpl_ids
 
         if count == MAX_LINES:
             quit()
 
         count += 1
+
+    product_tmpl_ids = ProductTemplate.search([
+        ('id', 'not in', all_products),
+        ('categ_id', '=', default_categ_id),
+    ])
+
+    ProductTemplate.browse(product_tmpl_ids).unlink()
+    print '>>>> Products deleted: ', all_products
 
 
 if __name__ == '__main__':
