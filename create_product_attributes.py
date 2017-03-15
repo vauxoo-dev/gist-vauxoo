@@ -154,9 +154,11 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         if attribute_line_ids:
             product_vals.update({'attribute_line_ids': attribute_line_ids})
 
-        product_tmpl_ids = ProductTemplate.search([
-            ('name', '=', product_vals['name']),
-            ('default_code', '=', product_vals['default_code'])])
+        product_tmpl_ids = len(row.get('id', '')) > 0 and [int(row['id'])] or \
+            ProductTemplate.search([
+                ('name', '=', product_vals['name']),
+                ('default_code', '=', product_vals['default_code'])])
+
         if product_tmpl_ids:
             product_tmpl_id = product_tmpl_ids[0]
             ProductTemplate.browse(product_tmpl_id).attribute_line_ids.unlink()
@@ -184,8 +186,11 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         ('categ_id', '=', default_categ_id),
     ])
 
-    ProductTemplate.browse(product_tmpl_ids).unlink()
-    print '>>>> Products deleted: ', product_tmpl_ids
+    ProductTemplate.write(product_tmpl_ids, {
+        'active': False,
+        'website_published': False})
+
+    print '>>>> Products inactivated: ', product_tmpl_ids
 
 
 if __name__ == '__main__':
