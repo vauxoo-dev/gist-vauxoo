@@ -15,11 +15,11 @@ FIELDS_MAPPER = {
     'name': ['Nombre'],
     'default_code': ['Codigo'],
     'description_sale': ['Objeto y campo de aplicaci\xc3\xb3n'],
-    'list_price': ['Precio Final'],
+    'list_price': ['Precio'],
 }
 
 # Use to ignore some csv headers
-IGNORE_KEYS = ['id', 'Precio']
+IGNORE_KEYS = ['id', 'Estado']
 
 # Use to ignore attributes with this values
 IGNORE_VALS = ['', 'N.A', 'N.A.']
@@ -95,14 +95,16 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
         for categ in WebsiteCategory.browse(categ_ids)
     }
     all_products = []
+    created_products = []
+    updated_products = []
 
     csv_file = open(path, 'r')
     csv_rows = csv.DictReader(csv_file)
     count = 0
     for row in csv_rows:
         # search if category for the row exist on the category list
-        categ_id = row[CATEGORY_KEY] in categories and \
-            categories[row[CATEGORY_KEY]] or website_categ_id
+        categ_id = row[CATEGORY_KEY].strip() in categories and \
+            categories[row[CATEGORY_KEY].strip()] or website_categ_id
         # prepare product values
         product_vals = {
             'type': 'service',
@@ -156,13 +158,13 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
 
         product_tmpl_ids = len(row.get('id', '')) > 0 and [int(row['id'])] or \
             ProductTemplate.search([
-                ('name', '=', product_vals['name']),
                 ('default_code', '=', product_vals['default_code'])])
 
         if product_tmpl_ids:
             product_tmpl_id = product_tmpl_ids[0]
             ProductTemplate.browse(product_tmpl_id).attribute_line_ids.unlink()
             ProductTemplate.write(product_tmpl_id, product_vals)
+            updated_products += [product_tmpl_id]
             # FIX-ME: apparently when remove attribute is removed the variant
             # now we need to add the default code to the new variant created
             product_variant_id = ProductTemplate.browse(
@@ -171,26 +173,31 @@ def main(names, db=None, user=None, pwd=None, port=None, host=None, path=None):
                 'default_code': product_vals['default_code']})
             print '>>>> Updated attributes for product:', product_vals['name']
         else:
-            product_tmpl_ids = [ProductTemplate.create(product_vals)]
+            created_products += [ProductTemplate.create(product_vals)]
             print '>>>> Created new product:', product_vals['name']
-
-        all_products += product_tmpl_ids
 
         if count == MAX_LINES:
             quit()
 
         count += 1
 
-    product_tmpl_ids = ProductTemplate.search([
+    all_products = updated_products + created_products
+
+    archived_products = ProductTemplate.search([
         ('id', 'not in', all_products),
-        ('categ_id', '=', default_categ_id),
+        ('categ_id', 'child_of', default_categ_id),
     ])
 
-    ProductTemplate.write(product_tmpl_ids, {
-        'active': False,
-        'website_published': False})
+    ProductTemplate.unlink(archived_products)
 
-    print '>>>> Products inactivated: ', product_tmpl_ids
+    print '>>>> Total products updated %d: %s' %(
+        len(updated_products), updated_products)
+
+    print '>>>> Total Products created %d: %s' %(
+        len(created_products), created_products)
+
+    print '>>>> Total products deleted %d: %s' %(
+        len(archived_products), archived_products)
 
 
 if __name__ == '__main__':
