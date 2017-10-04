@@ -3,6 +3,7 @@
 import os
 import odoorpc
 import argparse
+import base64                                                                   
 
 PARSER = argparse.ArgumentParser(
     description="Generate Payroll PDF and Cancel XML")
@@ -43,8 +44,11 @@ for filename in os.listdir(XML_DIR):
      payslip_new = payslip.browse(payslip_copy)                                  
      payslip_new = payslip_new.hr_verify_sheet()                                 
      attach_facturae = odoo.env['ir.attachment.facturae.mx'].browse(             
-         payslip_new['res_id'])                                                  
+         payslip_new['res_id'])
+     xml_location = os.path.join(XML_DIR, filename)                              
+     file_data = open(xml_location, "r").read()                                  
      attach_new = odoo.env['ir.attachment'].create({                             
          'type': 'binary',                                                       
-         'name': filename, })                                                    
-     attach_facturae.file_xml_sign = attach_new
+         'name': filename,                                                       
+         'datas': base64.encodestring(file_data), })                             
+     attach_facturae.file_xml_sign = attach_new  
