@@ -3,7 +3,7 @@
 import os
 import odoorpc
 import argparse
-import base64                                                                   
+import base64
 
 PARSER = argparse.ArgumentParser(
     description="Generate Payroll PDF and Cancel XML")
@@ -32,23 +32,24 @@ PORT = ARGS.port
 URL = 'http://%s:%s' % (SERVER, PORT)
 XML_DIR = ARGS.directory
 
-odoo = odoorpc.ODOO(SERVER, port=PORT)                                          
-odoo.login(DB_NAME, USER, PASSWD)                                               
-payslip = odoo.env['hr.payslip']                                                
-payslip_id = payslip.search([], limit=1)[0]                                     
-                                                                                 
-for filename in os.listdir(XML_DIR):                                            
-     if not filename.endswith('.xml'):                                           
-         continue                                                                
-     payslip_copy = payslip.copy(payslip_id)                                     
-     payslip_new = payslip.browse(payslip_copy)                                  
-     payslip_new = payslip_new.hr_verify_sheet()                                 
-     attach_facturae = odoo.env['ir.attachment.facturae.mx'].browse(             
-         payslip_new['res_id'])
-     xml_location = os.path.join(XML_DIR, filename)                              
-     file_data = open(xml_location, "r").read()                                  
-     attach_new = odoo.env['ir.attachment'].create({                             
-         'type': 'binary',                                                       
-         'name': filename,                                                       
-         'datas': base64.encodestring(file_data), })                             
-     attach_facturae.file_xml_sign = attach_new  
+odoo = odoorpc.ODOO(SERVER, port=PORT)
+odoo.login(DB_NAME, USER, PASSWD)
+payslip = odoo.env['hr.payslip']
+payslip_id = payslip.search([], limit=1)[0]
+
+for filename in os.listdir(XML_DIR):
+    if not filename.endswith('.xml'):
+        continue
+    payslip_copy = payslip.copy(payslip_id)
+    payslip_new = payslip.browse(payslip_copy)
+    payslip_new = payslip_new.hr_verify_sheet()
+    attach_facturae = odoo.env['ir.attachment.facturae.mx'].browse(
+        payslip_new['res_id'])
+    xml_location = os.path.join(XML_DIR, filename)
+    file_data = open(xml_location, "r").read()
+    attach_new = odoo.env['ir.attachment'].create({
+        'type': 'binary',
+        'name': filename,
+        'datas': base64.encodestring(file_data), })
+    attach_facturae.write({'file_xml_sign': attach_new})
+    attach_facturae.write({'state': 'signed'})
