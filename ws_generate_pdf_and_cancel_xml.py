@@ -1,9 +1,8 @@
 # coding: utf-8
 
 import os
-import xmlrpclib
+import odoorpc
 import argparse
-import xml.etree.ElementTree as ET
 
 PARSER = argparse.ArgumentParser(
     description="Generate Payroll PDF and Cancel XML")
@@ -31,15 +30,21 @@ SERVER = ARGS.server
 PORT = ARGS.port
 URL = 'http://%s:%s' % (SERVER, PORT)
 XML_DIR = ARGS.directory
-common = xmlrpclib.ServerProxy('{}/xmlrpc/2/common'.format(URL))
-UID = common.authenticate(DB_NAME, USER, PASSWD, {})
 
-hr_payslip = xmlrpclib.ServerProxy('{}/xmlrpc/2/object'.format(URL))
-hr_id = hr_payslip.execute_kw(DB_NAME, UID, PASSWD, 'hr.payslip', 'search',
-                              [[]], {'limit': 1})[0]
-
-for filename in os.listdir(XML_DIR):
-    if not filename.endswith('.xml'):
-        continue
-    hr_copy = hr_payslip.execute_kw(DB_NAME, UID, PASSWD, 'hr.payslip', 'copy',
-                                    [hr_id])
+odoo = odoorpc.ODOO(SERVER, port=PORT)                                          
+odoo.login(DB_NAME, USER, PASSWD)                                               
+payslip = odoo.env['hr.payslip']                                                
+payslip_id = payslip.search([], limit=1)[0]                                     
+                                                                                 
+for filename in os.listdir(XML_DIR):                                            
+     if not filename.endswith('.xml'):                                           
+         continue                                                                
+     payslip_copy = payslip.copy(payslip_id)                                     
+     payslip_new = payslip.browse(payslip_copy)                                  
+     payslip_new = payslip_new.hr_verify_sheet()                                 
+     attach_facturae = odoo.env['ir.attachment.facturae.mx'].browse(             
+         payslip_new['res_id'])                                                  
+     attach_new = odoo.env['ir.attachment'].create({                             
+         'type': 'binary',                                                       
+         'name': filename, })                                                    
+     attach_facturae.file_xml_sign = attach_new
