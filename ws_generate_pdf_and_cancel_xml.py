@@ -53,3 +53,6 @@ for filename in os.listdir(XML_DIR):
         'datas': base64.encodestring(file_data), })
     attach_facturae.write({'file_xml_sign': attach_new})
     attach_facturae.write({'state': 'signed'})
+    attach_facturae.signal_printable()
+    if attach_facturae.file_pdf:
+        attach_facturae.write({'state': 'printable'})
