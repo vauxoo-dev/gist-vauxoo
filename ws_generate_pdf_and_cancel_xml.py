@@ -18,6 +18,7 @@ PARSER.add_argument("-s", "--server",
                     default="127.0.0.1")
 PARSER.add_argument("-dir", "--directory", help="XML Directory path",
                     required=True)
+PARSER.add_argument("-o", "--output", help="Output directory")
 ARGS = PARSER.parse_args()
 
 if ARGS.db is None or ARGS.user is None or ARGS.passwd is None or ARGS.directory is None:
@@ -31,6 +32,9 @@ SERVER = ARGS.server
 PORT = ARGS.port
 URL = 'http://%s:%s' % (SERVER, PORT)
 XML_DIR = ARGS.directory
+OUTPUT_DIR = ARGS.output
+if not OUTPUT_DIR:
+    OUTPUT_DIR = XML_DIR
 
 odoo = odoorpc.ODOO(SERVER, port=PORT)
 odoo.login(DB_NAME, USER, PASSWD)
@@ -51,8 +55,14 @@ for filename in os.listdir(XML_DIR):
         'type': 'binary',
         'name': filename,
         'datas': base64.encodestring(file_data), })
-    attach_facturae.write({'file_xml_sign': attach_new})
-    attach_facturae.write({'state': 'signed'})
+    attach_facturae.write({
+        'file_xml_sign': attach_new,
+        'state': 'signed',
+    })
     attach_facturae.signal_printable()
     if attach_facturae.file_pdf:
         attach_facturae.write({'state': 'printable'})
+        fname_pdf = attach_facturae.file_pdf.name.replace('/', '')
+        output = os.path.join(OUTPUT_DIR, fname_pdf)
+        open(output, 'w').write(base64.decodestring(
+            attach_facturae.file_pdf.datas))
