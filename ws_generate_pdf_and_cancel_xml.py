@@ -50,13 +50,12 @@ for filename in os.listdir(XML_DIR):
     attach_facturae = odoo.env['ir.attachment.facturae.mx'].browse(
         payslip_new['res_id'])
     xml_location = os.path.join(XML_DIR, filename)
-    open_file = open(xml_location, "r")
-    file_data = open_file.read()
-    attach_new = odoo.env['ir.attachment'].create({
-        'type': 'binary',
-        'name': filename,
-        'datas': base64.encodestring(file_data), })
-    open_file.close()
+    with open(xml_location, 'r') as open_file:
+        file_data = open_file.read()
+        attach_new = odoo.env['ir.attachment'].create({
+            'type': 'binary',
+            'name': filename,
+            'datas': base64.encodestring(file_data), })
     attach_facturae.write({
         'file_xml_sign': attach_new,
         'state': 'signed',
@@ -66,7 +65,6 @@ for filename in os.listdir(XML_DIR):
         attach_facturae.write({'state': 'printable'})
         fname_pdf = attach_facturae.file_pdf.name.replace('/', '')
         output = os.path.join(OUTPUT_DIR, fname_pdf)
-        open_file = open(output, 'w')
-        open_file.write(base64.decodestring(
-            attach_facturae.file_pdf.datas))
-        open_file.close()
+        with open(output, 'w') as open_file:
+            open_file.write(base64.decodestring(
+                attach_facturae.file_pdf.datas))
