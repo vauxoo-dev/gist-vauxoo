@@ -63,7 +63,7 @@ for filename in os.listdir(XML_DIR):
     attach_facturae.signal_printable()
     if attach_facturae.file_pdf:
         attach_facturae.write({'state': 'printable'})
-        fname_pdf = attach_facturae.file_pdf.name.replace('/', '')
+        fname_pdf = attach_facturae.file_xml_sign.name.replace('xml', 'pdf')
         output = os.path.join(OUTPUT_DIR, fname_pdf)
         with open(output, 'w') as open_file:
             open_file.write(base64.decodestring(
