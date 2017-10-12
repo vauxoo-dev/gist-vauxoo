@@ -25,6 +25,10 @@ if ARGS.db is None or ARGS.user is None or ARGS.passwd is None or ARGS.directory
     print "Must be specified DataBase, User, Password and Directory path"
     quit()
 
+if not os.path.isdir(ARGS.directory) or (ARGS.output and not os.path.isdir(ARGS.output)):
+    print "The specified directory must exist"
+    quit()
+
 DB_NAME = ARGS.db
 USER = ARGS.user
 PASSWD = ARGS.passwd
