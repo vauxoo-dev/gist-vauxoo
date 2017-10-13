@@ -42,6 +42,7 @@ if not OUTPUT_DIR:
 
 odoo = odoorpc.ODOO(SERVER, port=PORT)
 odoo.login(DB_NAME, USER, PASSWD)
+odoo.env.context['lang'] = 'es_MX'
 payslip = odoo.env['hr.payslip']
 payslip_id = payslip.search([], limit=1)[0]
 
