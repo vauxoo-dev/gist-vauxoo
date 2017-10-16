@@ -19,6 +19,7 @@ PARSER.add_argument("-s", "--server",
 PARSER.add_argument("-dir", "--directory", help="XML Directory path",
                     required=True)
 PARSER.add_argument("-o", "--output", help="Output directory")
+PARSER.add_argument("-c", "--copy", help="Payslip to copy")
 ARGS = PARSER.parse_args()
 
 if ARGS.db is None or ARGS.user is None or ARGS.passwd is None or ARGS.directory is None:
@@ -44,7 +45,7 @@ odoo = odoorpc.ODOO(SERVER, port=PORT)
 odoo.login(DB_NAME, USER, PASSWD)
 odoo.env.context['lang'] = 'es_MX'
 payslip = odoo.env['hr.payslip']
-payslip_id = payslip.search([], limit=1)[0]
+payslip_id = int(ARGS.copy) or payslip.search([], limit=1)[0]
 
 for filename in os.listdir(XML_DIR):
     if not filename.endswith('.xml'):
