@@ -45,7 +45,7 @@ odoo = odoorpc.ODOO(SERVER, port=PORT)
 odoo.login(DB_NAME, USER, PASSWD)
 odoo.env.context['lang'] = 'es_MX'
 payslip = odoo.env['hr.payslip']
-payslip_id = int(ARGS.copy) or payslip.search([], limit=1)[0]
+payslip_id = int(ARGS.copy) if ARGS.copy else payslip.search([], limit=1)[0]
 
 for filename in os.listdir(XML_DIR):
     if not filename.endswith('.xml'):
