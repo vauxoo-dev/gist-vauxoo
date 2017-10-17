@@ -4,6 +4,8 @@ import os
 import odoorpc
 import argparse
 import base64
+import sys
+from socket import timeout
 
 PARSER = argparse.ArgumentParser(
     description="Generate Payroll PDF and Cancel XML")
@@ -56,12 +58,16 @@ for filename in os.listdir(XML_DIR):
     attach_facturae = odoo.env['ir.attachment.facturae.mx'].browse(
         payslip_new['res_id'])
     xml_location = os.path.join(XML_DIR, filename)
-    with open(xml_location, 'r') as open_file:
-        file_data = open_file.read()
-        attach_new = odoo.env['ir.attachment'].create({
-            'type': 'binary',
-            'name': filename,
-            'datas': base64.encodestring(file_data), })
+    try:
+        with open(xml_location, 'r') as open_file:
+            file_data = open_file.read()
+            attach_new = odoo.env['ir.attachment'].create({
+                'type': 'binary',
+                'name': filename,
+                'datas': base64.encodestring(file_data), })
+    except timeout:
+        print "Timeout error:", sys.exc_info()[0]
+        raise
     attach_facturae.write({
         'file_xml_sign': attach_new,
         'state': 'signed',
@@ -71,6 +77,11 @@ for filename in os.listdir(XML_DIR):
         attach_facturae.write({'state': 'printable'})
         fname_pdf = attach_facturae.file_xml_sign.name.replace('xml', 'pdf')
         output = os.path.join(OUTPUT_DIR, fname_pdf)
-        with open(output, 'w') as open_file:
-            open_file.write(base64.decodestring(
-                attach_facturae.file_pdf.datas))
+        try:
+            with open(output, 'w') as open_file:
+                open_file.write(base64.decodestring(
+                    attach_facturae.file_pdf.datas))
+                print "generated PDF %s" % (fname_pdf)
+        except timeout:
+            print "Timeout error:", sys.exc_info()[0]
+            raise
