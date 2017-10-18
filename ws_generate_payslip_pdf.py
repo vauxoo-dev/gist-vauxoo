@@ -7,8 +7,7 @@ import base64
 import sys
 from socket import timeout
 
-PARSER = argparse.ArgumentParser(
-    description="Generate Payroll PDF and Cancel XML")
+PARSER = argparse.ArgumentParser(description="Generate Payroll PDF")
 PARSER.add_argument("-d", "--db", help="DataBase Name", required=True)
 PARSER.add_argument("-r", "--user", help="OpenERP User", required=True)
 PARSER.add_argument("-w", "--passwd", help="OpenERP Password", required=True)
