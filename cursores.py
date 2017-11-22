@@ -13,6 +13,9 @@ The output of this script was:
 
 FYI odoo use ISOLATION_LEVEL_REPEATABLE_READ more info here:
 https://github.com/odoo/odoo/blob/b08642c21cb345aa0778bdc9754425eb9ac9faa7/openerp/sql_db.py#L69-L128
+
+I fixed this issue using the following changes:
+https://github.com/Vauxoo/odoo-mexico-v2/pull/340/files
 """
 
 import psycopg2
