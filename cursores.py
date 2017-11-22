@@ -18,6 +18,8 @@ I fixed this issue using the following changes:
 https://github.com/Vauxoo/odoo-mexico-v2/pull/340/files
 """
 
+from __future__ import print_function
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_REPEATABLE_READ
 
@@ -39,20 +41,20 @@ UPDATE_QUERY = "UPDATE account_journal SET name = 'Moy' WHERE id = %s"
 row_id = 1
 
 cur1.execute(SELECT_QUERY, (row_id,))
-print "cursor 1 - select to add cache with ISOLATION_LEVEL_REPEATABLE_READ"
-print cur1.fetchall()
+print("cursor 1 - select to add cache with ISOLATION_LEVEL_REPEATABLE_READ")
+print(cur1.fetchall())
 
 cur2.execute(SELECT_QUERY, (row_id,))
-print "cursor 2 - select to add cache with ISOLATION_LEVEL_REPEATABLE_READ"
-print cur2.fetchall()
+print("cursor 2 - select to add cache with ISOLATION_LEVEL_REPEATABLE_READ")
+print(cur2.fetchall())
 
 cur1.execute(UPDATE_QUERY, (row_id,))
 conn1.commit()
-print "cursor 1 - update row and commit"
+print("cursor 1 - update row and commit")
 
 cur1.execute(SELECT_QUERY, (row_id,))
-print "cursor 1 - read again (updated cache)", cur1.fetchall()
+print("cursor 1 - read again (updated cache)", cur1.fetchall())
 
 cur2.execute(SELECT_QUERY, (row_id,))
-print "cursor 2 - read again (outdated cache)", cur2.fetchall()
+print("cursor 2 - read again (outdated cache)", cur2.fetchall())
 
