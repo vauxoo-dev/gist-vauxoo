@@ -1,8 +1,8 @@
 from io import BytesIO
 from lxml import etree
 
-schema_str = open('/Users/luistorres/Documents/xsd/cfdv33.xsd').read()
-xml_valid = open('/Users/luistorres/Documents/xsd/xml.xml').read()
+schema_str = open('./cfdv33.xsd').read()
+xml_valid = open('./xml.xml').read()
 with BytesIO(schema_str) as xsd:
     schema_root = etree.parse(xsd)
 schema = etree.XMLSchema(schema_root)
