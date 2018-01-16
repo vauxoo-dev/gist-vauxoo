@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<data inherit_id="l10n_mx_edi.report_invoice_document_mx">
+    <xpath expr="//div[@name='invoice_address']" position="replace">
+        <t t-if="o.l10n_mx_edi_cfdi">
+            <t t-set="xml" t-value="o.l10n_mx_edi_get_xml_etree()"/>
+        </t>
+        <div name="invoice_address" class="col-xs-5 col-xs-offset-7">
+            <address t-field="o.partner_id" t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True}' />
+            <t t-if="o.l10n_mx_edi_cfdi_uuid">
+                <div t-if="o.partner_id.vat" class="mt16">Receiver TIN: <span t-esc="o.l10n_mx_edi_cfdi_customer_rfc"></span></div>
+                <div t-if="o.company_id.vat != o.l10n_mx_edi_cfdi_supplier_rfc">Emitter TIN: <span t-esc="o.l10n_mx_edi_cfdi_supplier_rfc"></span></div>
+            </t>
+            <t t-if="not o.l10n_mx_edi_cfdi_uuid">
+                <div t-if="o.partner_id.vat" class="mt16"><t t-esc="o.company_id.country_id.vat_label or 'TIN'"/>: <span t-field="o.partner_id.vat"/></div>
+            </t>
+        </div>
+    </xpath>
+    <xpath expr="//div[1]/div[2]/div[last()]" position="after">
+        <t t-if="o.l10n_mx_edi_cfdi_uuid and xml.Receptor.get('UsoCFDI', False)">
+            <t t-set="usage" t-value="xml.Receptor.get('UsoCFDI')"/>
+                <div name="usage" class="col-xs-3">
+                    <strong>Usage:</strong>
+                    <p><span t-esc="usage"/> - <span t-esc="dict(o.fields_get(['l10n_mx_edi_usage'], ['selection']).get('l10n_mx_edi_usage').get('selection')).get(usage)"/></p>
+                </div>
+        </t>
+    </xpath>
+    <xpath expr="//table[@name='invoice_line_table']/thead/tr/th[1]" position="before">
+        <th t-if="o.l10n_mx_edi_cfdi and xml.get('Version', False)">Product code</th>
+    </xpath>
+    <xpath expr="//table[@name='invoice_line_table']/thead/tr/th[4]" position="after">
+        <th class="text-right" t-if="o.l10n_mx_edi_cfdi and xml.get('Version', False)">Unit code</th>
+    </xpath>
+    <xpath expr="//table[@name='invoice_line_table']/tbody/tr[1]/td[1]" position="before">
+        <td t-if="o.l10n_mx_edi_cfdi and xml.get('Version', False)"><span t-field="l.product_id.l10n_mx_edi_code_sat_id.code"/></td>
+    </xpath>
+    <xpath expr="//table[@name='invoice_line_table']/tbody/tr[1]/td[4]" position="after">
+        <td class="text-right" t-if="o.l10n_mx_edi_cfdi and xml.get('Version', False)"><span t-field="l.uom_id.l10n_mx_edi_code_sat_id.code"/></td>
+    </xpath>
+    <xpath expr="//table[@name='invoice_line_table']/tbody/tr[2]" position="inside">
+        <td t-if="o.l10n_mx_edi_cfdi and xml.get('Version', False)"></td>
+        <td t-if="o.l10n_mx_edi_cfdi and xml.get('Version', False)"></td>
+    </xpath>
+</data>
