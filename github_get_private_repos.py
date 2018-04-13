@@ -1,4 +1,3 @@
-import ast
 import csv
 import sys
 from StringIO import StringIO
@@ -9,6 +8,7 @@ import simplejson
 
 
 GITHUB_DT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 
 class GithubRequest(object):
     def __init__(self, token, owner=None, repo=None):
@@ -21,7 +21,7 @@ class GithubRequest(object):
         url = "%s%s" % (self.url_base, url)
         url = url.format(owner=self.owner, repo=self.repo)
         session = requests.Session()
-        session.auth = (token, 'x-oauth-basic')
+        session.auth = (self.token, 'x-oauth-basic')
         session.headers.update({
             'Accept': 'application/vnd.github.she-hulk-preview+json'})
         if payload:
@@ -57,7 +57,9 @@ class GithubRequest(object):
 
 
 if __name__ == '__main__':
+    # Create a "token" from https://github.com/settings/tokens
     token = sys.argv[1]
+    # Use the organization name. E.g. "Vauxoo"
     owner = sys.argv[2]
     # payload = ast.literal_eval(sys.argv[2])
     # repo = sys.argv[4]
