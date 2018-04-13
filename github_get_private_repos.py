@@ -33,7 +33,7 @@ class GithubRequest(object):
         return response.json()
 
     def github_get_private_repos(self):
-        request = self.github_request('orgs/{owner}/repos?type=private')
+        request = self.github_request('orgs/{owner}/repos?type=private&per_page=1000')
         repos = []
         for repo in request:
             pushed_at = datetime.strptime(repo['pushed_at'], GITHUB_DT_FORMAT)
