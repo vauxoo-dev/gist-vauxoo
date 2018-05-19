@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# See the following example too: https://gist.github.com/moylop260/83978677cb072d048569c9dc9a1b7fbe
+
 """
 Case of use to known the ISOLATION_LEVEL_REPEATABLE_READ database psycopg way
 The output of this script was:
