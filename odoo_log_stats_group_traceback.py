@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import glob
 import re
 import psycopg2
@@ -26,6 +28,8 @@ def init_db():
             message varchar
     );""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_message ON odoo_logs (message);""")
+    cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level ON odoo_logs (level);""")
+    cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level_message ON odoo_logs (level, message);""")
     conn.commit()
 
 
@@ -43,6 +47,7 @@ def insert_messages(filename):
             message_items = get_message_split(line)
             if not message_items:
                 if re.findall(_re_poll_log, line):
+                    # TODO: Check if the longpoll logger is not overwritten the original one
                     continue
                 if message:
                     message['message'] += line
@@ -54,7 +59,14 @@ def insert_messages(filename):
         conn.commit()
 
 
-conn = psycopg2.connect(dbname=DBNAME)
+try:
+    conn = psycopg2.connect(dbname=DBNAME)
+except psycopg2.OperationalError as op_err:
+    print("Run: createdb -T template0 -E unicode --lc-collate=C %s" % DBNAME)
+    print("Create a postgresql rol for the OS user and "
+          "assign global environment variable to connect if it are different to default")
+    raise op_err
+
 try:
     cr = conn.cursor()
     init_db()
