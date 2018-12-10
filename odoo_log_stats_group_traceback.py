@@ -19,7 +19,7 @@ insert_query = (
 def init_db():
     cr.execute("""
         CREATE TABLE IF NOT EXISTS odoo_logs (
-            id serial NOT NULL,
+            id serial NOT NULL, PRIMARY KEY(id),
             date timestamp without time zone,
             session integer,
             db varchar(64),
