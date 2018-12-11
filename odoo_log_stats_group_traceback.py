@@ -9,7 +9,7 @@ DBNAME = 'odoologs_moi'
 
 # FILE_NAME = "/home/odoo/production_logs/20181208/Logs 20181208/MoD_Odoo_log/odoo-server.log*"
 FILE_NAME = "/home/odoo/production_logs/20181208/Logs 20181208/MoI_Odoo_log/odoo-server.log"
-_re_log = r'(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)'
+_re_log = r'(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)'
 _re_poll_log = r' (?P<date>\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\]|\[\d\d\/[A-Z][a-z][a-z]\/\d{4} \d\d:\d\d:\d\d\]) '
 insert_query = (
     "INSERT INTO odoo_logs (date, session, db, level, module, message) "
