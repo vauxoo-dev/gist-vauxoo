@@ -50,9 +50,10 @@ def insert_messages(filename):
                     # TODO: Check if the longpoll logger is not overwritten the original one
                     continue
                 if message:
-                    message['message'] += line
+                    message['message'] += line.strip()
                 continue
             message = message_items
+            message['message'] = message['message'].strip()
             cr.execute(insert_query, message)
         if message and message != message_items:
             cr.execute(insert_query, message)
