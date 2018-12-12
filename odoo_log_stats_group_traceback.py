@@ -35,6 +35,7 @@ def init_db():
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_message ON odoo_logs (message);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level ON odoo_logs (level);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level_message ON odoo_logs (level, message);""")
+    cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_date ON odoo_logs (date);""")
     conn.commit()
 
 
