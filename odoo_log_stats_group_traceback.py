@@ -4,8 +4,13 @@ import glob
 import re
 import psycopg2
 
+from datetime import datetime
+
 
 DBNAME = 'odoologs_moi'
+MIN_DATE = datetime.strptime(
+    '2018-12-06', '%Y-%m-%d')
+
 
 # FILE_NAME = "/home/odoo/production_logs/20181208/Logs 20181208/MoD_Odoo_log/odoo-server.log*"
 FILE_NAME = "/home/odoo/production_logs/20181208/Logs 20181208/MoI_Odoo_log/odoo-server.log"
@@ -40,6 +45,12 @@ def get_message_split(message_str):
     return match.groupdict()
 
 
+def insert_message(message):
+    if MIN_DATE and MIN_DATE >= datetime.strptime(message['date'], '%Y-%m-%d %H:%M:%S'):
+        return
+    cr.execute(insert_query, message)
+
+
 def insert_messages(filename):
     with open(filename) as fp:
         message = {}
@@ -54,9 +65,9 @@ def insert_messages(filename):
                 continue
             message = message_items
             message['message'] = message['message'].strip()
-            cr.execute(insert_query, message)
+            insert_message(message)
         if message and message != message_items:
-            cr.execute(insert_query, message)
+            insert_message(message)
         conn.commit()
 
 
