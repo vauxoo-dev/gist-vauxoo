@@ -37,7 +37,7 @@ def init_db():
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level ON odoo_logs (level);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level_message ON odoo_logs (level, message);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_date ON odoo_logs (date);""")
-    cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS odoo_logs_unique_date_level_message ON odoo_logs (date, level, message);""")
+    cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS odoo_logs_unique_date_level_message ON odoo_logs (date, level, message, module, session, db);""")
     conn.commit()
 
 
@@ -62,6 +62,7 @@ def insert_message(message):
         raise ie
     else:
         cr.execute("RELEASE SAVEPOINT msg")
+        conn.commit()
 
 
 def insert_messages(filename):
