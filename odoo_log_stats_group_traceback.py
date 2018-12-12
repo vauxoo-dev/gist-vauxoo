@@ -3,13 +3,14 @@ from __future__ import print_function
 import glob
 import re
 import psycopg2
+import psycopg2.errorcodes
 
 from datetime import datetime
 
 
 DBNAME = 'odoologs_moi'
 MIN_DATE = datetime.strptime(
-    '2018-12-06', '%Y-%m-%d')
+    '2018-12-08', '%Y-%m-%d')
 
 
 # FILE_NAME = "/home/odoo/production_logs/20181208/Logs 20181208/MoD_Odoo_log/odoo-server.log*"
@@ -36,6 +37,7 @@ def init_db():
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level ON odoo_logs (level);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level_message ON odoo_logs (level, message);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_date ON odoo_logs (date);""")
+    cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS odoo_logs_unique_date_level_message ON odoo_logs (date, level, message);""")
     conn.commit()
 
 
@@ -49,7 +51,13 @@ def get_message_split(message_str):
 def insert_message(message):
     if MIN_DATE and MIN_DATE >= datetime.strptime(message['date'], '%Y-%m-%d %H:%M:%S'):
         return
-    cr.execute(insert_query, message)
+    try:
+        cr.execute(insert_query, message)
+    except psycopg2.IntegrityError as ie:
+        if ie.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
+            print("Bypass repeated logs:", ie.message)
+            return
+        raise ie
 
 
 def insert_messages(filename):
