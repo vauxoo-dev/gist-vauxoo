@@ -51,13 +51,17 @@ def get_message_split(message_str):
 def insert_message(message):
     if MIN_DATE and MIN_DATE >= datetime.strptime(message['date'], '%Y-%m-%d %H:%M:%S'):
         return
+    cr.execute("SAVEPOINT msg")
     try:
         cr.execute(insert_query, message)
     except psycopg2.IntegrityError as ie:
         if ie.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
             print("Bypass repeated logs:", ie.message)
+            cr.execute("ROLLBACK TO SAVEPOINT msg")
             return
         raise ie
+    else:
+        cr.execute("RELEASE SAVEPOINT msg")
 
 
 def insert_messages(filename):
