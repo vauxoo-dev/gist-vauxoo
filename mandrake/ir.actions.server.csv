@@ -73,12 +73,12 @@ try:
       if alive_amls:
           invoice.register_payment(alive_amls)
       invoice.message_post(body='Computed Exchange Rate')
-      log('Calculado exchange rate a factura %s' % invoice.id)
+      log('Calculado exchange rate a factura %s context %s' % (invoice.id, context))
       env.cr.commit()
     except Exception as e:
       invoice.message_post(body=""No se pudo calcular el exchange de la factura %s debido %s"" % (invoice.id, e))
-      log(""No se pudo calcular el exchange de la factura %s debido %s"" % (invoice.id, e))
-  log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
+      log(""No se pudo calcular el exchange de la factura %s debido %s context %s"" % (invoice.id, e, context))
+  log('Terminando la reconciliación para calculo de diferencial cambiario %s context %s' % (datetime.datetime.now(), context))
 finally:
   env['account.invoice']._revert_method('_check_uuid_duplicated')
   env['purchase.order.line']._revert_method('_compute_qty_invoiced')
