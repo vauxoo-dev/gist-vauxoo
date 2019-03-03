@@ -77,6 +77,7 @@ try:
       env.cr.commit()
     except Exception as e:
       invoice.message_post(body=""No se pudo calcular el exchange de la factura %s debido %s"" % (invoice.id, e))
+      log(""No se pudo calcular el exchange de la factura %s debido %s"" % (invoice.id, e))
   log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
 finally:
   env['account.invoice']._revert_method('_check_uuid_duplicated')
