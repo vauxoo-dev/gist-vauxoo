@@ -9,3 +9,4 @@ if taxes:
 env.cr.execute('''UPDATE account_invoice SET date=date_invoice WHERE state in ('open', 'paid') AND date IS NULL''')
 exchenge_journal = env['account.journal'].search([('code', '=', 'ACMON')])
 env.ref('base.main_company').write({'realization_journal_id': exchenge_journal.id})
+env.cr.execute("DELETE FROM ir_model_data WHERE model= 'account.full.reconcile'" )
