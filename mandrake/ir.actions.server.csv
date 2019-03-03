@@ -40,7 +40,7 @@ try:
       i.id,
       i.date_invoice
   ORDER BY
-      i.date_invoice ASC
+      max(aml.move_id), i.date_invoice ASC
   LIMIT
     %s
   OFFSET
