@@ -174,7 +174,7 @@ mandrake_step8,mandrake: Step 8,Ejecutar el código Python,5,Acción del servido
 
 
 "
-,mandrake: Step 9,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+mandrake_step9,mandrake: Step 9,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
 	""type"": ""ir.actions.server"",
 	""id"": env.ref(""__import__.mandrake_run"").id,
 	""context"": {
