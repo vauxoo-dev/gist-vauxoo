@@ -85,111 +85,75 @@ finally:
   env['sale.order.line']._revert_method('_get_invoice_qty')
   env['sale.order.line']._revert_method('_compute_untaxed_amount_invoiced')
   env['hr.expense']._revert_method('_compute_state')"
-mandrake_step1,mandrake: Step 1,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*0
-        }
+mandrake_step1,mandrake: Step 1,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*0
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step2,mandrake: Step 2,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*1
-        }
+}"
+mandrake_step2,mandrake: Step 2,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*1
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step3,mandrake: Step 3,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*2
-        }
+}"
+mandrake_step3,mandrake: Step 3,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*2
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step4,mandrake: Step 4,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*3
-        }
+}"
+mandrake_step4,mandrake: Step 4,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*3
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step5,mandrake: Step 5,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*4
-        }
+}"
+mandrake_step5,mandrake: Step 5,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*4
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step6,mandrake: Step 6,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*5
-        }
+}"
+mandrake_step6,mandrake: Step 6,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*5
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step7,mandrake: Step 7,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*6
-        }
+}"
+mandrake_step7,mandrake: Step 7,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*6
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step8,mandrake: Step 8,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*7
-        }
+}"
+mandrake_step8,mandrake: Step 8,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*7
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
-mandrake_step9,mandrake: Step 9,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"try:
-    action = {
-        ""type"": ""ir.actions.server"",
-        ""id"": env.ref(""__import__.mandrake_run"").id,
-        ""context"": {
-            ""limit"": 1024,
-            ""offset"": 1024*8
-        }
+}"
+mandrake_step9,mandrake: Step 9,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"action = {
+    ""type"": ""ir.actions.server"",
+    ""id"": env.ref(""__import__.mandrake_run"").id,
+    ""context"": {
+        ""limit"": 1024,
+        ""offset"": 1024*8
     }
-    log('Terminando la reconciliación para calculo de diferencial cambiario %s' % datetime.datetime.now())
-except Exception as e:
-  log('Algo salio muy mal %s' % e)"
+}"
