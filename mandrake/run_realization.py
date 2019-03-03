@@ -1,3 +1,13 @@
+# Available variables:
+#  - env: Odoo Environment on which the action is triggered
+#  - model: Odoo Model of the record on which the action is triggered; is a void recordset
+#  - record: record on which the action is triggered; may be void
+#  - records: recordset of all records on which the action is triggered in multi-mode; may be void
+#  - time, datetime, dateutil, timezone: useful Python libraries
+#  - log: log(message, level='info'): logging function to record debug information in ir.logging table
+#  - Warning: Warning Exception to use with raise
+# To return an action, assign: action = {...}
+
 invoice_obj = env['account.invoice']
 try:
   def patch_pass(self):
@@ -7,9 +17,8 @@ try:
   env['purchase.order.line']._patch_method('_compute_qty_invoiced', patch_pass)
   env['sale.order.line']._patch_method('_get_invoice_qty', patch_pass)
   env['sale.order.line']._patch_method('_compute_untaxed_amount_invoiced', patch_pass)
-  env['sale.order.line']._patch_method('action_invoice_paid', patch_pass)
-  env['sale.order.line']._patch_method('action_invoice_open', patch_pass)
   env['hr.expense']._patch_method('_compute_state', patch_pass)
+  relativedelta = dateutil.relativedelta.relativedelta
 
   query = """
   SELECT
@@ -29,12 +38,17 @@ try:
       i.date_invoice
   ORDER BY
       i.date_invoice ASC
+  LIMIT
+    %s
+  OFFSET
+    %s
   """
 
   # Executing to paid invoices
 
 
-  env.cr.execute(query)
+  env.cr.execute(query, (env.context['limit'], env.context['offset']))
+
   for paid in env.cr.fetchall():
     invoice = invoice_obj.browse(paid[0])
     if invoice.realization_move_ids:
@@ -68,9 +82,6 @@ finally:
   env['purchase.order.line']._revert_method('_compute_qty_invoiced')
   env['sale.order.line']._revert_method('_get_invoice_qty')
   env['sale.order.line']._revert_method('_compute_untaxed_amount_invoiced')
-  env['sale.order.line']._revert_method('action_invoice_paid')
-  env['sale.order.line']._revert_method('action_invoice_open')
   env['hr.expense']._revert_method('_compute_state')
-
 
 
