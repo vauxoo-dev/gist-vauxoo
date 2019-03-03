@@ -11,7 +11,7 @@ env.cr.execute('''UPDATE account_invoice SET date=date_invoice WHERE state in ('
 exchenge_journal = env['account.journal'].search([('code', '=', 'ACMON')])
 env.ref('base.main_company').write({'realization_journal_id': exchenge_journal.id})
 env.cr.execute(""DELETE FROM ir_model_data WHERE model= 'account.full.reconcile'"" )"
-mandrake_run,mandrake: Config,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"invoice_obj = env['account.invoice']
+mandrake_run,mandrake: Run,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,"invoice_obj = env['account.invoice']
 try:
   def patch_pass(self):
       pass
