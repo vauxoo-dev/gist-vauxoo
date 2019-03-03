@@ -62,7 +62,7 @@ try:
     date = datetime.date(today.year, today.month, 1) - relativedelta(days=1)
     year = int(paid[1].year)
     year = year if year >= 2018 else 2018
-    Pay_year = int(date.year)
+    pay_year = int(date.year)
     try:
       while pay_year > year:
         invoice.create_realization_entries(date.strftime('%Y-%m-%d'))
