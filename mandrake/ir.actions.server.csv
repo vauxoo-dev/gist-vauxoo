@@ -157,3 +157,6 @@ mandrake_step9,mandrake: Step 9,Ejecutar el código Python,5,Acción del servido
         ""offset"": 1024*8
     }
 }"
+mandrake_process_realization_20181231,mandrake: process realization 2018-12-31,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,env['account.invoice'].process_realization('2018-12-31')
+mandrake_process_realization_20190131,mandrake: process realization 2019-01-31,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,env['account.invoice'].process_realization('2019-01-31')
+mandrake_process_realization_20190228,mandrake: process realization 2019-02-28,Ejecutar el código Python,5,Acción del servidor,base_automation.model_ir_actions_server,env['account.invoice'].process_realization('2019-02-28')
