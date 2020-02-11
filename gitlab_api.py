@@ -24,14 +24,13 @@ class GitlabAPI(object):
         self.access_level_name_code = {
             v: k for k, v in self.access_level_code_name.items()}
 
-    def get_mr_diff(self, project_slug='vauxoo/bistro'):
-        group, project = project_slug.split('/')
-        project = self.gl.projects.get(project)
+    def get_mr_diff(self, project_name=None):
+        project = self.gl.projects.get(project_name)
         # print(gl.projects.list())
         # print(project)
         mrs = project.mergerequests.list(state="opened")
         for mr in mrs:
-            diffs = mr.diffs.list()
+            # diffs = mr.diffs.list()
             # print(diffs)
             # print(dir(mr))
             for change in mr.changes()['changes']:
@@ -45,22 +44,21 @@ class GitlabAPI(object):
             # break
         # print(mrs, len(mrs))c
 
-
-    def get_members_grouped_by_access_level(self, group_name):
-        group = self.gl.groups.get(group_name)
-        members = group.members.list()
+    def get_members_grouped_by_access_level(self, group_id):
+        group = self.gl.groups.get(group_id)
+        members = group.members.list(all=True, access_level=gitlab.REPORTER_ACCESS)
         get_members_by_access_level = defaultdict(list)
         for member in members:
             access_name = self.access_level_code_name[member.access_level]
             get_members_by_access_level[access_name].append(member)
         return get_members_by_access_level
-
+    
+    def delete_reporter_members(self, group_id):
+        reporter_members = self.get_members_grouped_by_access_level(group_id).get('reporter', [])
+        for member in reporter_members:
+            print("Deleting: <%s> %s" % (member.name, member.username))
+            member.delete()
 
 if __name__ == '__main__':
     obj = GitlabAPI()
-    members = obj.get_members_grouped_by_access_level('vauxoo')
-    for access, groups in members.items():
-        print(access, len(groups))
-        print(sorted([group.username for group in groups]))
-        print("")
-    print(len(members))
+    # obj.delete_reporter_members('vauxoo')
