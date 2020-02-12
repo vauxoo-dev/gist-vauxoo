@@ -46,19 +46,39 @@ class GitlabAPI(object):
 
     def get_members_grouped_by_access_level(self, group_id):
         group = self.gl.groups.get(group_id)
-        members = group.members.list(all=True, access_level=gitlab.REPORTER_ACCESS)
+        members = group.members.list(all=True)
         get_members_by_access_level = defaultdict(list)
         for member in members:
             access_name = self.access_level_code_name[member.access_level]
             get_members_by_access_level[access_name].append(member)
         return get_members_by_access_level
-    
+
     def delete_reporter_members(self, group_id):
+        raise UserWarning("""Deleting a group_member will delete project_member too.
+                          I mean, if a user was added to custom project_member but
+                          it is deleted from group_member so the project_member will be deleted
+                          Before to do it you will need get all users added manually to projects of the same group
+                          e.g.
+                           - vauxoo_group1: member_juan(Reporter)
+                           - vauxoo_group1/project1: member_juan(Developer)
+
+                           Running "vauxoo_group1.delete(member_juan)"
+                           gitlab api will run "vauxoo_group1/project1.delete(member_juan)" too
+                          """)
         reporter_members = self.get_members_grouped_by_access_level(group_id).get('reporter', [])
         for member in reporter_members:
             print("Deleting: <%s> %s" % (member.name, member.username))
             member.delete()
 
+    def get_members_attributes(self, group_id):
+        group = self.gl.groups.get(group_id)
+        members = group.members.list(all=True)
+        return [member.attributes for member in members]
+
+
 if __name__ == '__main__':
     obj = GitlabAPI()
+    members_attributes = obj.get_members_attributes('vauxoo')
+    print(members_attributes)
+    # members obj.get_members_grouped_by_access_level('vauxoo')
     # obj.delete_reporter_members('vauxoo')
