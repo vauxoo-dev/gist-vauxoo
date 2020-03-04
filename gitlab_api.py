@@ -75,10 +75,30 @@ class GitlabAPI(object):
         members = group.members.list(all=True)
         return [member.attributes for member in members]
 
+    def get_basic_user_data(self, user):
+        return {
+            'id': user.id,
+            'name': user.name,
+            'username': user.username,
+            'state': user.state,
+            'email': user.email,
+        }
+
+    def get_users(self, email_domain=None):
+        users = []
+        for user in self.gl.users.list(all=True):
+            if not email_domain:
+                users.append(self.get_basic_user_data(user))
+                continue
+            if email_domain in user.email:
+                users.append(self.get_basic_user_data(user))
+        return users
+
 
 if __name__ == '__main__':
     obj = GitlabAPI()
-    members_attributes = obj.get_members_attributes('vauxoo')
-    print(members_attributes)
+    print([(user['name'], user['email']) for user in obj.get_users('@odoo.com')])
+    # members_attributes = obj.get_members_attributes('vauxoo')
+    # print(members_attributes)
     # members obj.get_members_grouped_by_access_level('vauxoo')
     # obj.delete_reporter_members('vauxoo')
