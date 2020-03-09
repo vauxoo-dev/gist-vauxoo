@@ -5,8 +5,8 @@ reported by their quants is different from the sum of all their stock moves
 
 This is achieved by:
 1) Retrieve product quantities by location according to quants
-2) Retrieve incoming stock moves by location
-3) Retrieve outgoing stock moves by location
+2) Retrieve incoming stock move lines by location
+3) Retrieve outgoing stock move lines by location
 4) Compare results of the previous steps, showing only those when 1) is 
    different from 2) - 3)
 */
@@ -25,11 +25,12 @@ in_move_quantity AS (
     SELECT
         product_id,
         location_dest_id AS location_id,
-        SUM(product_uom_qty)::NUMERIC AS sum_qty
+        SUM(qty_done)::NUMERIC AS sum_qty
     FROM
-        stock_move
+        stock_move_line
     WHERE
         location_id != location_dest_id
+        AND state = 'done'
     GROUP BY
         product_id,
         location_dest_id
@@ -38,11 +39,12 @@ out_move_quantity AS (
     SELECT
         product_id,
         location_id,
-        -SUM(product_uom_qty)::NUMERIC AS sum_qty
+        -SUM(qty_done)::NUMERIC AS sum_qty
     FROM
-        stock_move
+        stock_move_line
     WHERE
         location_id != location_dest_id
+        AND state = 'done'
     GROUP BY
         product_id,
         location_id
