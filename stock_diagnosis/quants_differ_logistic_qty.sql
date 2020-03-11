@@ -46,5 +46,9 @@ INNER JOIN
     logistic_quantity AS l
     ON q.product_id = l.product_id
     AND q.location_id = l.location_id
+INNER JOIN
+    stock_location AS sl
+    ON q.location_id = sl.id
 WHERE
-    q.sum_qty != l.sum_qty;
+    q.sum_qty != l.sum_qty
+    AND sl.usage = 'internal';
