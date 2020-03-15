@@ -1,3 +1,6 @@
+# If you want avoid creating new images you should avoid the following method:
+# https://github.com/odoo/odoo/blob/ba23c9f354/odoo/addons/base/res/res_partner.py#L284-L310
+
 # If you want to know how much bytes will be free after run the script
 """
 SELECT count(*), pg_size_pretty(SUM(file_size))
