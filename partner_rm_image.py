@@ -1,3 +1,13 @@
+# If you want to know how much bytes will be free after run the script
+"""
+SELECT count(*), pg_size_pretty(SUM(file_size)) FROM (SELECT checksum, MAX(file_size) AS size
+         FROM ir_attachment
+         WHERE res_model = 'res.partner'
+           AND res_field IS NOT NULL
+         GROUP BY checksum, res_field
+         HAVING count(1) > 2) vw INNER JOIN ir_attachment a ON a.checksum = vw.checksum
+"""
+
 # Odoo uses same image for children like parent
 # So, it is checking what is the max image repeated
 env.cr.execute("""
