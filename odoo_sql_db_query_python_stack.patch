@@ -1,0 +1,30 @@
+diff --git a/odoo/sql_db.py b/odoo/sql_db.py
+index 21dacbc09..aeea49b5a 100644
+--- a/odoo/sql_db.py
++++ b/odoo/sql_db.py
+@@ -223,6 +223,25 @@ class Cursor(object):
+             encoding = psycopg2.extensions.encodings[self.connection.encoding]
+             _logger.debug("query: %s", self._obj.mogrify(query, params).decode(encoding, 'replace'))
+         now = time.time()
++        if ('SELECT "product_template_attribute_value".id FROM "product_template_attribute_value" LEFT JOIN "product_attribute_value" as' in query or
++            'SELECT "product_template_attribute_value"."id" as "id", "product_template_attribute_value"."write_date" ' in query):
++                tcbk = traceback.extract_stack()
++                # TODO: Check if we can use a format extract_stack
++                tcbk_str = "Traceback (most recent call last):\n%s" % "\n,".join(map(lambda a: repr(a), tcbk))
++                tcbk_hash = hashlib.md5(ustr(tcbk_str.lower()).encode('UTF-8')).hexdigest()
++                query_hash = hashlib.md5(ustr((query[:137] or '')).lower().encode('UTF-8')).hexdigest()
++                query_tcbk_logger_name = "%s.%s.%s" % (__name__, tcbk_hash, query_hash)
++                _logger_query_tcbk = logging.getLogger(query_tcbk_logger_name)
++                sentry_tags = {
++                    'traceback_hash': tcbk_hash,
++                    'query_hash': query_hash,
++                }
++                self._obj.execute("""
++                    INSERT INTO ir_logging(name, type, level, func, message, path, line)
++                    VALUES (%s, 'info', %s, %s, %s, 'sql_db.py', 1)
++                """, (__name__, 'tcbk_%s' % tcbk_hash, 'query_%s' % query_hash, "%s\n%s" % (tcbk_str, query)))
++                # _logger_query_tcbk.error("bad query: %s\nERROR: %s\n%s", ustr(self._obj.query or query),
++                #                         tcbk_str, extra={'tags': sentry_tags})
+         try:
+             params = params or None
+             res = self._obj.execute(query, params)
