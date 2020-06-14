@@ -1,14 +1,14 @@
-import ast
 import csv
 import sys
-from StringIO import StringIO
+from io import StringIO
 from datetime import datetime
 
 import requests
-import simplejson
+import json
 
 
 GITHUB_DT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 
 class GithubRequest(object):
     def __init__(self, token, owner=None, repo=None):
@@ -21,19 +21,19 @@ class GithubRequest(object):
         url = "%s%s" % (self.url_base, url)
         url = url.format(owner=self.owner, repo=self.repo)
         session = requests.Session()
-        session.auth = (token, 'x-oauth-basic')
+        session.auth = (self.token, 'x-oauth-basic')
         session.headers.update({
             'Accept': 'application/vnd.github.she-hulk-preview+json'})
         if payload:
             response = session.post(
-                url, data=simplejson.dumps(payload))
+                url, data=json.dumps(payload))
         else:
             response = session.get(url)
         response.raise_for_status()
         return response.json()
 
     def github_get_private_repos(self):
-        request = self.github_request('orgs/{owner}/repos?type=private')
+        request = self.github_request('orgs/{owner}/repos?type=private&per_page=1000')
         repos = []
         for repo in request:
             pushed_at = datetime.strptime(repo['pushed_at'], GITHUB_DT_FORMAT)
@@ -57,11 +57,13 @@ class GithubRequest(object):
 
 
 if __name__ == '__main__':
+    # Create a "token" from https://github.com/settings/tokens
     token = sys.argv[1]
+    # Use the organization name. E.g. "Vauxoo"
     owner = sys.argv[2]
     # payload = ast.literal_eval(sys.argv[2])
     # repo = sys.argv[4]
     gh_obj = GithubRequest(token, owner=owner)
     repos = gh_obj.github_get_private_repos()
     csv_str = GithubRequest.dicts2csv(repos)
-    print csv_str
+    print(csv_str)
