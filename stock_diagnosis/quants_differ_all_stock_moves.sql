@@ -8,68 +8,88 @@ This is achieved by:
 2) Retrieve incoming stock move lines by location
 3) Retrieve outgoing stock move lines by location
 4) Compare results of the previous steps, showing only those when 1) is 
-   different from 2) - 3)
+   different from (2) - 3))
 */
 WITH quant_quantity AS (
     SELECT  
         product_id,
         location_id,
+        company_id,
         SUM(quantity)::NUMERIC AS sum_qty
     FROM
         stock_quant
     GROUP BY
         product_id,
-        location_id
+        location_id,
+        company_id
 ),
 in_move_quantity AS (
     SELECT
-        product_id,
-        location_dest_id AS location_id,
-        SUM(qty_done)::NUMERIC AS sum_qty
+        sml.product_id,
+        sml.location_dest_id AS location_id,
+        sm.company_id,
+        SUM(sml.qty_done)::NUMERIC AS sum_qty,
+        COUNT(*) AS sml_count
     FROM
-        stock_move_line
+        stock_move AS sm
+    INNER JOIN
+        stock_move_line AS sml
+        ON sm.id = sml.move_id
     WHERE
-        location_id != location_dest_id
-        AND state = 'done'
+        sml.location_id != sml.location_dest_id
+        AND sml.state = 'done'
     GROUP BY
-        product_id,
-        location_dest_id
+        sml.product_id,
+        sml.location_dest_id,
+        sm.company_id
 ),
 out_move_quantity AS (
     SELECT
-        product_id,
-        location_id,
-        -SUM(qty_done)::NUMERIC AS sum_qty
+        sml.product_id,
+        sml.location_id,
+        sm.company_id,
+        SUM(qty_done)::NUMERIC AS sum_qty,
+        COUNT(*) AS sml_count
     FROM
-        stock_move_line
+        stock_move AS sm
+    INNER JOIN
+        stock_move_line AS sml
+        ON sm.id = sml.move_id
     WHERE
-        location_id != location_dest_id
-        AND state = 'done'
+        sml.location_id != sml.location_dest_id
+        AND sml.state = 'done'
     GROUP BY
-        product_id,
-        location_id
+        sml.product_id,
+        sml.location_id,
+        sm.company_id
 )
 SELECT
     q.product_id,
     q.location_id,
+    q.company_id,
     q.sum_qty AS qty_on_quants,
-    m_in.sum_qty AS qty_on_incoming_moves,
-    m_out.sum_qty AS qty_on_outgoing_moves,
-    m_in.sum_qty + m_out.sum_qty AS qty_on_all_moves,
-    q.sum_qty - (m_in.sum_qty + m_out.sum_qty) AS difference
+    COALESCE(m_in.sum_qty, 0.0) AS qty_on_incoming_moves,
+    COALESCE(m_out.sum_qty, 0.0) AS qty_on_outgoing_moves,
+    COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0) AS qty_on_all_moves,
+    q.sum_qty - (COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)) AS difference,
+    COALESCE(m_in.sml_count, 0.0) + COALESCE(m_out.sml_count, 0.0) AS qty_of_sml;
 FROM
     quant_quantity AS q
 INNER JOIN
+    stock_location AS sl
+    ON q.location_id = sl.id
+LEFT OUTER JOIN
     in_move_quantity AS m_in
     ON q.product_id = m_in.product_id
     AND q.location_id = m_in.location_id
+    AND q.company_id = m_in.company_id
 LEFT OUTER JOIN
     out_move_quantity AS m_out
     ON q.product_id = m_out.product_id
     AND q.location_id = m_out.location_id
-INNER JOIN
-    stock_location AS sl
-    ON q.location_id = sl.id
+    AND q.company_id = m_out.company_id
 WHERE
-    q.sum_qty != (m_in.sum_qty + m_out.sum_qty)
-    AND sl.usage = 'internal';
+    q.sum_qty != COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)
+    AND sl.usage = 'internal'
+ORDER BY
+    COALESCE(m_in.sml_count, 0.0) + COALESCE(m_out.sml_count, 0.0);

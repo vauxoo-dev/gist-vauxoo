@@ -279,6 +279,7 @@ class OerpInstance(object):
             self.print_repo_data(repo, branch)
             os.system('cd {path} && git log --oneline -1'.format(path=path))
             os.system('cd {path} && git pull'.format(path=path))
+            os.system('cd {path} && git clean -xdf'.format(path=path))
         return True
 
     def paths_instance(self):
