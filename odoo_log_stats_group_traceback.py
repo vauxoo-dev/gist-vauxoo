@@ -47,7 +47,6 @@ def init_db():
             module varchar(64),
             message text
     );""")
-    cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_message ON odoo_logs (message);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level_message ON odoo_logs (level, message);""")
     cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS odoo_logs_unique_date_level_message ON odoo_logs (date, level, md5(message), module, session, db);""")
     conn.commit()
