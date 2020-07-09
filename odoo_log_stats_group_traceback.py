@@ -45,11 +45,11 @@ def init_db():
             db varchar(64),
             level varchar(64),
             module varchar(64),
-            message varchar
+            message text
     );""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_message ON odoo_logs (message);""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level_message ON odoo_logs (level, message);""")
-    cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS odoo_logs_unique_date_level_message ON odoo_logs (date, level, message, module, session, db);""")
+    cr.execute("""CREATE UNIQUE INDEX IF NOT EXISTS odoo_logs_unique_date_level_message ON odoo_logs (date, level, md5(message), module, session, db);""")
     conn.commit()
 
 
@@ -90,7 +90,7 @@ def insert_messages(filename):
                     # TODO: Check if the longpoll logger is not overwritten the original one
                     continue
                 if message:
-                    message['message'] += line.strip()
+                    message['message'] += "\n" + line.strip()
                 continue
             elif message:
                 # yield message
