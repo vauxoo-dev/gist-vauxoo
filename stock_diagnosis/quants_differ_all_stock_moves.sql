@@ -7,8 +7,11 @@ This is achieved by:
 1) Retrieve product quantities by location according to quants
 2) Retrieve incoming stock move lines by location
 3) Retrieve outgoing stock move lines by location
-4) Compare results of the previous steps, showing only those when 1) is 
-   different from (2) - 3))
+4) Compare results of the previous steps, showing only those when
+   (1) is  different from (2) - (3)
+
+Note:
+This applies only for products that have quants.
 */
 WITH quant_quantity AS (
     SELECT  
@@ -72,7 +75,7 @@ SELECT
     COALESCE(m_out.sum_qty, 0.0) AS qty_on_outgoing_moves,
     COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0) AS qty_on_all_moves,
     q.sum_qty - (COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)) AS difference,
-    COALESCE(m_in.sml_count, 0.0) + COALESCE(m_out.sml_count, 0.0) AS qty_of_sml;
+    COALESCE(m_in.sml_count, 0.0) + COALESCE(m_out.sml_count, 0.0) AS qty_of_sml
 FROM
     quant_quantity AS q
 INNER JOIN
@@ -92,4 +95,4 @@ WHERE
     q.sum_qty != COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)
     AND sl.usage = 'internal'
 ORDER BY
-    COALESCE(m_in.sml_count, 0.0) + COALESCE(m_out.sml_count, 0.0);
+    COALESCE(m_in.sml_count, 0) + COALESCE(m_out.sml_count, 0);
