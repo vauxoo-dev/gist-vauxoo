@@ -68,13 +68,12 @@ def insert_message(message):
         cr.execute(insert_query, message)
     except psycopg2.IntegrityError as ie:
         if ie.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-            print("Bypass repeated logs:", ie.message)
+            print("Bypass repeated logs:", str(ie))
             cr.execute("ROLLBACK TO SAVEPOINT msg")
-            return
         # raise ie
     else:
         cr.execute("RELEASE SAVEPOINT msg")
-        conn.commit()
+    conn.commit()
 
 
 def insert_messages(filename):
