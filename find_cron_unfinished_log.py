@@ -11,9 +11,10 @@ It is checking the following cron _logger.info:
 from __future__ import print_function
 from collections import defaultdict
 
+import sys
 
 crons = defaultdict(dict)
-with open("/home/odoo/odoo.log") as f:
+with open(sys.argv[1]) as f:
     for line in f:
         if '`' not in line:
             continue
@@ -34,3 +35,5 @@ for cron_name, step in crons.items():
     # if finished and step['started'] <= finished:
     #     continue
     print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
+
+print(crons)
