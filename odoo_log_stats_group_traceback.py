@@ -28,6 +28,7 @@ FILE_NAME = os.path.expandvars(os.path.expanduser(sys.argv[1]))
 
 # Parsing the following logger message output
 # https://github.com/odoo/odoo/blob/3da37bb2474318463a40deba2878a83102c37984/odoo/netsvc.py#L135
+# TODO: Support ctime finishing with ",\d\d\d"
 _re_log = r'(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?\-\_]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)'
 _re_poll_log = r' (?P<date>\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\]|\[\d\d\/[A-Z][a-z][a-z]\/\d{4} \d\d:\d\d:\d\d\]) '
 insert_query = (
