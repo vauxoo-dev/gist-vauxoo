@@ -17,6 +17,9 @@ WITH quant_quantity AS (
     SELECT  
         product_id,
         location_id,
+        COALESCE(lot_id, 0) AS lot_id,
+        COALESCE(package_id, 0) AS package_id,
+        COALESCE(owner_id, 0) AS owner_id,
         company_id,
         SUM(quantity)::NUMERIC AS sum_qty
     FROM
@@ -24,12 +27,18 @@ WITH quant_quantity AS (
     GROUP BY
         product_id,
         location_id,
+        lot_id,
+        package_id,
+        owner_id,
         company_id
 ),
 in_move_quantity AS (
     SELECT
         sml.product_id,
         sml.location_dest_id AS location_id,
+        COALESCE(sml.lot_id, 0) AS lot_id,
+        COALESCE(sml.package_id, 0) AS package_id,
+        COALESCE(sml.owner_id, 0) AS owner_id,
         sm.company_id,
         SUM(sml.qty_done)::NUMERIC AS sum_qty,
         COUNT(*) AS sml_count
@@ -44,12 +53,18 @@ in_move_quantity AS (
     GROUP BY
         sml.product_id,
         sml.location_dest_id,
+        sml.lot_id,
+        sml.package_id,
+        sml.owner_id,
         sm.company_id
 ),
 out_move_quantity AS (
     SELECT
         sml.product_id,
         sml.location_id,
+        COALESCE(sml.lot_id, 0) AS lot_id,
+        COALESCE(sml.package_id, 0) AS package_id,
+        COALESCE(sml.owner_id, 0) AS owner_id,
         sm.company_id,
         SUM(qty_done)::NUMERIC AS sum_qty,
         COUNT(*) AS sml_count
@@ -64,11 +79,17 @@ out_move_quantity AS (
     GROUP BY
         sml.product_id,
         sml.location_id,
+        sml.lot_id,
+        sml.package_id,
+        sml.owner_id,
         sm.company_id
 )
 SELECT
     q.product_id,
     q.location_id,
+    q.lot_id,
+    q.package_id,
+    q.owner_id,
     q.company_id,
     q.sum_qty AS qty_on_quants,
     COALESCE(m_in.sum_qty, 0.0) AS qty_on_incoming_moves,
@@ -85,11 +106,17 @@ LEFT OUTER JOIN
     in_move_quantity AS m_in
     ON q.product_id = m_in.product_id
     AND q.location_id = m_in.location_id
+    AND q.lot_id = m_in.lot_id
+    AND q.package_id = m_in.package_id
+    AND q.owner_id = m_in.owner_id
     AND q.company_id = m_in.company_id
 LEFT OUTER JOIN
     out_move_quantity AS m_out
     ON q.product_id = m_out.product_id
     AND q.location_id = m_out.location_id
+    AND q.lot_id= m_out.lot_id
+    AND q.package_id = m_out.package_id
+    AND q.owner_id = m_out.owner_id
     AND q.company_id = m_out.company_id
 WHERE
     q.sum_qty != COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)
