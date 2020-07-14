@@ -6,9 +6,9 @@ WITH sml_quantity AS (
     SELECT
         all_sml.product_id,
         all_sml.location_id,
-        all_sml.lot_id,
-        all_sml.package_id,
-        all_sml.owner_id,
+        COALESCE(all_sml.lot_id, 0) AS lot_id,
+        COALESCE(all_sml.package_id, 0) AS package_id,
+        COALESCE(all_sml.owner_id, 0) AS owner_id,
         all_sml.company_id,
         SUM(all_sml.qty_done) AS quantity
     FROM
@@ -62,9 +62,9 @@ quant_quantity AS (
     SELECT  
         quant.product_id,
         quant.location_id,
-        quant.lot_id,
-        quant.package_id,
-        quant.owner_id,
+        COALESCE(quant.lot_id, 0) AS lot_id,
+        COALESCE(quant.package_id, 0) AS package_id,
+        COALESCE(quant.owner_id, 0) AS owner_id,
         quant.company_id,
         SUM(quant.quantity) AS quantity
     FROM
