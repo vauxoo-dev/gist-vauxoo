@@ -59,7 +59,7 @@ WITH sml_quantity AS (
         all_sml.company_id
 ),
 quant_quantity AS (
-    SELECT  
+    SELECT
         quant.product_id,
         quant.location_id,
         COALESCE(quant.lot_id, 0) AS lot_id,

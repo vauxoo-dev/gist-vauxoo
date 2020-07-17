@@ -7,13 +7,13 @@ installed [1].
 This is achieved by:
 1) Retrieve product quantities by location according to quants
 2) Retrieve logistic quantities by location
-3) Compare results of the previous steps, showing only those when 1) is 
+3) Compare results of the previous steps, showing only those when 1) is
    different from 2)
 
 [1] https://github.com/Vauxoo/addons-vauxoo/tree/11.0/stock_cost_segmentation
 */
 WITH quant_quantity AS (
-    SELECT  
+    SELECT
         product_id,
         location_id,
         SUM(quantity)::NUMERIC AS sum_qty

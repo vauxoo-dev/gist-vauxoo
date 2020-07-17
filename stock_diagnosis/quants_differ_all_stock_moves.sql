@@ -14,7 +14,7 @@ Note:
 This applies only for products that have quants.
 */
 WITH quant_quantity AS (
-    SELECT  
+    SELECT
         quant.product_id,
         quant.location_id,
         COALESCE(quant.lot_id, 0) AS lot_id,
