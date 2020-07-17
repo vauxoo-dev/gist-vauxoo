@@ -2,6 +2,9 @@
 from __future__ import print_function
 
 import os
+import csv
+import re
+from datetime import datetime
 from collections import defaultdict
 
 import gitlab
@@ -94,10 +97,45 @@ class GitlabAPI(object):
                 users.append(self.get_basic_user_data(user))
         return users
 
+    def project_mrs2csv(self, project_id=None):
+        if not project_id:
+            return
+
+        task_label_pattern = re.compile(r'(task|t|vx|issue|i|us|hu)[# | -]?\d+', re.IGNORECASE)
+        numbers_regex = re.compile(r'\d+')
+        task_url_tmpl = 'https://www.vauxoo.com/web#id=%s&model=project.task&view_type=form'
+
+        project = self.gl.projects.get(project_id)
+        mrs = project.mergerequests.list(state='all', scope='all', all=True)
+
+        csv_name = '%s_mrs_%s%s' % (project.name, datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), '.csv')
+        with open(csv_name, 'w+', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(
+                ['# de MR', 'URL del MR', 'Nombre de persona asignada', 'Título', 'Tarea', 'URL de la tarea', 'Estado',
+                 'Etiquetas', 'Fecha de creación', 'Fecha de última actualización', 'Fecha de mezcla'])
+
+            for mr in mrs:
+                task_id_found = task_label_pattern.search(mr.title)
+                task_id = ''
+                task_url = ''
+
+                if task_id_found:
+                    task_id = task_id_found[0]
+                    task_url = task_url_tmpl % numbers_regex.search(task_id)[0]
+
+                merge_date = mr.merged_at[:10] if mr.merged_at else ''
+
+                writer.writerow(
+                    [mr.iid, mr.web_url, mr.author['name'], mr.title, task_id, task_url, mr.state,
+                     mr.labels, mr.created_at[:10], mr.updated_at[:10], merge_date])
+
+
 
 if __name__ == '__main__':
     obj = GitlabAPI()
     print([(user['name'], user['email']) for user in obj.get_users('@odoo.com')])
+    # obj.project_mrs2csv(516) # MRS from ABSA
     # members_attributes = obj.get_members_attributes('vauxoo')
     # print(members_attributes)
     # members obj.get_members_grouped_by_access_level('vauxoo')
