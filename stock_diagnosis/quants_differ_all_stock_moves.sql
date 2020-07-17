@@ -15,22 +15,27 @@ This applies only for products that have quants.
 */
 WITH quant_quantity AS (
     SELECT  
-        product_id,
-        location_id,
-        COALESCE(lot_id, 0) AS lot_id,
-        COALESCE(package_id, 0) AS package_id,
-        COALESCE(owner_id, 0) AS owner_id,
-        company_id,
-        SUM(quantity)::NUMERIC AS sum_qty
+        quant.product_id,
+        quant.location_id,
+        COALESCE(quant.lot_id, 0) AS lot_id,
+        COALESCE(quant.package_id, 0) AS package_id,
+        COALESCE(quant.owner_id, 0) AS owner_id,
+        quant.company_id,
+        SUM(quant.quantity)::NUMERIC AS sum_qty
     FROM
-        stock_quant
+        stock_quant AS quant
+    INNER JOIN
+        stock_location AS location
+        ON quant.location_id = location.id
+    WHERE
+        location.usage = 'internal'
     GROUP BY
-        product_id,
-        location_id,
-        lot_id,
-        package_id,
-        owner_id,
-        company_id
+        quant.product_id,
+        quant.location_id,
+        quant.lot_id,
+        quant.package_id,
+        quant.owner_id,
+        quant.company_id
 ),
 in_move_quantity AS (
     SELECT
@@ -47,8 +52,12 @@ in_move_quantity AS (
     INNER JOIN
         stock_move_line AS sml
         ON sm.id = sml.move_id
+    INNER JOIN
+        stock_location AS location
+        ON sml.location_dest_id = location.id
     WHERE
         sml.location_id != sml.location_dest_id
+        AND location.usage = 'internal'
         AND sml.state = 'done'
     GROUP BY
         sml.product_id,
@@ -73,8 +82,12 @@ out_move_quantity AS (
     INNER JOIN
         stock_move_line AS sml
         ON sm.id = sml.move_id
+    INNER JOIN
+        stock_location AS location
+        ON sml.location_id = location.id
     WHERE
         sml.location_id != sml.location_dest_id
+        AND location.usage = 'internal'
         AND sml.state = 'done'
     GROUP BY
         sml.product_id,
@@ -85,12 +98,12 @@ out_move_quantity AS (
         sm.company_id
 )
 SELECT
-    q.product_id,
-    q.location_id,
-    q.lot_id,
-    q.package_id,
-    q.owner_id,
-    q.company_id,
+    product_id,
+    location_id,
+    lot_id,
+    package_id,
+    owner_id,
+    company_id,
     q.sum_qty AS qty_on_quants,
     COALESCE(m_in.sum_qty, 0.0) AS qty_on_incoming_moves,
     COALESCE(m_out.sum_qty, 0.0) AS qty_on_outgoing_moves,
@@ -99,27 +112,13 @@ SELECT
     COALESCE(m_in.sml_count, 0.0) + COALESCE(m_out.sml_count, 0.0) AS qty_of_sml
 FROM
     quant_quantity AS q
-INNER JOIN
-    stock_location AS sl
-    ON q.location_id = sl.id
 LEFT OUTER JOIN
     in_move_quantity AS m_in
-    ON q.product_id = m_in.product_id
-    AND q.location_id = m_in.location_id
-    AND q.lot_id = m_in.lot_id
-    AND q.package_id = m_in.package_id
-    AND q.owner_id = m_in.owner_id
-    AND q.company_id = m_in.company_id
+    USING(product_id, location_id, lot_id, package_id, owner_id, company_id)
 LEFT OUTER JOIN
     out_move_quantity AS m_out
-    ON q.product_id = m_out.product_id
-    AND q.location_id = m_out.location_id
-    AND q.lot_id= m_out.lot_id
-    AND q.package_id = m_out.package_id
-    AND q.owner_id = m_out.owner_id
-    AND q.company_id = m_out.company_id
+    USING(product_id, location_id, lot_id, package_id, owner_id, company_id)
 WHERE
     q.sum_qty != COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)
-    AND sl.usage = 'internal'
 ORDER BY
     COALESCE(m_in.sml_count, 0) + COALESCE(m_out.sml_count, 0);
