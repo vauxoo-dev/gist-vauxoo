@@ -103,7 +103,7 @@ class GitlabAPI(object):
 
         task_label_pattern = re.compile(r'(task|t|vx|issue|i|us|hu)[# | -]?\d+', re.IGNORECASE)
         numbers_regex = re.compile(r'\d+')
-        task_url_tmpl = 'https://www.vauxoo.com/web#id=%s&model=project.task&view_type=form'
+        task_url_tmpl = 'https://www.vauxoo.com/web#id=%s&model=%s&view_type=form'
 
         project = self.gl.projects.get(project_id)
         mrs = project.mergerequests.list(state='all', scope='all', all=True)
@@ -116,13 +116,20 @@ class GitlabAPI(object):
                  'Etiquetas', 'Fecha de creación', 'Fecha de última actualización', 'Fecha de mezcla'])
 
             for mr in mrs:
-                task_id_found = task_label_pattern.search(mr.title)
+                task_label = task_label_pattern.search(mr.title)
                 task_id = ''
                 task_url = ''
 
-                if task_id_found:
-                    task_id = task_id_found[0]
-                    task_url = task_url_tmpl % numbers_regex.search(task_id)[0]
+                if task_label:
+                    task_id = task_label[0]
+                    task_type = task_label[1]
+
+                    if task_type in ('task', 't'):
+                        model = 'project.task'
+                    else:
+                        model = 'helpdesk.ticket'
+
+                    task_url = task_url_tmpl % (numbers_regex.search(task_id)[0], model)
 
                 merge_date = mr.merged_at[:10] if mr.merged_at else ''
 
