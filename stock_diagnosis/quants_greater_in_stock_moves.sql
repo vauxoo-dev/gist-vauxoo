@@ -9,7 +9,7 @@ This is achieved by:
    than 2)
 */
 WITH quant_quantity AS (
-    SELECT  
+    SELECT
         product_id,
         location_id,
         SUM(quantity)::NUMERIC AS sum_qty
