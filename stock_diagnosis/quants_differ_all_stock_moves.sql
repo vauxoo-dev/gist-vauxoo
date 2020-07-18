@@ -42,7 +42,7 @@ in_move_quantity AS (
         sml.product_id,
         sml.location_dest_id AS location_id,
         COALESCE(sml.lot_id, 0) AS lot_id,
-        COALESCE(sml.package_id, 0) AS package_id,
+        COALESCE(sml.result_package_id, 0) AS package_id,
         COALESCE(sml.owner_id, 0) AS owner_id,
         sm.company_id,
         SUM(sml.qty_done)::NUMERIC AS sum_qty,
@@ -63,7 +63,7 @@ in_move_quantity AS (
         sml.product_id,
         sml.location_dest_id,
         sml.lot_id,
-        sml.package_id,
+        sml.result_package_id,
         sml.owner_id,
         sm.company_id
 ),
