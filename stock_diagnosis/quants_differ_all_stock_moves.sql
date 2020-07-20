@@ -119,6 +119,6 @@ LEFT OUTER JOIN
     out_move_quantity AS m_out
     USING(product_id, location_id, lot_id, package_id, owner_id, company_id)
 WHERE
-    q.sum_qty != COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)
+    ROUND(q.sum_qty - (COALESCE(m_in.sum_qty, 0.0) - COALESCE(m_out.sum_qty, 0.0)), 2) != 0.0
 ORDER BY
     COALESCE(m_in.sml_count, 0) + COALESCE(m_out.sml_count, 0);
