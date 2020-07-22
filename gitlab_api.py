@@ -14,6 +14,14 @@ CFG = os.path.expanduser("~/.python-gitlab.cfg")
 
 
 class GitlabAPI(object):
+    """ Custom functions using python-gitlab API
+
+    In order to use the API you need to have a config file in your $HOME, you can find an example here:
+    https://python-gitlab.readthedocs.io/en/stable/cli.html#content
+    Make sure to have a [default] section as that is the one used in this script. For the 'private_token' you need
+    to configure a personal token access from your GitLab account.
+    https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#creating-a-personal-access-token
+    """
     def __init__(self):
         self.gl = gitlab.Gitlab.from_config('default', CFG)
         self.access_level_code_name = {
