@@ -30,7 +30,7 @@ def update_quant(thread_name, only_read=False):
                     _logger.error("%s The field was changed after read (repeatable readable issue)", thread_name)
                     return False
         quant.flush()
-        _logger.warning("%s Quant %s  %s -> %d", thread_name, quant, old_value, quant.quantity)
+        _logger.warning("%s Quant %s  %d -> %d", thread_name, quant, old_value, quant.quantity)
         new_cr.commit()
         return True
 
@@ -53,7 +53,7 @@ def update_seq(thread_name, only_read=False):
                 if pgoe.pgcode == '40001':
                     _logger.error("%s The field was changed after read (repeatable readable issue)", thread_name)
                     return False
-        _logger.warning("%s Seq %s %s -> %d", thread_name, seq, old_value, seq.number_next)
+        _logger.warning("%s Seq %s %d -> %d", thread_name, seq, old_value, seq.number_next)
         new_cr.commit()
         return True
 
