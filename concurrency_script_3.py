@@ -8,7 +8,7 @@ from psycopg2 import OperationalError
 
 _logger = logging.getLogger(__name__)
 
-WORKERS = 5
+THREADS = 5
 
 
 def update_quant(thread_name, only_read=False):
@@ -27,10 +27,10 @@ def update_quant(thread_name, only_read=False):
                     break
             except OperationalError as pgoe:
                 if pgoe.pgcode == '40001':
-                    _logger.error("%s The field was changed after read (repeatable readable issue)", thread_name)
+                    # _logger.info("%s The field was changed after read (repeatable readable issue)", thread_name)
                     return False
         quant.flush()
-        _logger.warning("%s Quant %s  %d -> %d", thread_name, quant, old_value, quant.quantity)
+        _logger.info("%s Quant %s  %d -> %d", thread_name, quant, old_value, quant.quantity)
         new_cr.commit()
         return True
 
@@ -51,9 +51,9 @@ def update_seq(thread_name, only_read=False):
                     break
             except OperationalError as pgoe:
                 if pgoe.pgcode == '40001':
-                    _logger.error("%s The field was changed after read (repeatable readable issue)", thread_name)
+                    # _logger.info("%s The field was changed after read (repeatable readable issue)", thread_name)
                     return False
-        _logger.warning("%s Seq %s %d -> %d", thread_name, seq, old_value, seq.number_next)
+        _logger.info("%s Seq %s %d -> %d", thread_name, seq, old_value, seq.number_next)
         new_cr.commit()
         return True
 
@@ -72,7 +72,7 @@ old_seq = update_seq('first value', only_read=True)
 old_quant = update_quant('first value', only_read=True)
 
 threads = []
-for i in range(WORKERS):
+for i in range(THREADS):
     t = threading.Thread(target=process, name="Thread %d" % (i+1))
     threads.append(t)
     t.start()
@@ -81,5 +81,5 @@ for i in range(WORKERS):
 
 new_seq = update_seq('final value', only_read=True)
 new_quant = update_quant('final value', only_read=True)
-_logger.warning("Sequence. Workers %d. Initial value %d Final seq: %d == %d?", WORKERS, old_seq, new_seq, old_seq + WORKERS)
-_logger.warning("Quants. Workers %d. Initial value %d Final seq: %d == %d?", WORKERS, old_quant, new_quant, old_quant + WORKERS)
+_logger.info("Sequence. Number of threads %d. Initial value %d Final seq: %d == %d?", THREADS, old_seq, new_seq, old_seq + THREADS)
+_logger.info("Quants. Number of threads %d. Initial value %d Final seq: %d == %d?", THREADS, old_quant, new_quant, old_quant + THREADS)
