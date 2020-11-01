@@ -1,10 +1,8 @@
-"""
-Server action to output all modules to be included on the manifest, useful
-when initializing a module for an app of an already-existing instance
-"""
+# Server action to output all modules to be included on the manifest, useful
+# when initializing a module for an app of an already-existing instance
 
-MODNAMES_TO_ADD = ['company_country']
-MODNAMES_TO_IGNORE = ['base', 'web_studio', 'studio_customization']
+MODNAMES_TO_ADD = []
+MODNAMES_TO_IGNORE = ['base', 'base_automation', 'web_dashboard', 'web_studio', 'studio_customization']
 
 
 def compute_dependencies(modules):
@@ -27,23 +25,15 @@ installed_modules = module_obj.search([
 
 # Include only modules that are not already installed by any other module,
 # i.e. are not dependencies of any other one
-modules_to_add = module_obj
+modnames_to_add = []
 for module in installed_modules:
     other_modules = installed_modules - module
     other_dependencies = compute_dependencies(other_modules)
     if module not in other_dependencies:
-        modules_to_add |= module
-
-# sorted is not available here, so using a little hack, creating dummy records
-# Not using search and sorted because all modules might not be available
-not_available = set(MODNAMES_TO_ADD) - set(installed_modules.mapped('name'))
-modules_to_add |= module_obj.concat(*[
-    module_obj.new({'name': modname})
-    for modname in not_available
-])
+        modnames_to_add.append(module.name)
 
 output = "\n".join([
-    "'%s'," % module.name
-    for module in modules_to_add.sorted('name')
+    "'%s'," % modname
+    for modname in sorted(modnames_to_add)
 ])
 raise Warning(output)
