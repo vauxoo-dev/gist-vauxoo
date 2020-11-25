@@ -21,6 +21,12 @@ class GitlabAPI(object):
     Make sure to have a [default] section as that is the one used in this script. For the 'private_token' you need
     to configure a personal token access from your GitLab account.
     https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#creating-a-personal-access-token
+
+    e.g. ~/.python-gitlab.cfg
+    [default]
+    url=https://git.vauxoo.com
+    private_token=YOUR_TOKEN
+    timeout=5
     """
     def __init__(self):
         self.gl = gitlab.Gitlab.from_config('default', CFG)
@@ -145,13 +151,42 @@ class GitlabAPI(object):
                     [mr.iid, mr.web_url, mr.author['name'], mr.title, task_id, task_url, mr.state,
                      mr.labels, mr.created_at[:10], mr.updated_at[:10], merge_date])
 
+    def get_project_depends(self, fname='oca_dependencies.txt'):
+        """Read the content of oca_dependencies.txt file of all
+        stable projects and branches"""
+        workdir = 'gitlab_content'
+        try:
+            os.mkdir(workdir)
+        except FileExistsError:
+            pass
+        for project in self.gl.projects.list(all=True):
+            if project.path_with_namespace.split('/')[0].strip().endswith('-dev'):
+                # Filter "-dev" projects only stable ones
+                continue
+            # TODO: Get file from branch (currently it is only from project)
+            for branch in project.branches.list(all=True):
+                # TODO: Use a regex here
+                if branch.name not in ['10.0', '11.0', '12.0', '13.0', '14.0']:
+                    # Filter only stable branches
+                    continue
+                try:
+                    branch_file = project.files.get(fname, branch)
+                except gitlab.exceptions.GitlabGetError:
+                    continue
+                full_name = "%s_%s_%s" % (project.path_with_namespace, branch.name, branch_file.file_name)
+                for invalid_char in '@:/#.':
+                    full_name = full_name.replace(invalid_char, '_')
+                full_name = os.path.join(workdir, full_name)
+                with open(full_name, "wb") as fobj:
+                    fobj.write(branch_file.decode())
 
 
 if __name__ == '__main__':
     obj = GitlabAPI()
-    print([(user['name'], user['email']) for user in obj.get_users('@odoo.com')])
+    # print([(user['name'], user['email']) for user in obj.get_users('@odoo.com')])
     # obj.project_mrs2csv(516) # MRS from ABSA
     # members_attributes = obj.get_members_attributes('vauxoo')
     # print(members_attributes)
     # members obj.get_members_grouped_by_access_level('vauxoo')
     # obj.delete_reporter_members('vauxoo')
+    obj.get_project_depends()
