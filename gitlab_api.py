@@ -170,13 +170,13 @@ class GitlabAPI(object):
                     # Filter only stable branches
                     continue
                 try:
-                    branch_file = project.files.get(fname, branch)
+                    branch_file = project.files.get(fname, branch.commit['id'])
                 except gitlab.exceptions.GitlabGetError:
                     continue
-                full_name = "%s_%s_%s" % (project.path_with_namespace, branch.name, branch_file.file_name)
+                full_name = "%s_%s" % (project.path_with_namespace, branch.name)
                 for invalid_char in '@:/#.':
                     full_name = full_name.replace(invalid_char, '_')
-                full_name = os.path.join(workdir, full_name)
+                full_name = os.path.join(workdir, full_name, branch_file.file_name)
                 with open(full_name, "wb") as fobj:
                     fobj.write(branch_file.decode())
 
