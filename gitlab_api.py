@@ -179,7 +179,7 @@ class GitlabAPI(object):
                 full_name = "%s_%s" % (project.path_with_namespace, branch.name)
                 for invalid_char in '@:/#.':
                     full_name = full_name.replace(invalid_char, '_')
-                full_name = os.path.join(workdir, full_name, branch_file.file_name)
+                full_name = os.path.join(workdir, "%s_%s" % (full_name, branch_file.file_name))
                 with open(full_name, "wb") as fobj:
                     fobj.write(branch_file.decode())
 
