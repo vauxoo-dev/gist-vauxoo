@@ -25,7 +25,7 @@ class GitlabAPI(object):
     e.g. ~/.python-gitlab.cfg
     [default]
     url=https://git.vauxoo.com
-    private_token=YOUR_TOKEN
+    private_token=YOUR_TOKEN # You can create it here: https://git.vauxoo.com/profile/personal_access_tokens
     timeout=5
     """
     def __init__(self):
