@@ -7,7 +7,10 @@ import re
 from datetime import datetime
 from collections import defaultdict
 
-import gitlab
+try:
+    import gitlab
+except ImportError:
+    print("Please, install pip install python-gitlab==2.5.0")
 
 
 CFG = os.path.expanduser("~/.python-gitlab.cfg")
