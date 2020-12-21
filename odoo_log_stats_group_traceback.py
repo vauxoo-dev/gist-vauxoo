@@ -44,7 +44,8 @@ def init_db():
             session integer,
             db varchar(64),
             level varchar(64),
-            module varchar(64),
+            module text,
+            logger_name text,
             message text
     );""")
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level ON odoo_logs (level);""")
@@ -53,6 +54,10 @@ def init_db():
 
 
 def get_message_split(message_str):
+    # Remove colors
+    message_str = message_str.replace("\x1b[1;32m\x1b[1;49m", "")
+    message_str = message_str.replace("\x1b[0m", "")
+    # message_str = message_str.replace("[0m ", "")
     match = re.match(_re_log, message_str)
     if not match:
         return {}
@@ -71,6 +76,8 @@ def insert_message(message):
             print("Bypass repeated logs:", str(ie))
             cr.execute("ROLLBACK TO SAVEPOINT msg")
         # raise ie
+    except psycopg2.DataError as de:
+        print("Data error %s:\nQuery: %s" % (de, cr.query))
     else:
         cr.execute("RELEASE SAVEPOINT msg")
     conn.commit()
@@ -79,6 +86,7 @@ def insert_message(message):
 def insert_messages(filename):
     with open(filename) as fp:
         message = {}
+        message_items = []
         for line in fp:
             message_items = get_message_split(line)
             if any(map(lambda item: item in line, [' WARNING ', ' ERROR ', ' INFO ', ' DEBUG '])) and not message_items:
@@ -96,6 +104,8 @@ def insert_messages(filename):
             message = message_items
             message['message'] = message['message'].strip()
         if message and message != message_items:
+            message['logger_name'] = message['module']
+            message['module'] = message['module'].split('.')[0]
             insert_message(message)
         # conn.commit()
 
