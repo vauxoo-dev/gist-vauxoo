@@ -16,7 +16,14 @@ odoo_log_stats_group_traceback.py   ODOO_LOG_FILE_NAME   MIN_DATE
     * MIN_DATE format %Y-%M-%d
         e.g. 1985-04-14
 """
+# SELECT l1.message, (l2.date - l1.date)  AS diff, l1.date as l1_date, l2.date AS l2_date FROM odoo_logs l1 LEFT OUTER JOIN odoo_logs l2 ON l1.id+1 = l2.id WHERE (l2.date - l1.date)  > '1 minute';
+# SELECT l1.module, SUM(l2.date-l1.date) FROM odoo_logs l1 LEFT OUTER JOIN odoo_logs l2 ON l1.id+1 = l2.id GROUP BY l1.module ORDER BY SUM(l2.date-l1.date) DESC;
 
+# Unittest running 2 times:
+#  - COPY (SELECT message, COUNT(*), string_agg(module, ',') AS modules FROM odoo_logs WHERE (module ILIKE '%test%' OR message ILIKE '%test%') AND db='openerp_test' GROUP BY message HAVING count(*)>1 ORDER BY message) to '/tmp/borrar.csv' WITH CSV HEADER;
+
+# Unittest spending most time
+# - SELECT CAST(SUBSTRING(message FROM ' (\d+\.\d+)s') AS FLOAT) AS seconds, module FROM odoo_logs WHERE message ILIKE 'Ran %' ORDER BY 1 DESC;
 
 DBNAME = 'odoologs'
 try:
