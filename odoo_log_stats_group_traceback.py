@@ -25,6 +25,13 @@ odoo_log_stats_group_traceback.py   ODOO_LOG_FILE_NAME   MIN_DATE
 # Unittest spending most time
 # - SELECT CAST(SUBSTRING(message FROM ' (\d+\.\d+)s') AS FLOAT) AS seconds, module FROM odoo_logs WHERE message ILIKE 'Ran %' ORDER BY 1 DESC;
 
+# Loading file spending most time
+# - SELECT module, diff, message, db FROM (SELECT (l2.date - l1.date)  AS diff, l1.date as l1_date, l2.date AS l2_date,  l1.* FROM odoo_logs l1 LEFT OUTER JOIN odoo_logs l2 ON l1.id+1 = l2.id) vw WHERE module = 'odoo.modules.loading' ORDER BY 2 DESC;
+
+# Unittest spending most time v2
+# CREATE VIEW odoo_logs_test AS (SELECT row_number() OVER() AS row_number, * FROM odoo_logs WHERE module LIKE '%\.tests\.%' AND (message LIKE 'test\_%' OR message LIKE 'Ran %') ORDER BY id);
+# SELECT module, diff, message, db FROM (SELECT (l2.date - l1.date)  AS diff, l1.date as l1_date, l2.date AS l2_date,  l1.* FROM odoo_logs_test l1 LEFT OUTER JOIN odoo_logs_test l2 ON l1.row_number+1 = l2.row_number ORDER BY id) vw WHERE message LIKE 'test\_%' ORDER BY 2 DESC;
+
 DBNAME = 'odoologs'
 try:
     MIN_DATE = sys.argv[2]
