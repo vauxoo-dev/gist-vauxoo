@@ -3,6 +3,7 @@ Convert Google Cloud Platform log in json to postgresql log
 """
 import ijson
 import os
+import sys
 
 
 def get_psql_log_from_gcp_json(gcp_json_file):
@@ -21,3 +22,9 @@ def get_psql_log_from_gcp_json(gcp_json_file):
                 is_textpayload = False
 
             is_textpayload = value == "textPayload"
+
+
+if __name__ == '__main__':
+    files = sys.argv[1:]
+    for file in files:
+        get_psql_log_from_gcp_json(file)
