@@ -11,22 +11,34 @@ It is checking the following cron _logger.info:
 from __future__ import print_function
 from collections import defaultdict
 
+import re
 import sys
+
+date_pid_regex = re.compile(r'^(?:(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) (\d+) )', re.M)
 
 crons = defaultdict(dict)
 with open(sys.argv[1]) as f:
+    date_pids_used = []
     for line in f:
+        line = line.strip(' \n"')
+        line_separated = line.split('`')
         if '`' not in line:
             continue
-        line = line.strip(' \n')
-        line_separated = line.split('`')
-        crons[line_separated[1]].setdefault('running', 0)
+        date_pid_match = date_pid_regex.match(line_separated[0])
+        if not date_pid_match:
+            continue
+        date_pid_match = date_pid_match.groups()
+        if date_pid_match in date_pids_used:
+            continue
+        date_pids_used.append(date_pid_match)
+        key = (line_separated[1], date_pid_match[1])
+        crons[key].setdefault('running', 0)
         if 'Starting job ' in line_separated[0]:
-            crons[line_separated[1]]['started'] = line
-            crons[line_separated[1]]['running'] += 1
+            crons[key]['started'] = line
+            crons[key]['running'] += 1
         elif 'Job ' in line_separated[0]:
-            crons[line_separated[1]]['finished'] = line
-            crons[line_separated[1]]['running'] -= 1
+            crons[key]['finished'] = line
+            crons[key]['running'] -= 1
 
 for cron_name, step in crons.items():
     if step['running'] == 0:
@@ -36,4 +48,4 @@ for cron_name, step in crons.items():
     #     continue
     print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
 
-print(crons)
+# print(crons)
