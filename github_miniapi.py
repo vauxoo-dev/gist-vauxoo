@@ -44,6 +44,21 @@ class GithubRequest(object):
             })
         return repos
 
+    def github_get_issues(self):
+        return self.github_request('repos/{owner}/{repo}/issues?per_page=1000')
+
+    def close_pull_request(self, pull_number):
+        return self.github_request(
+            url='repos/{owner}/{repo}/pulls/%s' % pull_number,
+            payload={'state': 'closed'},
+        )
+
+    def close_all_pull_requests(self):
+        issues = self.github_list_issues()
+        pull_requests = [pr for pr in issues if pr.get('pull_request')]
+        for pull_request in pull_requests:
+            self.close_pull_request(pull_number=pull_request['number'])
+
     @staticmethod
     def dicts2csv(datas):
         if not datas:
