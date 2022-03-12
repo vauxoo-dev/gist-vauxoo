@@ -1,8 +1,26 @@
 # Server action to output all modules to be included on the manifest, useful
-# when initializing a module for an app of an already-existing instance
+# when initializing a module for an app of an already-existing instance,
+# or when removing superfluous modules
 
 MODNAMES_TO_ADD = []
-MODNAMES_TO_IGNORE = ['base', 'base_automation', 'web_dashboard', 'web_studio', 'studio_customization']
+# Add here app's module name if already installed, so its dependencies are not considered
+MODNAMES_TO_IGNORE = [
+    # All modules dependn on base anyway
+    "base",
+    # Don't install it unless necessary, to avoid performance issues
+    # If there's no data for it, then it dosen't make sense to have it in CI
+    "base_automation",
+    # Dependency of OdooStudio, not useful in CI
+    "base_import_module",
+    # Not useful and deprecated in newer versions anyway
+    "odoo_referral",
+    "web_dashboard",
+    # In case this is run in a test instance on DeployV
+    "web_environment_ribbon_isolated",
+    # Studio is not useful in CI
+    "web_studio",
+    "studio_customization",
+]
 
 
 def compute_dependencies(modules):
@@ -16,7 +34,7 @@ def compute_dependencies(modules):
     return dependencies
 
 
-module_obj = env['ir.module.module']
+module_obj = env['ir.module.module'].sudo()
 installed_modules = module_obj.search([
     ('state', '=', 'installed'),
     ('auto_install', '=', False),
@@ -33,7 +51,7 @@ for module in installed_modules:
         modnames_to_add.append(module.name)
 
 output = "\n".join([
-    "'%s'," % modname
+    '"%s",' % modname
     for modname in sorted(modnames_to_add)
 ])
 raise Warning(output)
