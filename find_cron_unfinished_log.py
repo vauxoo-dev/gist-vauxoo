@@ -10,11 +10,13 @@ It is checking the following cron _logger.info:
 
 from __future__ import print_function
 from collections import defaultdict
+from datetime import datetime
 
 import re
 import sys
 
 date_pid_regex = re.compile(r'^(?:(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) (\d+) )', re.M)
+datetime_format = '%Y-%m-%d %H:%M:%S,%f'
 
 crons = defaultdict(dict)
 with open(sys.argv[1]) as f:
@@ -36,12 +38,19 @@ with open(sys.argv[1]) as f:
         if 'Starting job ' in line_separated[0]:
             crons[key]['started'] = line
             crons[key]['running'] += 1
+            crons[key]['started_datetime'] = datetime.strptime(date_pid_match[0], datetime_format)
         elif 'Job ' in line_separated[0]:
             crons[key]['finished'] = line
             crons[key]['running'] -= 1
+            crons[key]['finished_datetime'] = datetime.strptime(date_pid_match[0], datetime_format)
 
+top_heavy_crons = []
 for cron_name, step in crons.items():
     if step['running'] == 0:
+        diff_s = (step['finished_datetime'] - step['started_datetime']).seconds
+        if diff_s >= 30:
+            top_heavy_crons.append([diff_s, cron_name, step])
+            # print("cron_name: %s finisehd in %ss" % (cron_name, diff_s))
         continue
     finished = step.get('finished')
     # if finished and step['started'] <= finished:
@@ -49,3 +58,8 @@ for cron_name, step in crons.items():
     print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
 
 # print(crons)
+if top_heavy_crons:
+    top_heavy_crons = sorted(top_heavy_crons)[:30]
+    with open("/tmp/borrar.txt", "a") as flog:
+        for diff_s, cron_name, step in top_heavy_crons:
+            flog.write("%.2fm - %s\n" % (diff_s/60.0, cron_name))
