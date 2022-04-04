@@ -9,19 +9,32 @@ It is checking the following cron _logger.info:
 """
 
 from __future__ import print_function
-from collections import defaultdict
-from datetime import datetime
 
+import csv
+import os
 import re
 import sys
+from collections import defaultdict
+from datetime import datetime
 
 date_pid_regex = re.compile(r'^(?:(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) (\d+) )', re.M)
 datetime_format = '%Y-%m-%d %H:%M:%S,%f'
 
+
+def lines(f_obj):
+    if os.path.splitext(f_obj.name)[1].lower() == '.csv':
+        # graylog export
+        f_obj_csv = csv.DictReader(f_obj)
+        for row in f_obj_csv:
+            yield row['message']
+    else:
+        for line in f:
+            yield line
+
 crons = defaultdict(dict)
 with open(sys.argv[1]) as f:
     date_pids_used = []
-    for line in f:
+    for line in lines(f):
         line = line.strip(' \n"')
         line_separated = line.split('`')
         if '`' not in line:
