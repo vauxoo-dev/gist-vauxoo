@@ -40,13 +40,14 @@ def get_werkzeug_log(csvfname):
                 log_date_utc = log_date_utc.replace(tzinfo=tz.tzutc())
                 log_date_local = log_date_utc.astimezone(tz.tzlocal())
                 print(
-                    "%s,%s (local),%s (utc),'%s,'%s,%s"
+                    "%s,%s (local),%s (utc),'%s,'%s,%s,%s"
                     % (
                         response_time,
                         log_date_local.strftime("%Y-%m-%d %H:%M:%S"),
                         log_date_utc.strftime("%Y-%m-%d %H:%M:%S"),
                         werkzeug_data['ip'],
                         werkzeug_data['url'],
+                        werkzeug_data['response'],
                         werzkeug_line,
                     )
                 )
