@@ -1,5 +1,9 @@
 import csv
 import re
+from dateutil import tz
+from datetime import datetime
+
+
 
 # TODO: use an advanced regex for database name
 odoo_werkzeug_log = re.compile(r'^(?:(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) (\d+) INFO \w+ werkzeug: )(.*)', re.M)
@@ -23,8 +27,11 @@ def get_werkzeug_log(csvfname):
             werkzeug_data['time1'] = float(werkzeug_data['time1'])
             werkzeug_data['time2'] = float(werkzeug_data['time2'])
             if werkzeug_data['time2'] >= min_time_filter:
-                log_date = odoo_werkzeug_log_match.groups()[0]
-                print("%s %s %s" % (werkzeug_data['time2'], log_date, werzkeug_line))
+                log_date_utc_str = odoo_werkzeug_log_match.groups()[0]
+                log_date_utc = datetime.strptime(log_date_utc_str, '%Y-%m-%d %H:%M:%S,%f')
+                log_date_utc = log_date_utc.replace(tzinfo=tz.tzutc())
+                log_date_local = log_date_utc.astimezone(tz.tzlocal())
+                print("%s - %s (local) - %s (utc) - %s" % (werkzeug_data['time2'], log_date_local, log_date_utc_str, werzkeug_line))
 
 
 
