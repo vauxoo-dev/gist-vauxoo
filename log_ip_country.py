@@ -59,7 +59,8 @@ def get_ip_country_log(csvfname):
             ip = ip_data['ip']
             country_iso = geoipdb.city(ip).country.iso_code
             ip_country[country_iso] |=  {ip}
-    print(ip_country)
+    for country, ips in ip_country.items():
+        print("%s - %s" % (country, ', '.join(ips)))
 
 
 get_ip_country_log("/Users/moylop260/Downloads/graylog-search-result-relative-86400.csv")
