@@ -7,7 +7,7 @@ from datetime import datetime
 
 from dateutil import tz
 
-from find_cron_unfinished_log import lines
+from log_find_cron_unfinished import lines
 
 """
 Open graylog and filter:
