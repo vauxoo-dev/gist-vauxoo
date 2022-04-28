@@ -7,6 +7,8 @@ from datetime import datetime
 
 from dateutil import tz
 
+from find_cron_unfinished_log import lines
+
 """
 Open graylog and filter:
  - message:"longpolling" OR message:"werkzeug"
@@ -57,17 +59,6 @@ ip_log_re = re.compile(
 only_ip_log_re = re.compile(r"(?P<ip>\d+.\d+.\d+.\d+)")
 
 ip_country = defaultdict(set)
-
-
-def lines(f_obj):
-    if os.path.splitext(f_obj.name)[1].lower() == ".csv":
-        # graylog export
-        f_obj_csv = csv.DictReader(f_obj)
-        for row in f_obj_csv:
-            yield row["message"]
-    else:
-        for line in f_obj:
-            yield line
 
 
 def get_ip_country_log(csvfname):

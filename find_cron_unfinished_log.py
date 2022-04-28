@@ -31,48 +31,54 @@ def lines(f_obj):
         for line in f:
             yield line
 
-crons = defaultdict(dict)
-with open(sys.argv[1]) as f:
-    date_pids_used = []
-    for line in lines(f):
-        line = line.strip(' \n"')
-        line_separated = line.split('`')
-        if '`' not in line:
-            continue
-        date_pid_match = date_pid_regex.match(line_separated[0])
-        if not date_pid_match:
-            continue
-        date_pid_match = date_pid_match.groups()
-        if date_pid_match in date_pids_used:
-            continue
-        date_pids_used.append(date_pid_match)
-        key = (line_separated[1], date_pid_match[1])
-        crons[key].setdefault('running', 0)
-        if 'Starting job ' in line_separated[0]:
-            crons[key]['started'] = line
-            crons[key]['running'] += 1
-            crons[key]['started_datetime'] = datetime.strptime(date_pid_match[0], datetime_format)
-        elif 'Job ' in line_separated[0]:
-            crons[key]['finished'] = line
-            crons[key]['running'] -= 1
-            crons[key]['finished_datetime'] = datetime.strptime(date_pid_match[0], datetime_format)
 
-top_heavy_crons = []
-for cron_name, step in crons.items():
-    if step['running'] == 0:
-        diff_s = (step['finished_datetime'] - step['started_datetime']).seconds
-        if diff_s >= 30:
-            top_heavy_crons.append([diff_s, cron_name, step])
-            # print("cron_name: %s finisehd in %ss" % (cron_name, diff_s))
-        continue
-    finished = step.get('finished')
-    # if finished and step['started'] <= finished:
-    #     continue
-    print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
+def main():
+    crons = defaultdict(dict)
+    with open(sys.argv[1]) as f:
+        date_pids_used = []
+        for line in lines(f):
+            line = line.strip(' \n"')
+            line_separated = line.split('`')
+            if '`' not in line:
+                continue
+            date_pid_match = date_pid_regex.match(line_separated[0])
+            if not date_pid_match:
+                continue
+            date_pid_match = date_pid_match.groups()
+            if date_pid_match in date_pids_used:
+                continue
+            date_pids_used.append(date_pid_match)
+            key = (line_separated[1], date_pid_match[1])
+            crons[key].setdefault('running', 0)
+            if 'Starting job ' in line_separated[0]:
+                crons[key]['started'] = line
+                crons[key]['running'] += 1
+                crons[key]['started_datetime'] = datetime.strptime(date_pid_match[0], datetime_format)
+            elif 'Job ' in line_separated[0]:
+                crons[key]['finished'] = line
+                crons[key]['running'] -= 1
+                crons[key]['finished_datetime'] = datetime.strptime(date_pid_match[0], datetime_format)
 
-# print(crons)
-if top_heavy_crons:
-    top_heavy_crons = sorted(top_heavy_crons)[:30]
-    with open("/tmp/borrar.txt", "a") as flog:
-        for diff_s, cron_name, step in top_heavy_crons:
-            flog.write("%.2fm - %s\n" % (diff_s/60.0, cron_name))
+    top_heavy_crons = []
+    for cron_name, step in crons.items():
+        if step['running'] == 0:
+            diff_s = (step['finished_datetime'] - step['started_datetime']).seconds
+            if diff_s >= 30:
+                top_heavy_crons.append([diff_s, cron_name, step])
+                # print("cron_name: %s finisehd in %ss" % (cron_name, diff_s))
+            continue
+        finished = step.get('finished')
+        # if finished and step['started'] <= finished:
+        #     continue
+        print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
+
+    # print(crons)
+    if top_heavy_crons:
+        top_heavy_crons = sorted(top_heavy_crons)[:30]
+        with open("/tmp/borrar.txt", "a") as flog:
+            for diff_s, cron_name, step in top_heavy_crons:
+                flog.write("%.2fm - %s\n" % (diff_s/60.0, cron_name))
+
+
+if __name__ == '__main__':
+    main()
