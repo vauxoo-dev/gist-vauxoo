@@ -4,12 +4,24 @@ import sys
 import re
 from datetime import datetime
 
-THRESHOLD = 10
+THRESHOLD = 5
 DATETIME_FMT = '%Y-%m-%d %H:%M:%S'
 _re_log = r'(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)'
 # _re_poll_log = r' (?P<date>\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\]|\[\d\d\/[A-Z][a-z][a-z]\/\d{4} \d\d:\d\d:\d\d\]) '
 
 dt2min = lambda current, last: (current - last).seconds / 60.0 if last and current and last != current else 0
+
+def remove_color(line):
+    WHITE = "\x1b[1;49m"
+    GREEN = "\x1b[1;32m"
+    # YELLOW =
+    # RED =
+    CLEAR = "\x1b[0m"
+    colors = [WHITE, CLEAR, GREEN]
+    for color in colors:
+        line = line.replace(color, "")
+    return line
+
 
 first_line = None
 first_date = None
@@ -17,6 +29,8 @@ last_date = None
 last_line = None
 for line in open(sys.argv[1]):
     line = line.strip()
+    # remove colors in the log
+    line = remove_color(line)
     date_re = re.match(_re_log, line)
     if not date_re:
         # print("no matching", line)
