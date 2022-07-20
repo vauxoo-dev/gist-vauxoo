@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import re
 from datetime import datetime
+from collections import defaultdict
 
 THRESHOLD = 5
 DATETIME_FMT = '%Y-%m-%d %H:%M:%S'
@@ -27,6 +28,7 @@ first_line = None
 first_date = None
 last_date = None
 last_line = None
+module_time = defaultdict(int)
 for line in open(sys.argv[1]):
     line = line.strip()
     # remove colors in the log
@@ -41,6 +43,7 @@ for line in open(sys.argv[1]):
         first_date = current
         first_line = line
     minutes = dt2min(current, last_date)
+    module_time[date_data['module']] += minutes
     if minutes > THRESHOLD:
         print("The following line:\n%s\nSpent %d minutes\n" % (last_line, minutes))
     last_date = current
@@ -48,3 +51,5 @@ for line in open(sys.argv[1]):
 print("\nFirst line:\n", first_line, "\nfirst date\n", first_date)
 print("\nLast line:\n", last_line, "\nlast_date\n", last_date)
 print("\nTotal time of the file: %d minutes" % (dt2min(last_date, first_date)))
+
+print("\nModule time %s" % {key: value for key, value in sorted(module_time.items(), key=lambda item: item[1], reverse=True) if value >= THRESHOLD})
