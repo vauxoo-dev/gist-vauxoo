@@ -1,48 +1,52 @@
 #!/usr/local/bin/python3
 from __future__ import print_function
 
-import os
 import csv
+import os
 import re
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
 
 try:
     import gitlab
 except ImportError:
-    print("Please, install pip install python-gitlab==2.5.0")
+    print("Please, install pip install python-gitlab==3.9.0")
 
 
 CFG = os.path.expanduser("~/.python-gitlab.cfg")
 
 
 class GitlabAPI(object):
-    """ Custom functions using python-gitlab API
+    """Custom functions using python-gitlab API
 
-    In order to use the API you need to have a config file in your $HOME, you can find an example here:
-    https://python-gitlab.readthedocs.io/en/stable/cli.html#content
-    Make sure to have a [default] section as that is the one used in this script. For the 'private_token' you need
-    to configure a personal token access from your GitLab account.
-    https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#creating-a-personal-access-token
+        In order to use the API you need to have a config file in your $HOME, you can find an example here:
+        https://python-gitlab.readthedocs.io/
+        Make sure to have a [default] section as that is the one used in this script. For the 'private_token' you need
+        to configure a personal token access from your GitLab account.
+        https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#creating-a-personal-access-token
 
-    e.g. ~/.python-gitlab.cfg
+        e.g. ~/.python-gitlab.cfg
+    [global]
+    default = default
+    ssl_verify = true
+    timeout = 5
+
     [default]
     url=https://git.vauxoo.com
-    private_token=YOUR_TOKEN # You can create it here: https://git.vauxoo.com/profile/personal_access_tokens
-    timeout=5
+    private_token=YOUR_TOKEN created from: https://git.vauxoo.com/profile/personal_access_tokens
     """
+
     def __init__(self):
-        self.gl = gitlab.Gitlab.from_config('default', CFG)
+        self.gl = gitlab.Gitlab.from_config('default', [CFG])
         self.access_level_code_name = {
-            gitlab.GUEST_ACCESS: 'guest',
-            gitlab.REPORTER_ACCESS: 'reporter',
-            gitlab.DEVELOPER_ACCESS: 'developer',
-            gitlab.MAINTAINER_ACCESS: 'maintainer',
-            gitlab.MASTER_ACCESS: 'master',
-            gitlab.OWNER_ACCESS: 'owner',
+            gitlab.const.GUEST_ACCESS: 'guest',
+            gitlab.const.REPORTER_ACCESS: 'reporter',
+            gitlab.const.DEVELOPER_ACCESS: 'developer',
+            gitlab.const.MAINTAINER_ACCESS: 'maintainer',
+            # gitlab.const.MASTER_ACCESS: 'master',
+            gitlab.const.OWNER_ACCESS: 'owner',
         }
-        self.access_level_name_code = {
-            v: k for k, v in self.access_level_code_name.items()}
+        self.access_level_name_code = {v: k for k, v in self.access_level_code_name.items()}
 
     def get_mr_diff(self, project_name=None):
         project = self.gl.projects.get(project_name)
@@ -74,7 +78,8 @@ class GitlabAPI(object):
         return get_members_by_access_level
 
     def delete_reporter_members(self, group_id):
-        raise UserWarning("""Deleting a group_member will delete project_member too.
+        raise UserWarning(
+            """Deleting a group_member will delete project_member too.
                           I mean, if a user was added to custom project_member but
                           it is deleted from group_member so the project_member will be deleted
                           Before to do it you will need get all users added manually to projects of the same group
@@ -84,7 +89,8 @@ class GitlabAPI(object):
 
                            Running "vauxoo_group1.delete(member_juan)"
                            gitlab api will run "vauxoo_group1/project1.delete(member_juan)" too
-                          """)
+                          """
+        )
         reporter_members = self.get_members_grouped_by_access_level(group_id).get('reporter', [])
         for member in reporter_members:
             print("Deleting: <%s> %s" % (member.name, member.username))
@@ -129,8 +135,20 @@ class GitlabAPI(object):
         with open(csv_name, 'w+', newline='') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
-                ['# de MR', 'URL del MR', 'Nombre de persona asignada', 'Título', 'Tarea', 'URL de la tarea', 'Estado',
-                 'Etiquetas', 'Fecha de creación', 'Fecha de última actualización', 'Fecha de mezcla'])
+                [
+                    '# de MR',
+                    'URL del MR',
+                    'Nombre de persona asignada',
+                    'Título',
+                    'Tarea',
+                    'URL de la tarea',
+                    'Estado',
+                    'Etiquetas',
+                    'Fecha de creación',
+                    'Fecha de última actualización',
+                    'Fecha de mezcla',
+                ]
+            )
 
             for mr in mrs:
                 task_label = task_label_pattern.search(mr.title)
@@ -151,45 +169,68 @@ class GitlabAPI(object):
                 merge_date = mr.merged_at[:10] if mr.merged_at else ''
 
                 writer.writerow(
-                    [mr.iid, mr.web_url, mr.author['name'], mr.title, task_id, task_url, mr.state,
-                     mr.labels, mr.created_at[:10], mr.updated_at[:10], merge_date])
+                    [
+                        mr.iid,
+                        mr.web_url,
+                        mr.author['name'],
+                        mr.title,
+                        task_id,
+                        task_url,
+                        mr.state,
+                        mr.labels,
+                        mr.created_at[:10],
+                        mr.updated_at[:10],
+                        merge_date,
+                    ]
+                )
 
-    def get_project_depends(self, fname='oca_dependencies.txt'):
-        """Read the content of oca_dependencies.txt file of all
-        stable projects and branches"""
+    def get_project_files(self, fnames=None, branches=None):
+        """Read the content of list of fnames and list of branches only
+        stable projects and branches by default
+        After generated the files you can use grep to find things
+        e.g.
+        grep -rn "INCLUDE\|EXCLUDE" vauxoo\_* jarsa\_* |sort | grep -v COVERAGE
+        """
+        if not fnames:
+            fnames = ['variables.sh', '.gitlab-ci.yml']
+        if not branches:
+            branches = ['16.0', '15.0', '14.0', '13.0', '12.0']
+
         workdir = 'gitlab_content'
         try:
             os.mkdir(workdir)
         except FileExistsError:
             pass
-        for project in self.gl.projects.list(all=True):
+        for project in self.gl.projects.list(iterator=True):
             if project.path_with_namespace.split('/')[0].strip().endswith('-dev'):
-                # Filter "-dev" projects only stable ones
+                # Filter "-dev" projects only stable ones
                 continue
             # TODO: Get file from branch (currently it is only from project)
             for branch in project.branches.list(all=True):
                 # TODO: Use a regex here
-                if branch.name not in ['10.0', '11.0', '12.0', '13.0', '14.0']:
+                if branch.name not in branches:
                     # Filter only stable branches
                     continue
-                try:
-                    branch_file = project.files.get(fname, branch.commit['id'])
-                except gitlab.exceptions.GitlabGetError:
-                    continue
-                full_name = "%s_%s" % (project.path_with_namespace, branch.name)
-                for invalid_char in '@:/#.':
-                    full_name = full_name.replace(invalid_char, '_')
-                full_name = os.path.join(workdir, "%s_%s" % (full_name, branch_file.file_name))
-                with open(full_name, "wb") as fobj:
-                    fobj.write(branch_file.decode())
+                for fname in fnames:
+                    try:
+                        branch_file = project.files.get(fname, branch.commit['id'])
+                    except gitlab.exceptions.GitlabGetError:
+                        continue
+                    full_name = "%s_%s" % (project.path_with_namespace, branch.name)
+                    for invalid_char in '@:/#.':
+                        full_name = full_name.replace(invalid_char, '_')
+                    full_name = os.path.join(workdir, "%s_%s" % (full_name, branch_file.file_name))
+                    with open(full_name, "wb") as fobj:
+                        fobj.write(branch_file.decode())
 
 
 if __name__ == '__main__':
     obj = GitlabAPI()
-    # print([(user['name'], user['email']) for user in obj.get_users('@odoo.com')])
+    # print([(user['name'], user['email']) for user in obj.get_users('@odoo.com')])
     # obj.project_mrs2csv(516) # MRS from ABSA
     # members_attributes = obj.get_members_attributes('vauxoo')
     # print(members_attributes)
     # members obj.get_members_grouped_by_access_level('vauxoo')
-    # obj.delete_reporter_members('vauxoo')
-    obj.get_project_depends()
+    # obj.delete_reporter_members('vauxoo')
+    # obj.get_project_depends()
+    obj.get_project_variables()
