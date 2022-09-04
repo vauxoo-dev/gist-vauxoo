@@ -1,4 +1,7 @@
 #!/usr/local/bin/python3
+
+# pylint: disable=print-used,useless-object-inheritance
+# TODO: Use logging
 from __future__ import print_function
 
 import csv
@@ -42,7 +45,7 @@ class GitlabAPI(object):
     """
 
     def __init__(self):
-        self.gl = gitlab.Gitlab.from_config('default', [CFG])
+        self.gitlab_api = gitlab.Gitlab.from_config('default', [CFG])
         self.access_level_code_name = {
             gitlab.const.GUEST_ACCESS: 'guest',
             gitlab.const.REPORTER_ACCESS: 'reporter',
@@ -55,7 +58,7 @@ class GitlabAPI(object):
         self.mr_tmpl = os.path.join(self.pydir, "gitlab_mr_template")
 
     def get_mr_diff(self, project_name=None):
-        project = self.gl.projects.get(project_name)
+        project = self.gitlab_api.projects.get(project_name)
         # print(gl.projects.list())
         # print(project)
         mrs = project.mergerequests.list(state="opened")
@@ -65,6 +68,7 @@ class GitlabAPI(object):
             # print(dir(mr))
             for change in mr.changes()['changes']:
                 print(change['diff'])
+            # pylint: disable=pointless-string-statement
             """
             for diff in diffs:
                 print(diff)
@@ -77,7 +81,7 @@ class GitlabAPI(object):
         # print(mrs, len(mrs))c
 
     def get_members_grouped_by_access_level(self, group_id):
-        group = self.gl.groups.get(group_id)
+        group = self.gitlab_api.groups.get(group_id)
         members = group.members.list(all=True)
         get_members_by_access_level = defaultdict(list)
         for member in members:
@@ -86,6 +90,7 @@ class GitlabAPI(object):
         return get_members_by_access_level
 
     def delete_reporter_members(self, group_id):
+        # pylint: disable=unreachable
         raise UserWarning(
             """Deleting a group_member will delete project_member too.
                           I mean, if a user was added to custom project_member but
@@ -105,7 +110,7 @@ class GitlabAPI(object):
             member.delete()
 
     def get_members_attributes(self, group_id):
-        group = self.gl.groups.get(group_id)
+        group = self.gitlab_api.groups.get(group_id)
         members = group.members.list(all=True)
         return [member.attributes for member in members]
 
@@ -120,7 +125,7 @@ class GitlabAPI(object):
 
     def get_users(self, email_domain=None):
         users = []
-        for user in self.gl.users.list(all=True):
+        for user in self.gitlab_api.users.list(all=True):
             if not email_domain:
                 users.append(self.get_basic_user_data(user))
                 continue
@@ -136,7 +141,7 @@ class GitlabAPI(object):
         numbers_regex = re.compile(r'\d+')
         task_url_tmpl = 'https://www.vauxoo.com/web#id=%s&model=%s&view_type=form'
 
-        project = self.gl.projects.get(project_id)
+        project = self.gitlab_api.projects.get(project_id)
         mrs = project.mergerequests.list(state='all', scope='all', all=True)
 
         csv_name = '%s_mrs_%s%s' % (project.name, datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), '.csv')
@@ -207,9 +212,9 @@ class GitlabAPI(object):
         workdir = 'gitlab_content'
         try:
             os.mkdir(workdir)
-        except FileExistsError:
+        except FileExistsError:  # pylint: disable=except-pass
             pass
-        for project in self.gl.projects.list(iterator=True):
+        for project in self.gitlab_api.projects.list(iterator=True):
             if project.path_with_namespace.split('/')[0].strip().endswith('-dev'):
                 # Filter "-dev" projects only stable ones
                 continue
@@ -246,7 +251,7 @@ class GitlabAPI(object):
         mrs = []
         self.jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(self.mr_tmpl))
         for project_str, branches_str in project_branches_dict.items():
-            project = self.gl.projects.get(project_str)
+            project = self.gitlab_api.projects.get(project_str)
             project_name = project.path_with_namespace.lower().strip()
             for branch_str in branches_str:
                 branch = project.branches.get(branch_str)
@@ -282,8 +287,9 @@ class GitlabAPI(object):
                         tmpl_data["version"] = branch.name
                         for fname_tmpl in self.jinja_env.list_templates():
                             try:
-                                tmpl_data['self_file'] = open(os.path.join(git_work_tree, fname_tmpl)).read()
-                            except:
+                                with open(os.path.join(git_work_tree, fname_tmpl)) as sf_obj:
+                                    tmpl_data['self_file'] = sf_obj.read()
+                            except BaseException:
                                 tmpl_data['self_file'] = ""
                             tmpl = self.jinja_env.get_template(fname_tmpl)
                             content = tmpl.render(tmpl_data).strip("\n") + "\n"
@@ -323,8 +329,8 @@ if __name__ == '__main__':
     # obj.delete_reporter_members('vauxoo')
     # obj.get_project_depends()
     # obj.get_project_variables()
-    # projects_branches = ["vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0", "vauxoo/villagroup@15.0"]
-    projects_branches = [
+    # custom_projects_branches = ["vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0", "vauxoo/villagroup@15.0"]
+    custom_projects_branches = [
         "vauxoo/base-automation-python@13.0",
         "vauxoo/costarica@13.0",
         "vauxoo/costarica@14.0",
@@ -340,8 +346,11 @@ if __name__ == '__main__':
         "vauxoo/vendor-bills@13.0",
         "vauxoo/xunnel-account@13.0",
     ]
+    # custom_projects_branches = [
+    #     "vauxoo/l10n-mx-electronic-accounting@14.0"
+    # ]
     created_mrs = obj.make_mr(
-        projects_branches,
+        custom_projects_branches,
         "[DUMMY] testing feature (autocreated) vauxoo/gitlab_tools#80",
         "Testing feature https://git.vauxoo.com/vauxoo/gitlab_tools/-/merge_requests/80",
         "gitlabtoolsmr80-moy",
