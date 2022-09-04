@@ -4,6 +4,8 @@ from __future__ import print_function
 import csv
 import os
 import re
+import subprocess
+import tempfile
 from collections import defaultdict
 from datetime import datetime
 
@@ -26,6 +28,7 @@ class GitlabAPI(object):
         https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html#creating-a-personal-access-token
 
         e.g. ~/.python-gitlab.cfg
+
     [global]
     default = default
     ssl_verify = true
@@ -43,7 +46,6 @@ class GitlabAPI(object):
             gitlab.const.REPORTER_ACCESS: 'reporter',
             gitlab.const.DEVELOPER_ACCESS: 'developer',
             gitlab.const.MAINTAINER_ACCESS: 'maintainer',
-            # gitlab.const.MASTER_ACCESS: 'master',
             gitlab.const.OWNER_ACCESS: 'owner',
         }
         self.access_level_name_code = {v: k for k, v in self.access_level_code_name.items()}
@@ -59,13 +61,15 @@ class GitlabAPI(object):
             # print(dir(mr))
             for change in mr.changes()['changes']:
                 print(change['diff'])
-            # for diff in diffs:
-                # print(diff)
-                # print(dir(diff))
-                # print(diff.list())
-                # print(diff.short_print())
-                # print(diff.display(True))
-            # break
+            """
+            for diff in diffs:
+                print(diff)
+                print(dir(diff))
+                print(diff.list())
+                print(diff.short_print())
+                print(diff.display(True))
+            break
+            """
         # print(mrs, len(mrs))c
 
     def get_members_grouped_by_access_level(self, group_id):
@@ -185,7 +189,7 @@ class GitlabAPI(object):
                 )
 
     def get_project_files(self, fnames=None, branches=None):
-        """Read the content of list of fnames and list of branches only
+        r"""Read the content of list of fnames and list of branches only
         stable projects and branches by default
         After generated the files you can use grep to find things
         e.g.
@@ -206,7 +210,7 @@ class GitlabAPI(object):
                 # Filter "-dev" projects only stable ones
                 continue
             # TODO: Get file from branch (currently it is only from project)
-            for branch in project.branches.list(all=True):
+            for branch in project.branches.list(iterator=True):
                 # TODO: Use a regex here
                 if branch.name not in branches:
                     # Filter only stable branches
@@ -223,6 +227,71 @@ class GitlabAPI(object):
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
+    def make_mr(self, projects_branches, fname, content, title, description, branch_dev_name):
+        """Make a MR
+        projects is a list of projects similar to ['vauxoo/addons@14.0']
+        """
+        # gitlab project-branch create [-h] [--sudo SUDO] --project-id PROJECT_ID --branch BRANCH --ref REF
+        project_branches_dict = defaultdict(set)
+        for project_branch in projects_branches:
+            try:
+                project_str, branch_str = project_branch.lower().strip().split('@')
+            except ValueError:
+                raise UserWarning("You need to use the format ['OWNER/PROJECT@BRANCH']")
+            project_branches_dict[project_str.strip()].add(branch_str.strip())
+        # TODO: Look for a way to search projects from API directly
+        mrs = []
+        for project in self.gl.projects.list(iterator=True):
+            project_name = project.path_with_namespace.lower().strip()
+            if project_name not in project_branches_dict:
+                continue
+            for branch in project.branches.list(iterator=True):
+                if branch.name.lower().strip() not in project_branches_dict[project_name]:
+                    continue
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    git_work_tree = os.path.join(tmp_dir, 'gitlab')
+                    try:
+                        git_cmd = [
+                            "git",
+                            "--git-dir=%s" % os.path.join(git_work_tree, ".git"),
+                            "--work-tree=%s" % git_work_tree,
+                        ]
+                        cmd = [
+                            "git",
+                            "clone",
+                            "--single-branch",
+                            "-b",
+                            branch.name,
+                            project.ssh_url_to_repo,
+                            git_work_tree,
+                        ]
+                        subprocess.check_call(cmd)
+                        # TODO: test branch name? random? check if exists
+                        branch_dev_name = "%s-test" % branch_dev_name
+                        cmd = git_cmd + ["checkout", "-b", branch_dev_name]
+                        subprocess.check_call(cmd)
+                        with open(os.path.join(git_work_tree, fname), "w") as fobj:
+                            # TODO: Render a jinja based on project data?
+                            fobj.write(content)
+                        cmd = git_cmd + ["commit", "-am", title]
+                        subprocess.check_call(cmd)
+                        # TODO: push in dev
+                        cmd = git_cmd + ["push", "origin", branch_dev_name]
+                        subprocess.check_call(cmd)
+                        mr = project.mergerequests.create(
+                            {
+                                'source_branch': branch_dev_name,
+                                'target_branch': branch.name,
+                                'title': title,
+                                'description': description,
+                            }
+                        )
+                        print(mr.web_url)
+                        mrs.append(mr.web_url)
+                    except subprocess.CalledProcessError:
+                        print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, ' '.join(cmd)))
+            return mrs
+
 
 if __name__ == '__main__':
     obj = GitlabAPI()
@@ -233,4 +302,72 @@ if __name__ == '__main__':
     # members obj.get_members_grouped_by_access_level('vauxoo')
     # obj.delete_reporter_members('vauxoo')
     # obj.get_project_depends()
-    obj.get_project_variables()
+    # obj.get_project_variables()
+    content = r"""
+image: quay.io/vauxoo/dockerv:latest
+stages:
+  - pre
+  - test
+  - post
+
+build_deployv:
+  stage: pre
+  tags:
+    - build
+  script:
+    - source variables.sh
+    - deployvcmd gitlab_tools check_keys
+    - pip install --no-deps --force-reinstall -U git+https://git.vauxoo.com/vauxoo-dev/gitlab_tools.git@testall-moy
+    - deployvcmd gitlab_tools build_image --push_image
+  artifacts:
+    paths:
+      - $CI_COMMIT_REF_NAME
+
+odoo_test:
+  stage: test
+  coverage: '/^TOTAL.*\s+(\d+(?:\.\d+)?\%)$/'
+  tags:
+    - build
+  dependencies:
+    - build_deployv
+  script:
+    - source variables.sh
+    - source $CI_COMMIT_REF_NAME/image_name.env
+    - deployvcmd gitlab_tools check_keys
+    - pip install --no-deps --force-reinstall -U git+https://git.vauxoo.com/vauxoo-dev/gitlab_tools.git@testall-moy
+    - deployvcmd gitlab_tools test_repo --allow_deprecated
+  artifacts:
+    paths:
+      - $CI_COMMIT_REF_SLUG
+    reports:
+      cobertura: $CI_COMMIT_REF_SLUG/coverage.xml
+
+publish_coverage:
+  stage: post
+  allow_failure: true
+  dependencies:
+    - odoo_test
+  script:
+    - deployvcmd gitlab_tools push_coverage
+  environment:
+    name: coverage
+    url: https://coverage.vauxoo.com/${CI_COMMIT_REF_SLUG}-${CI_PROJECT_NAME}
+
+odoo_warnings:
+  stage: post
+  allow_failure: true
+  dependencies:
+    - odoo_test
+  script:
+    - deployvcmd gitlab_tools check_log --logpath="./$CI_COMMIT_REF_SLUG"
+
+"""
+    created_mrs = obj.make_mr(
+        ["vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0", "vauxoo/villagroup@15.0"],
+        '.gitlab-ci.yml',
+        content,
+        "[DUMMY] testing feature (autocreated) vauxoo/gitlab_tools#80",
+        "Testing feature https://git.vauxoo.com/vauxoo/gitlab_tools/-/merge_requests/80",
+        "gitlabtoolsmr80-moy",
+    )
+    print("MRs created: %s" % '\n'.join(created_mrs))
