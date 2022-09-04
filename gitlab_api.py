@@ -241,6 +241,8 @@ class GitlabAPI(object):
         projects is a list of projects similar to ['vauxoo/addons@14.0']
         Use "gitlab_mr_template/" folder to make files changes in jinja2 format
         """
+        # TODO: Add export BASE_IMAGE="vauxoo/odoo-{{version.replace('.')}}-image" if not exists or different
+        # TODO: py.warnings for 14.0  # Add log-handler to silent py.warnings
         project_branches_dict = defaultdict(set)
         for project_branch in projects_branches:
             try:
@@ -283,6 +285,9 @@ class GitlabAPI(object):
                             for module in os.listdir(git_work_tree)
                             if os.path.isfile(os.path.join(git_work_tree, module, "__manifest__.py"))
                         ]
+                        if not tmpl_data["modules"]:
+                            print("MR creating skipped %s@%s no modules" % (project_name, branch.name))
+                            continue
                         tmpl_data["project"] = project_name.split('/')[1]
                         tmpl_data["version"] = branch.name
                         for fname_tmpl in self.jinja_env.list_templates():
