@@ -1,0 +1,56 @@
+image: quay.io/vauxoo/dockerv:latest
+stages:
+  - pre
+  - test
+  - post
+
+build_deployv:
+  stage: pre
+  tags:
+    - build
+  script:
+    - source variables.sh
+    - deployvcmd gitlab_tools check_keys
+    - pip install --no-deps --force-reinstall -U git+https://git.vauxoo.com/vauxoo-dev/gitlab_tools.git@testall-moy
+    - deployvcmd gitlab_tools build_image --push_image
+  artifacts:
+    paths:
+      - $CI_COMMIT_REF_NAME
+
+odoo_test:
+  stage: test
+  coverage: '/^TOTAL.*\s+(\d+(?:\.\d+)?\%)$/'
+  tags:
+    - build
+  dependencies:
+    - build_deployv
+  script:
+    - source variables.sh
+    - source $CI_COMMIT_REF_NAME/image_name.env
+    - deployvcmd gitlab_tools check_keys
+    - pip install --no-deps --force-reinstall -U git+https://git.vauxoo.com/vauxoo-dev/gitlab_tools.git@testall-moy
+    - deployvcmd gitlab_tools test_repo --allow_deprecated
+  artifacts:
+    paths:
+      - $CI_COMMIT_REF_SLUG
+    reports:
+      cobertura: $CI_COMMIT_REF_SLUG/coverage.xml
+
+publish_coverage:
+  stage: post
+  allow_failure: true
+  dependencies:
+    - odoo_test
+  script:
+    - deployvcmd gitlab_tools push_coverage
+  environment:
+    name: coverage
+    url: https://coverage.vauxoo.com/${CI_COMMIT_REF_SLUG}-${CI_PROJECT_NAME}
+
+odoo_warnings:
+  stage: post
+  allow_failure: true
+  dependencies:
+    - odoo_test
+  script:
+    - deployvcmd gitlab_tools check_log --logpath="./$CI_COMMIT_REF_SLUG"

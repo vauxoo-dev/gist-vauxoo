@@ -9,6 +9,8 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 
+import jinja2
+
 try:
     import gitlab
 except ImportError:
@@ -49,6 +51,8 @@ class GitlabAPI(object):
             gitlab.const.OWNER_ACCESS: 'owner',
         }
         self.access_level_name_code = {v: k for k, v in self.access_level_code_name.items()}
+        self.pydir = os.path.abspath(os.path.dirname(__file__))
+        self.mr_tmpl = os.path.join(self.pydir, "gitlab_mr_template")
 
     def get_mr_diff(self, project_name=None):
         project = self.gl.projects.get(project_name)
@@ -227,11 +231,11 @@ class GitlabAPI(object):
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
-    def make_mr(self, projects_branches, fname, content, title, description, branch_dev_name):
+    def make_mr(self, projects_branches, title, description, branch_dev_name):
         """Make a MR
         projects is a list of projects similar to ['vauxoo/addons@14.0']
+        Use "gitlab_mr_template/" folder to make files changes in jinja2 format
         """
-        # gitlab project-branch create [-h] [--sudo SUDO] --project-id PROJECT_ID --branch BRANCH --ref REF
         project_branches_dict = defaultdict(set)
         for project_branch in projects_branches:
             try:
@@ -239,50 +243,64 @@ class GitlabAPI(object):
             except ValueError:
                 raise UserWarning("You need to use the format ['OWNER/PROJECT@BRANCH']")
             project_branches_dict[project_str.strip()].add(branch_str.strip())
-        # TODO: Look for a way to search projects from API directly
         mrs = []
-        for project in self.gl.projects.list(iterator=True):
+        self.jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(self.mr_tmpl))
+        for project_str, branches_str in project_branches_dict.items():
+            project = self.gl.projects.get(project_str)
             project_name = project.path_with_namespace.lower().strip()
-            if project_name not in project_branches_dict:
-                continue
-            for branch in project.branches.list(iterator=True):
-                if branch.name.lower().strip() not in project_branches_dict[project_name]:
-                    continue
+            for branch_str in branches_str:
+                branch = project.branches.get(branch_str)
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     git_work_tree = os.path.join(tmp_dir, 'gitlab')
+                    git_cmd = [
+                        "git",
+                        "--git-dir=%s" % os.path.join(git_work_tree, ".git"),
+                        "--work-tree=%s" % git_work_tree,
+                    ]
                     try:
-                        git_cmd = [
-                            "git",
-                            "--git-dir=%s" % os.path.join(git_work_tree, ".git"),
-                            "--work-tree=%s" % git_work_tree,
-                        ]
                         cmd = [
                             "git",
                             "clone",
                             "--single-branch",
+                            "--dept=1",
                             "-b",
                             branch.name,
                             project.ssh_url_to_repo,
                             git_work_tree,
                         ]
                         subprocess.check_call(cmd)
-                        # TODO: test branch name? random? check if exists
-                        branch_dev_name = "%s-test" % branch_dev_name
-                        cmd = git_cmd + ["checkout", "-b", branch_dev_name]
+                        custom_branch_dev_name = "%s-%s" % (branch.name, branch_dev_name)
+                        cmd = git_cmd + ["checkout", "-b", custom_branch_dev_name]
                         subprocess.check_call(cmd)
-                        with open(os.path.join(git_work_tree, fname), "w") as fobj:
-                            # TODO: Render a jinja based on project data?
-                            fobj.write(content)
-                        cmd = git_cmd + ["commit", "-am", title]
+                        tmpl_data = {}
+                        tmpl_data["modules"] = [
+                            module
+                            for module in os.listdir(git_work_tree)
+                            if os.path.isfile(os.path.join(git_work_tree, module, "__manifest__.py"))
+                        ]
+                        tmpl_data["project"] = project_name.split('/')[1]
+                        tmpl_data["version"] = branch.name
+                        for fname_tmpl in self.jinja_env.list_templates():
+                            try:
+                                tmpl_data['self_file'] = open(os.path.join(git_work_tree, fname_tmpl)).read()
+                            except:
+                                tmpl_data['self_file'] = ""
+                            tmpl = self.jinja_env.get_template(fname_tmpl)
+                            content = tmpl.render(tmpl_data).strip("\n") + "\n"
+                            with open(os.path.join(git_work_tree, fname_tmpl), "w") as fobj:
+                                fobj.write(content)
+                            cmd = git_cmd + ["add", fname_tmpl]
+                            subprocess.check_call(cmd)
+                        custom_title = "%s - %s" % (branch.name, title)
+                        cmd = git_cmd + ["commit", "-m", custom_title]
                         subprocess.check_call(cmd)
-                        # TODO: push in dev
-                        cmd = git_cmd + ["push", "origin", branch_dev_name]
+                        cmd = git_cmd + ["push", "origin", custom_branch_dev_name]
                         subprocess.check_call(cmd)
                         mr = project.mergerequests.create(
                             {
-                                'source_branch': branch_dev_name,
+                                'source_branch': custom_branch_dev_name,
                                 'target_branch': branch.name,
-                                'title': title,
+                                'title': custom_title,
                                 'description': description,
                             }
                         )
@@ -290,7 +308,9 @@ class GitlabAPI(object):
                         mrs.append(mr.web_url)
                     except subprocess.CalledProcessError:
                         print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, ' '.join(cmd)))
-            return mrs
+                    except BaseException as e:
+                        print("MR creating error %s@%s err: %s" % (project_name, branch.name, e))
+        return mrs
 
 
 if __name__ == '__main__':
@@ -303,69 +323,25 @@ if __name__ == '__main__':
     # obj.delete_reporter_members('vauxoo')
     # obj.get_project_depends()
     # obj.get_project_variables()
-    content = r"""
-image: quay.io/vauxoo/dockerv:latest
-stages:
-  - pre
-  - test
-  - post
-
-build_deployv:
-  stage: pre
-  tags:
-    - build
-  script:
-    - source variables.sh
-    - deployvcmd gitlab_tools check_keys
-    - pip install --no-deps --force-reinstall -U git+https://git.vauxoo.com/vauxoo-dev/gitlab_tools.git@testall-moy
-    - deployvcmd gitlab_tools build_image --push_image
-  artifacts:
-    paths:
-      - $CI_COMMIT_REF_NAME
-
-odoo_test:
-  stage: test
-  coverage: '/^TOTAL.*\s+(\d+(?:\.\d+)?\%)$/'
-  tags:
-    - build
-  dependencies:
-    - build_deployv
-  script:
-    - source variables.sh
-    - source $CI_COMMIT_REF_NAME/image_name.env
-    - deployvcmd gitlab_tools check_keys
-    - pip install --no-deps --force-reinstall -U git+https://git.vauxoo.com/vauxoo-dev/gitlab_tools.git@testall-moy
-    - deployvcmd gitlab_tools test_repo --allow_deprecated
-  artifacts:
-    paths:
-      - $CI_COMMIT_REF_SLUG
-    reports:
-      cobertura: $CI_COMMIT_REF_SLUG/coverage.xml
-
-publish_coverage:
-  stage: post
-  allow_failure: true
-  dependencies:
-    - odoo_test
-  script:
-    - deployvcmd gitlab_tools push_coverage
-  environment:
-    name: coverage
-    url: https://coverage.vauxoo.com/${CI_COMMIT_REF_SLUG}-${CI_PROJECT_NAME}
-
-odoo_warnings:
-  stage: post
-  allow_failure: true
-  dependencies:
-    - odoo_test
-  script:
-    - deployvcmd gitlab_tools check_log --logpath="./$CI_COMMIT_REF_SLUG"
-
-"""
+    # projects_branches = ["vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0", "vauxoo/villagroup@15.0"]
+    projects_branches = [
+        "vauxoo/base-automation-python@13.0",
+        "vauxoo/costarica@13.0",
+        "vauxoo/costarica@14.0",
+        "vauxoo/demo-enterprise@13.0",
+        "vauxoo/ecuador@14.0",
+        "vauxoo/hr-advanced@13.0",
+        "vauxoo/hr-advanced@14.0",
+        "vauxoo/l10n-mx-electronic-accounting@13.0",
+        "vauxoo/l10n-mx-electronic-accounting@14.0",
+        "vauxoo/l10n-mx-payroll@14.0",
+        "vauxoo/mexico@13.0",
+        "vauxoo/mexico@14.0",
+        "vauxoo/vendor-bills@13.0",
+        "vauxoo/xunnel-account@13.0",
+    ]
     created_mrs = obj.make_mr(
-        ["vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0", "vauxoo/villagroup@15.0"],
-        '.gitlab-ci.yml',
-        content,
+        projects_branches,
         "[DUMMY] testing feature (autocreated) vauxoo/gitlab_tools#80",
         "Testing feature https://git.vauxoo.com/vauxoo/gitlab_tools/-/merge_requests/80",
         "gitlabtoolsmr80-moy",

@@ -1,0 +1,3 @@
+{{self_file}}{% if version == '15.0' and 'https://github.com/odoo/odoo/pull/98232.patch' not in self_file%}
+odoo https://github.com/odoo/odoo/pull/98232.patch
+{% endif %}
