@@ -7,6 +7,7 @@ from __future__ import print_function
 import csv
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from collections import defaultdict
@@ -323,44 +324,62 @@ class GitlabAPI(object):
                         print("MR creating error %s@%s err: %s" % (project_name, branch.name, e))
         return mrs
 
-    def get_pipeline_artifacts(self, group):
+    def get_pipeline_artifacts(self, group, branches, job_names, artifacts_fname="artifacts.zip"):
         """Download and unzip artifacts for group/project"""
         group = self.gitlab_api.groups.get(group)
         for project_group in group.projects.list(iterator=True):
-            project = self.gitlab_api.projects.get(project_group.path_with_namespace)
+            project = self.gitlab_api.projects.get(project_group.id)
             project_name = project.path_with_namespace.replace('/', '_')
-            for pipeline in project.pipelines.list(iterator=True):
-                for job in pipeline.jobs.list(iterator=True):
-                    for artifact_data in job.artifacts:
-                        fname_base = "%s_%s_%s" % (project_name, job.name, job.id)
-                        dirname = os.path.join(self.workdir, fname_base)
-                        fname = os.path.join(dirname, artifact_data['filename'])
-                        try:
-                            os.mkdir(dirname)
-                        except FileExistsError:  # pylint: disable=except-pass
-                            pass
-                        try:
-                            with open(fname, "wb") as fartifact:
-                                project.artifacts.download(
-                                    ref_name=job.ref,
-                                    job=job.name,
-                                    artifact_path=artifact_data['filename'],
-                                    streamed=True,
-                                    action=fartifact.write,
-                                )
-                            print("writed %s" % fname)
-                        except gitlab.exceptions.GitlabGetError:
-                            continue
-                            # TODO: Remove tree folder
-                        ext = os.path.splitext(fname)[1]
-                        if ext == '.zip':
-                            subprocess.check_call(["unzip", "-od", os.path.dirname(fname), fname])
-                            subprocess.check_call(["rm", fname])
-                            print("unziped %s" % fname)
-                        elif ext == '.gz':
-                            subprocess.check_call(["tar", "-x", "-C", os.path.dirname(fname), "-f", fname])
-                            subprocess.check_call(["rm", fname])
-                            print("untar %s" % fname)
+            visited = set()
+            branches2work = set()
+            for branch in branches:
+                try:
+                    project.branches.get(branch)
+                    branches2work.add(branch)
+                except gitlab.exceptions.GitlabGetError:
+                    continue
+            if not branches2work:
+                print("Not branches to work found %s" % project_name)
+                continue
+            for job in project.jobs.list(iterator=True):
+                if not branches2work - {branch for _, _, branch in visited}:
+                    print("All branches were processed")
+                    break
+                if job.ref not in branches or job.name not in job_names:
+                    continue
+                artifact_key = (project_name, job.name, job.ref)
+                if artifact_key in visited:
+                    # TODO: Get the last job of a particular branch
+                    continue
+                fname_base = "_".join(artifact_key + (str(job.id),)).replace('.', '_')
+                dirname = os.path.join(self.workdir, fname_base)
+                fname = os.path.join(dirname, artifacts_fname)
+                print("\nProcessing job: %s from %s" % (fname, job.web_url))
+                if os.path.isdir(dirname):
+                    print("...artifacts already downloaded")
+                    visited.add(artifact_key)
+                    continue
+                try:
+                    with tempfile.TemporaryDirectory() as tmp_dir:
+                        fname_tmp = os.path.join(tmp_dir, os.path.basename(fname))
+                        with open(fname_tmp, "wb") as fartifact:
+                            project.artifacts.download(
+                                ref_name=job.ref,
+                                job=job.name,
+                                artifact_path=artifacts_fname,
+                                streamed=True,
+                                action=fartifact.write,
+                            )
+                        if os.stat(fname_tmp).st_size == 0:
+                            raise UserWarning("Empty file")
+                        shutil.copytree(tmp_dir, dirname)
+                        print("writed %s" % fname)
+                except (gitlab.exceptions.GitlabGetError, UserWarning) as gle:
+                    print("Gitlab error %s: %s" % (fname, gle))
+                    continue
+                visited.add(artifact_key)
+        print("Now you can run the following command to unzip all the files: ")
+        print("find %s -name '*.zip' -type f -exec sh -c 'unzip -od `dirname {}` {} \"*odoo.log\"' ';'" % self.workdir)
 
 
 if __name__ == '__main__':
@@ -401,4 +420,4 @@ if __name__ == '__main__':
     # )
     # print("MRs created: %s" % '\n'.join(created_mrs))
 
-    obj.get_pipeline_artifacts("vauxoo")
+    obj.get_pipeline_artifacts("vauxoo", ["15.0", "14.0", "13.0", "12.0"], ["odoo", "odoo_test"])
