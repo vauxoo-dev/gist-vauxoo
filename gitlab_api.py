@@ -56,6 +56,11 @@ class GitlabAPI(object):
         self.access_level_name_code = {v: k for k, v in self.access_level_code_name.items()}
         self.pydir = os.path.abspath(os.path.dirname(__file__))
         self.mr_tmpl = os.path.join(self.pydir, "gitlab_mr_template")
+        self.workdir = 'gitlab_content'
+        try:
+            os.mkdir(self.workdir)
+        except FileExistsError:  # pylint: disable=except-pass
+            pass
 
     def get_mr_diff(self, project_name=None):
         project = self.gitlab_api.projects.get(project_name)
@@ -209,11 +214,6 @@ class GitlabAPI(object):
         if not branches:
             branches = ['16.0', '15.0', '14.0', '13.0', '12.0']
 
-        workdir = 'gitlab_content'
-        try:
-            os.mkdir(workdir)
-        except FileExistsError:  # pylint: disable=except-pass
-            pass
         for project in self.gitlab_api.projects.list(iterator=True):
             if project.path_with_namespace.split('/')[0].strip().endswith('-dev'):
                 # Filter "-dev" projects only stable ones
@@ -232,7 +232,7 @@ class GitlabAPI(object):
                     full_name = "%s_%s" % (project.path_with_namespace, branch.name)
                     for invalid_char in '@:/#.':
                         full_name = full_name.replace(invalid_char, '_')
-                    full_name = os.path.join(workdir, "%s_%s" % (full_name, branch_file.file_name))
+                    full_name = os.path.join(self.workdir, "%s_%s" % (full_name, branch_file.file_name))
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
@@ -323,6 +323,45 @@ class GitlabAPI(object):
                         print("MR creating error %s@%s err: %s" % (project_name, branch.name, e))
         return mrs
 
+    def get_pipeline_artifacts(self, group):
+        """Download and unzip artifacts for group/project"""
+        group = self.gitlab_api.groups.get(group)
+        for project_group in group.projects.list(iterator=True):
+            project = self.gitlab_api.projects.get(project_group.path_with_namespace)
+            project_name = project.path_with_namespace.replace('/', '_')
+            for pipeline in project.pipelines.list(iterator=True):
+                for job in pipeline.jobs.list(iterator=True):
+                    for artifact_data in job.artifacts:
+                        fname_base = "%s_%s_%s" % (project_name, job.name, job.id)
+                        dirname = os.path.join(self.workdir, fname_base)
+                        fname = os.path.join(dirname, artifact_data['filename'])
+                        try:
+                            os.mkdir(dirname)
+                        except FileExistsError:  # pylint: disable=except-pass
+                            pass
+                        try:
+                            with open(fname, "wb") as fartifact:
+                                project.artifacts.download(
+                                    ref_name=job.ref,
+                                    job=job.name,
+                                    artifact_path=artifact_data['filename'],
+                                    streamed=True,
+                                    action=fartifact.write,
+                                )
+                            print("writed %s" % fname)
+                        except gitlab.exceptions.GitlabGetError:
+                            continue
+                            # TODO: Remove tree folder
+                        ext = os.path.splitext(fname)[1]
+                        if ext == '.zip':
+                            subprocess.check_call(["unzip", "-od", os.path.dirname(fname), fname])
+                            subprocess.check_call(["rm", fname])
+                            print("unziped %s" % fname)
+                        elif ext == '.gz':
+                            subprocess.check_call(["tar", "-x", "-C", os.path.dirname(fname), "-f", fname])
+                            subprocess.check_call(["rm", fname])
+                            print("untar %s" % fname)
+
 
 if __name__ == '__main__':
     obj = GitlabAPI()
@@ -335,29 +374,31 @@ if __name__ == '__main__':
     # obj.get_project_depends()
     # obj.get_project_variables()
     # custom_projects_branches = ["vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0", "vauxoo/villagroup@15.0"]
-    custom_projects_branches = [
-        "vauxoo/base-automation-python@13.0",
-        "vauxoo/costarica@13.0",
-        "vauxoo/costarica@14.0",
-        "vauxoo/demo-enterprise@13.0",
-        "vauxoo/ecuador@14.0",
-        "vauxoo/hr-advanced@13.0",
-        "vauxoo/hr-advanced@14.0",
-        "vauxoo/l10n-mx-electronic-accounting@13.0",
-        "vauxoo/l10n-mx-electronic-accounting@14.0",
-        "vauxoo/l10n-mx-payroll@14.0",
-        "vauxoo/mexico@13.0",
-        "vauxoo/mexico@14.0",
-        "vauxoo/vendor-bills@13.0",
-        "vauxoo/xunnel-account@13.0",
-    ]
     # custom_projects_branches = [
-    #     "vauxoo/l10n-mx-electronic-accounting@14.0"
+    #     "vauxoo/base-automation-python@13.0",
+    #     "vauxoo/costarica@13.0",
+    #     "vauxoo/costarica@14.0",
+    #     "vauxoo/demo-enterprise@13.0",
+    #     "vauxoo/ecuador@14.0",
+    #     "vauxoo/hr-advanced@13.0",
+    #     "vauxoo/hr-advanced@14.0",
+    #     "vauxoo/l10n-mx-electronic-accounting@13.0",
+    #     "vauxoo/l10n-mx-electronic-accounting@14.0",
+    #     "vauxoo/l10n-mx-payroll@14.0",
+    #     "vauxoo/mexico@13.0",
+    #     "vauxoo/mexico@14.0",
+    #     "vauxoo/vendor-bills@13.0",
+    #     "vauxoo/xunnel-account@13.0",
     # ]
-    created_mrs = obj.make_mr(
-        custom_projects_branches,
-        "[DUMMY] testing feature (autocreated) vauxoo/gitlab_tools#80",
-        "Testing feature https://git.vauxoo.com/vauxoo/gitlab_tools/-/merge_requests/80",
-        "gitlabtoolsmr80-moy",
-    )
-    print("MRs created: %s" % '\n'.join(created_mrs))
+    # # custom_projects_branches = [
+    # #     "vauxoo/l10n-mx-electronic-accounting@14.0"
+    # # ]
+    # created_mrs = obj.make_mr(
+    #     custom_projects_branches,
+    #     "[DUMMY] testing feature (autocreated) vauxoo/gitlab_tools#80",
+    #     "Testing feature https://git.vauxoo.com/vauxoo/gitlab_tools/-/merge_requests/80",
+    #     "gitlabtoolsmr80-moy",
+    # )
+    # print("MRs created: %s" % '\n'.join(created_mrs))
+
+    obj.get_pipeline_artifacts("vauxoo")
