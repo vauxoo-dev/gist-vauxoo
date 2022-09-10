@@ -19,6 +19,7 @@ try:
     import gitlab
 except ImportError:
     print("Please, install pip install python-gitlab==3.9.0")
+    raise
 
 
 CFG = os.path.expanduser("~/.python-gitlab.cfg")
@@ -214,7 +215,7 @@ class GitlabAPI(object):
             fnames = ['variables.sh', '.gitlab-ci.yml']
         if not branches:
             branches = ['16.0', '15.0', '14.0', '13.0', '12.0']
-
+        print("Download files: %s\nfrom branches: %s\nto local path: ./%s" % (fnames, branches, self.workdir))
         for project in self.gitlab_api.projects.list(iterator=True):
             if project.path_with_namespace.split('/')[0].strip().endswith('-dev'):
                 # Filter "-dev" projects only stable ones
@@ -420,4 +421,5 @@ if __name__ == '__main__':
     # )
     # print("MRs created: %s" % '\n'.join(created_mrs))
 
-    obj.get_pipeline_artifacts("vauxoo", ["15.0", "14.0", "13.0", "12.0"], ["odoo", "odoo_test"])
+    # obj.get_pipeline_artifacts("vauxoo", ["15.0", "14.0", "13.0", "12.0"], ["odoo", "odoo_test"])
+    obj.get_project_files()
