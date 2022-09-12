@@ -44,12 +44,11 @@ if __name__ == '__main__':
     # obj.get_project_files()
 
     custom_projects_branches = [
-        "vauxoo/sbd@14.0",
-        # "vauxoo/tanner-common@15.0","vauxoo/villagroup@15.0","vauxoo/edicionesfiscales@15.0","vauxoo/mexico@15.0","vauxoo/trevly@15.0","vauxoo/instance@14.0",
+        "absa/absa@12.0", "vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0","vauxoo/villagroup@15.0","vauxoo/edicionesfiscales@15.0","vauxoo/mexico@15.0","vauxoo/trevly@15.0","vauxoo/instance@14.0",
     ]
     created_mrs = obj.make_mr(
         custom_projects_branches,
-        "[DUMMY] testing feature (autocreated) vauxoo/gitlab_tools#84",
-        "Testing feature https://git.vauxoo.com/vauxoo/gitlab_tools/-/merge_requests/84",
-        "gitlabtoolsmr84-moy",
+        "[REF] CI: Using new vx-ci (autocreated)",
+        "Migrating to new CI tool https://git.vauxoo.com/devops/vxci\n\nPart of https://git.vauxoo.com/devops/vxci/-/issues/7",
+        "vxci-moy",
     )
