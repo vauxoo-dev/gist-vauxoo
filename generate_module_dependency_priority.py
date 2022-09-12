@@ -16,9 +16,10 @@ for x in range(20):
         - module_base
     )
     current_level -= new_level
+    levels.append(current_level)
     if not new_level:
         break
-    levels.extend([current_level, new_level])
+    levels.append(new_level)
 
 # Exclude native modules from result
 native_modules = module_base.search([("author", "=", "Odoo S.A."), ("state", "=", "installed")])
