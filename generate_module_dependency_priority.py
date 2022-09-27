@@ -6,7 +6,7 @@
 module_base = env.ref("base.module_base")
 levels = [module_base]
 
-for x in range(20):
+for x in range(25):
     # Build up next level from current level's downstream dependencies (modules depending on these ones)
     # If some of the downstream dependencies are also present on this level, they're moved to the next one
     current_level = levels.pop()
@@ -22,7 +22,22 @@ for x in range(20):
     levels.append(new_level)
 
 # Exclude native modules from result
-native_modules = module_base.search([("author", "=", "Odoo S.A."), ("state", "=", "installed")])
+known_native_names = [
+    "l10n_ca",
+    "sale_subscription",
+    # Not actually native from Odoo, but we don't want it to be included
+    "web_environment_ribbon_isolated",
+]
+native_modules = module_base.search(
+    [
+        "|",
+        "|",
+        ("author", "in", ("Odoo S.A.", "Odoo")),
+        ("author", "like", "Odoo SA"),
+        ("name", "in", known_native_names),
+        ("state", "=", "installed"),
+    ]
+)
 levels_to_output = [level - native_modules for level in levels if level - native_modules]
 
 # Output the result as CSV
