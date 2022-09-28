@@ -1,0 +1,74 @@
+image: quay.io/vauxoo/dockerv:latest
+stages:
+  - pre
+  - test
+  - post
+
+precommit:
+  stage: pre
+  tags:
+    - lint
+  script:
+    - source variables.sh
+    - PRECOMMIT_HOOKS_TYPE=${PRECOMMIT_HOOKS_TYPE},-optional pre-commit-vauxoo
+
+precommit_optional:
+  stage: pre
+  allow_failure: true
+  tags:
+    - lint
+  script:
+    - pre-commit-vauxoo -t optional --fail-optional
+
+build_docker:
+  stage: pre
+  tags:
+    - build
+  script:
+    - source variables.sh
+    - vxci check_keys
+    - vxci build_image --push_image
+  artifacts:
+    paths:
+      - $CI_COMMIT_REF_SLUG
+
+odoo_test:
+  stage: test
+  tags:
+    - build
+  needs: ["build_docker"]
+  script:
+    - source variables.sh
+    - source $CI_COMMIT_REF_SLUG/image_name.env
+    - vxci check_keys
+    - vxci test_repo --allow_deprecated
+  artifacts:
+    when: always
+    paths:
+      - $CI_COMMIT_REF_SLUG
+
+publish_coverage:
+  stage: post
+  coverage: '/^TOTAL.*\s+(\d+(?:\.\d+)?\%)$/'
+  allow_failure: true
+  needs: ["odoo_test"]
+  script:
+    - source variables.sh
+    - source $CI_COMMIT_REF_SLUG/image_name.env
+    - vxci push_coverage_combine
+  artifacts:
+    when: always
+    paths:
+      - $CI_COMMIT_REF_SLUG
+    reports:
+      cobertura: $CI_COMMIT_REF_SLUG/coverage.xml
+  environment:
+    name: coverage
+    url: https://coverage.vauxoo.com/${CI_COMMIT_REF_SLUG}-${CI_PROJECT_NAME}
+
+odoo_warnings:
+  stage: post
+  allow_failure: true
+  needs: ["odoo_test"]
+  script:
+    - vxci check_log --logpath="./$CI_COMMIT_REF_SLUG"

@@ -43,12 +43,39 @@ if __name__ == '__main__':
     # obj.get_pipeline_artifacts("vauxoo", ["15.0", "14.0", "13.0", "12.0"], ["odoo", "odoo_test"])
     # obj.get_project_files()
 
+    # custom_projects_branches = [
+    #     "absa/absa@12.0", "vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0","vauxoo/villagroup@15.0","vauxoo/edicionesfiscales@15.0","vauxoo/mexico@15.0","vauxoo/trevly@15.0","vauxoo/instance@14.0",
+    # ]
+    # created_mrs = obj.make_mr(
+    #     custom_projects_branches,
+    #     "[REF] CI: Using new vx-ci (autocreated)",
+    #     "Migrating to new CI tool https://git.vauxoo.com/devops/vxci\n\nPart of https://git.vauxoo.com/devops/vxci/-/issues/7",
+    #     "vxci-moy",
+    # )
+
     custom_projects_branches = [
-        "absa/absa@12.0", "vauxoo/sbd@14.0", "vauxoo/tanner-common@15.0","vauxoo/villagroup@15.0","vauxoo/edicionesfiscales@15.0","vauxoo/mexico@15.0","vauxoo/trevly@15.0","vauxoo/instance@14.0",
+        # "absa/absa@12.0",
+        # "qualifirst/qualifirst@13.0",
+        # "vauxoo/account-customer-invoice-split-discount@14.0",
+        "vauxoo/bibo@15.0",
+        "vauxoo/budget@14.0",
+        "vauxoo/costarica@14.0",
+        "vauxoo/edicionesfiscales@15.0",
+        "vauxoo/instance@14.0",
+        "vauxoo/mexico@14.0",
+        "vauxoo/mexico@15.0",
+        "vauxoo/performanceair@15.0",
+        "vauxoo/samosol@15.0",
+        "vauxoo/sbd@14.0",
+        "vauxoo/sbdgroup@14.0",
+        "vauxoo/tanner-common@15.0",
+        "vauxoo/trevly@15.0",
+        "vauxoo/typ@14.0",
+        "vauxoo/villagroup@15.0",
     ]
     created_mrs = obj.make_mr(
         custom_projects_branches,
-        "[REF] CI: Using new vx-ci (autocreated)",
-        "Migrating to new CI tool https://git.vauxoo.com/devops/vxci\n\nPart of https://git.vauxoo.com/devops/vxci/-/issues/7",
-        "vxci-moy",
+        "[REF] CI: Update project-template (autocreated)",
+        "Now it is compatible with multiple pipelines with coverage combine",
+        "vxci-cvrg-combine-moy",
     )
