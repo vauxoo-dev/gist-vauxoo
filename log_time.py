@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import sys
-import re
-from datetime import datetime
-from collections import defaultdict
 
-THRESHOLD = 5
-DATETIME_FMT = '%Y-%m-%d %H:%M:%S'
-_re_log = r'(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)'
+import re
+import sys
+from collections import defaultdict
+from datetime import datetime
+
+THRESHOLD = 3
+DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
+_re_log = r"(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)"
 # _re_poll_log = r' (?P<date>\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\]|\[\d\d\/[A-Z][a-z][a-z]\/\d{4} \d\d:\d\d:\d\d\]) '
+_re_test = r"\((?P<class>(\w|\.)+)\)"
 
 dt2min = lambda current, last: (current - last).seconds / 60.0 if last and current and last != current else 0
+
 
 def remove_color(line):
     WHITE = "\x1b[1;49m"
@@ -28,7 +31,11 @@ first_line = None
 first_date = None
 last_date = None
 last_line = None
+current_test = None
+last_date_test = None
+last_class_name = None
 module_time = defaultdict(int)
+test_time = defaultdict(int)
 for line in open(sys.argv[1]):
     line = line.strip()
     # remove colors in the log
@@ -38,18 +45,45 @@ for line in open(sys.argv[1]):
         # print("no matching", line)
         continue
     date_data = date_re.groupdict()
-    current = datetime.strptime(date_data['date'], DATETIME_FMT)
+    current = datetime.strptime(date_data["date"], DATETIME_FMT)
+    if " test_" in line:
+        current_test = current
     if not first_date:
         first_date = current
         first_line = line
     minutes = dt2min(current, last_date)
-    module_time[date_data['module']] += minutes
+    module_time[date_data["module"]] += round(minutes, 2)
     if minutes > THRESHOLD:
         print("The following line:\n%s\nSpent %d minutes\n" % (last_line, minutes))
+
+    minutes_test = dt2min(current_test, last_date_test)
+    test_class = re.search(_re_test, line)
+    test_time[last_class_name] += round(minutes, 2)
+    if test_class:
+        last_class_name = test_class.groupdict()["class"]
+    if minutes_test > THRESHOLD:
+        print("The following test:\n%s\nSpent %d minutes\n" % (last_line, minutes_test))
     last_date = current
+    if " test_" in line:
+        last_date_test = last_date
     last_line = line
 print("\nFirst line:\n", first_line, "\nfirst date\n", first_date)
 print("\nLast line:\n", last_line, "\nlast_date\n", last_date)
 print("\nTotal time of the file: %d minutes" % (dt2min(last_date, first_date)))
 
-print("\nModule time %s" % {key: value for key, value in sorted(module_time.items(), key=lambda item: item[1], reverse=True) if value >= THRESHOLD})
+print(
+    "\nModule time %s"
+    % {
+        key: value
+        for key, value in sorted(module_time.items(), key=lambda item: item[1], reverse=True)
+        if value >= THRESHOLD
+    }
+)
+print(
+    "\nTest time %s"
+    % {
+        key: value
+        for key, value in sorted(test_time.items(), key=lambda item: item[1], reverse=True)
+        if value >= THRESHOLD
+    }
+)
