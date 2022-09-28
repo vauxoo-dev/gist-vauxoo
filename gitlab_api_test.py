@@ -53,29 +53,66 @@ if __name__ == '__main__':
     #     "vxci-moy",
     # )
 
-    custom_projects_branches = [
-        # "absa/absa@12.0",
-        # "qualifirst/qualifirst@13.0",
-        # "vauxoo/account-customer-invoice-split-discount@14.0",
-        "vauxoo/bibo@15.0",
-        "vauxoo/budget@14.0",
-        "vauxoo/costarica@14.0",
-        "vauxoo/edicionesfiscales@15.0",
-        "vauxoo/instance@14.0",
-        "vauxoo/mexico@14.0",
-        "vauxoo/mexico@15.0",
-        "vauxoo/performanceair@15.0",
-        "vauxoo/samosol@15.0",
-        "vauxoo/sbd@14.0",
-        "vauxoo/sbdgroup@14.0",
-        "vauxoo/tanner-common@15.0",
-        "vauxoo/trevly@15.0",
-        "vauxoo/typ@14.0",
-        "vauxoo/villagroup@15.0",
-    ]
-    created_mrs = obj.make_mr(
-        custom_projects_branches,
-        "[REF] CI: Update project-template (autocreated)",
-        "Now it is compatible with multiple pipelines with coverage combine",
-        "vxci-cvrg-combine-moy",
-    )
+    # custom_projects_branches = [
+    #     "absa/absa@12.0",
+    #     "qualifirst/qualifirst@13.0",
+    #     "vauxoo/account-customer-invoice-split-discount@14.0",
+    #     "vauxoo/bibo@15.0",
+    #     "vauxoo/budget@14.0",
+    #     "vauxoo/costarica@14.0",
+    #     "vauxoo/edicionesfiscales@15.0",
+    #     "vauxoo/instance@14.0",
+    #     "vauxoo/mexico@14.0",
+    #     "vauxoo/mexico@15.0",
+    #     "vauxoo/performanceair@15.0",
+    #     "vauxoo/samosol@15.0",
+    #     "vauxoo/sbd@14.0",
+    #     "vauxoo/sbdgroup@14.0",
+    #     "vauxoo/tanner-common@15.0",
+    #     "vauxoo/trevly@15.0",
+    #     "vauxoo/typ@14.0",
+    #     "vauxoo/villagroup@15.0",
+    # ]
+    # created_mrs = obj.make_mr(
+    #     custom_projects_branches,
+    #     "[REF] CI: Update project-template (autocreated)",
+    #     "Now it is compatible with multiple pipelines with coverage combine",
+    #     "vxci-cvrg-combine-moy",
+    # )
+
+    # custom_projects_branches = [
+    #     "absa/absa@12.0",
+    #     "qualifirst/qualifirst@13.0",
+    #     "vauxoo/account-customer-invoice-split-discount@14.0",
+    #     "vauxoo/bibo@15.0",
+    #     "vauxoo/budget@14.0",
+    #     "vauxoo/costarica@14.0",
+    #     "vauxoo/edicionesfiscales@15.0",
+    #     "vauxoo/instance@14.0",
+    #     "vauxoo/mexico@14.0",
+    #     "vauxoo/mexico@15.0",
+    #     "vauxoo/performanceair@15.0",
+    #     "vauxoo/samosol@15.0",
+    #     "vauxoo/sbd@14.0",
+    #     "vauxoo/sbdgroup@14.0",
+    #     "vauxoo/tanner-common@15.0",
+    #     "vauxoo/trevly@15.0",
+    #     "vauxoo/typ@14.0",
+    #     "vauxoo/villagroup@15.0",
+    # ]
+    # custom_projects_branches = [
+    #     "vauxoo/edicionesfiscales@15.0",
+    #     "vauxoo/samosol@15.0",
+    #     "vauxoo/tanner-common@15.0",
+    #     "vauxoo/trevly@15.0",
+    #     "vauxoo/villagroup@15.0",
+    #     "qualifirst/qualifirst@15.0",
+    # ]
+    # custom_projects_branches = [i for i in custom_projects_branches if i.endswith("@15.0")]
+    # print('\n'.join(custom_projects_branches))
+    # created_mrs = obj.make_mr(
+    #     custom_projects_branches,
+    #     "[REF] patches: Remove odoo/odoo#98232 patch (autocreated)",
+    #     "It was already fixed from https://github.com/odoo/odoo/pull/99829",
+    #     "patches-rm98232-moy",
+    # )

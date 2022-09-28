@@ -301,6 +301,8 @@ class GitlabAPI(object):
                                 tmpl_data['self_file'] = ""
                             tmpl = self.jinja_env.get_template(fname_tmpl)
                             content = tmpl.render(tmpl_data).strip("\n") + "\n"
+                            if len(content) == 1 and content == "\n":
+                                content = ""
                             with open(os.path.join(git_work_tree, fname_tmpl), "w") as fobj:
                                 fobj.write(content)
                             cmd = git_cmd + ["add", fname_tmpl]

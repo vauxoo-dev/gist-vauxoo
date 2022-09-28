@@ -1,0 +1,1 @@
+{{self_file.replace("odoo https://github.com/odoo/odoo/pull/98232.patch\n", "")}}
