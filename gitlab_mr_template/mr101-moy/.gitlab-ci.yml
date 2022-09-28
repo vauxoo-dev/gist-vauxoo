@@ -1,0 +1,1 @@
+{{self_file.replace("    - vxci push_coverage_combine\n", "    - vxci check_keys\n    - vxci push_coverage_combine\n")}}
