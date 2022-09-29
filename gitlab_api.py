@@ -235,6 +235,7 @@ class GitlabAPI(object):
                     for invalid_char in '@:/#.':
                         full_name = full_name.replace(invalid_char, '_')
                     full_name = os.path.join(self.workdir, "%s_%s" % (full_name, branch_file.file_name))
+                    print("Wrote file %s" % full_name)
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
@@ -322,6 +323,7 @@ class GitlabAPI(object):
                         )
                         print(mr.web_url)
                         mrs.append(mr.web_url)
+                        import pdb;pdb.set_trace()
                     except subprocess.CalledProcessError:
                         print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, ' '.join(cmd)))
                     except BaseException as e:
