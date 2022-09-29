@@ -1,3 +1,4 @@
+# pylint: disable=print-used
 import docker
 
 
@@ -8,8 +9,7 @@ images = cli.images.list()
 for i in images:
     try:
         # cli.remove_image(i.id)
-        print("Deleting docker image %s" % i) 
+        print("Deleting docker image %s" % i)
         cli.images.remove(i.id)
     except docker.errors.APIError as e:
         print("...image not deleted: %s" % e)
-        pass
