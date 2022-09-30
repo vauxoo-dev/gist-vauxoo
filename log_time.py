@@ -43,8 +43,6 @@ for line in open(sys.argv[1]):
         continue
     date_data = date_re.groupdict()
     current = datetime.strptime(date_data["date"], DATETIME_FMT)
-    if " test_" in line:
-        current_test = current
     if not first_date:
         first_date = current
         first_line = line
@@ -57,11 +55,7 @@ for line in open(sys.argv[1]):
     if test_line:
         test_line_data = test_line.groupdict()
         test_time[test_line_data["class"]] += float(test_line_data["time"]) / 60.0
-    if " Ran " in line:
-        print(line)
     last_date = current
-    if " test_" in line:
-        last_date_test = last_date
     last_line = line
 print("\nFirst line:\n", first_line, "\nfirst date\n", first_date)
 print("\nLast line:\n", last_line, "\nlast_date\n", last_date)
