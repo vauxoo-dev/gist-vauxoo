@@ -10,7 +10,8 @@ THRESHOLD = 3
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 _re_log = r"(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<session>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)"
 # _re_poll_log = r' (?P<date>\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\]|\[\d\d\/[A-Z][a-z][a-z]\/\d{4} \d\d:\d\d:\d\d\]) '
-_re_test = r"(?P<class>(\w|\.)+)\: Ran \d+ (test|tests) in (?P<time>(\d+.\d+))s"
+_re_test = r"((?P<class>(\w|\.)+)\: Ran \d+ (test|tests) in (?P<time>(\d+.\d+))s)"
+_re_test_140 = r"(\: Module (?P<class>(\w+)) loaded in \d+.\d+s \(incl\. (?P<time>(\d+.\d+))s test\))"
 
 dt2min = lambda current, last: (current - last).seconds / 60.0 if last and current and last != current else 0
 
@@ -51,7 +52,7 @@ for line in open(sys.argv[1]):
     if minutes > THRESHOLD:
         print("The following line:\n%s\nSpent %d minutes\n" % (last_line, minutes))
 
-    test_line = re.search(_re_test, line)
+    test_line = re.search(_re_test, line) or re.search(_re_test_140, line)
     if test_line:
         test_line_data = test_line.groupdict()
         test_time[test_line_data["class"]] += float(test_line_data["time"]) / 60.0
