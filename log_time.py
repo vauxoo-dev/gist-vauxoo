@@ -65,7 +65,7 @@ print("\nTotal time of the file: %d minutes" % (dt2min(last_date, first_date)))
 print(
     "\nModule time %s"
     % {
-        key: value
+        key: round(value, 2)
         for key, value in sorted(module_time.items(), key=lambda item: item[1], reverse=True)
         if value >= THRESHOLD
     }
@@ -73,7 +73,7 @@ print(
 print(
     "\nTest time %s"
     % {
-        key: value
+        key: round(value, 2)
         for key, value in sorted(test_time.items(), key=lambda item: item[1], reverse=True)
         if value >= THRESHOLD
     }
