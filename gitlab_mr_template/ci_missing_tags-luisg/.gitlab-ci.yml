@@ -1,0 +1,10 @@
+{%- set lines = self_file.splitlines() %}
+{%- set odoo_tag = lines.index("  stage: test") +2 %}
+{%- set _ = lines.__setitem__(odoo_tag, lines[odoo_tag].replace("- build", "- odoo")) %}
+{%- for job in ("publish_coverage", "odoo_warnings") %}
+    {%- set job_tags = lines.index("%s:" % job) +3 %}
+    {%- if "tags:" not in lines[job_tags] %}
+        {%- set _ = lines.insert(job_tags, "  tags:\n    - build")  %}
+    {%- endif %}
+{%- endfor %}
+{{ "\n".join(lines) }}
