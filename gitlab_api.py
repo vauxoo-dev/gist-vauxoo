@@ -17,6 +17,7 @@ import jinja2
 
 try:
     import gitlab
+    from gitlab.exceptions import GitlabGetError
 except ImportError:
     print("Please, install pip install python-gitlab==3.9.0")
     raise
@@ -229,7 +230,7 @@ class GitlabAPI(object):
                 for fname in fnames:
                     try:
                         branch_file = project.files.get(fname, branch.commit['id'])
-                    except gitlab.exceptions.GitlabGetError:
+                    except GitlabGetError:
                         continue
                     full_name = "%s_%s" % (project.path_with_namespace, branch.name)
                     for invalid_char in '@:/#.':
@@ -239,13 +240,16 @@ class GitlabAPI(object):
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
-    def make_mr(self, projects_branches, title, description, branch_dev_name):
+    def make_mr(self, projects_branches, commit_msg, branch_dev_name, task_id=None, prefix_version=True):
         """Make a MR
         projects is a list of projects similar to ['vauxoo/addons@14.0']
         Use "gitlab_mr_template/" folder to make files changes in jinja2 format
         """
         # TODO: Add export BASE_IMAGE="vauxoo/odoo-{{version.replace('.')}}-image" if not exists or different
         # TODO: py.warnings for 14.0  # Add log-handler to silent py.warnings
+        commit_msg = commit_msg.strip()
+        title, _newline, description = commit_msg.partition("\n")
+        description = description.strip()
         project_branches_dict = defaultdict(set)
         for project_branch in projects_branches:
             try:
@@ -259,8 +263,16 @@ class GitlabAPI(object):
             print("Processing project %s" % project_str)
             project = self.gitlab_api.projects.get(project_str)
             project_name = project.path_with_namespace.lower().strip()
+            project_dev_str = project_str.replace("/", "-dev/", 1)
+            try:
+                project_dev = self.gitlab_api.projects.get(project_dev_str)
+            except GitlabGetError:
+                print("Project %s has no -dev branch, using same project to push dev branch" % project_name)
+                project_dev = project
             for branch_str in branches_str:
                 branch = project.branches.get(branch_str)
+                custom_branch_dev_name = "%s-%s" % (branch.name, branch_dev_name)
+                branch_dev = project_dev.branches.create({"branch": custom_branch_dev_name, "ref": branch.commit["id"]})
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     git_work_tree = os.path.join(tmp_dir, 'gitlab')
                     git_cmd = [
@@ -275,13 +287,10 @@ class GitlabAPI(object):
                             "--single-branch",
                             "--dept=1",
                             "-b",
-                            branch.name,
-                            project.ssh_url_to_repo,
+                            branch_dev.name,
+                            project_dev.ssh_url_to_repo,
                             git_work_tree,
                         ]
-                        subprocess.check_call(cmd)
-                        custom_branch_dev_name = "%s-%s" % (branch.name, branch_dev_name)
-                        cmd = git_cmd + ["checkout", "-b", custom_branch_dev_name]
                         subprocess.check_call(cmd)
                         tmpl_data = {}
                         tmpl_data["modules"] = [
@@ -308,17 +317,21 @@ class GitlabAPI(object):
                                 fobj.write(content)
                             cmd = git_cmd + ["add", fname_tmpl]
                             subprocess.check_call(cmd)
-                        custom_title = "%s - %s" % (branch.name, title)
-                        cmd = git_cmd + ["commit", "-m", custom_title]
+                        cmd = git_cmd + ["commit", "-m", commit_msg]
                         subprocess.check_call(cmd)
                         cmd = git_cmd + ["push", "origin", "-f", custom_branch_dev_name]
                         subprocess.check_call(cmd)
-                        mr = project.mergerequests.create(
+                        mr_title = "%s - %s" % (branch.name, title) if prefix_version else title
+                        if task_id:
+                            mr_title += " t#%s" % task_id
+                        mr = project_dev.mergerequests.create(
                             {
-                                'source_branch': custom_branch_dev_name,
+                                'target_project_id': project.id,
+                                'source_branch': branch_dev.name,
                                 'target_branch': branch.name,
-                                'title': custom_title,
+                                'title': mr_title,
                                 'description': description,
+                                'remove_source_branch': True,
                             }
                         )
                         print(mr.web_url)
