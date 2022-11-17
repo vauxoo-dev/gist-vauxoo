@@ -296,6 +296,11 @@ class GitlabAPI:
             for branch_str in branches_str:
                 branch = project.branches.get(branch_str)
                 custom_branch_dev_name = "%s-%s" % (branch.name, branch_dev_name)
+                try:
+                    branch_dev = project_dev.branches.get(custom_branch_dev_name)
+                    branch_dev.delete()
+                except (gitlab.exceptions.GitlabGetError, gitlab.exceptions.GitlabHttpError):
+                    pass
                 branch_dev = project_dev.branches.create(
                     {"branch": custom_branch_dev_name, "ref": branch.commit["id"]}
                 )
@@ -343,15 +348,18 @@ class GitlabAPI:
                             os.makedirs(os.path.dirname(fname_out), exist_ok=True)
                             with open(fname_out, "w") as fobj:
                                 fobj.write(content)
+                            cmd = git_cmd + ["add", fname_tmpl]
+                            subprocess.check_call(cmd)
                         if run_pre_commit_vauxoo:
                             if not pcv_cli:
                                 raise ValueError("Please, install pip install pre-commit-vauxoo")
                             # Use py3.6 to match with dockerv image
                             with chdir(git_work_tree):
                                 pcv_cli.main()
-                        diff = subprocess.check_output(
-                            git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
-                        ).strip(b"\n ")[:1]
+                        git_cmd_diff = git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
+                        diff = subprocess.check_output(git_cmd_diff).strip(b"\n ")[:1]
+                        diff += subprocess.check_output(git_cmd_diff + ["--cached"]).strip(b"\n ")[:1]
+                        # import pdb;pdb.set_trace()
                         if not diff:
                             continue
                         cmd = git_cmd + ["commit", "-am", commit_msg]
