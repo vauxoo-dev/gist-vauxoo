@@ -163,7 +163,7 @@ if __name__ == '__main__':
     # obj.get_project_files()
     created_mrs = obj.make_mr(
         custom_projects_branches,
-        "[REF] autofixes: Apply future autofixes",
+        "[REF] autofixes: Apply future autofixes\n"
         "Autofixes new version are creating changes",
         "autofixes-moy",
         run_pre_commit_vauxoo=True,
