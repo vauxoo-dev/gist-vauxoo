@@ -254,7 +254,7 @@ class GitlabAPI:
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
-    def make_mr(
+    def make_mr(  # pylint:disable=too-complex
         self,
         projects_branches,
         commit_msg,
@@ -345,8 +345,7 @@ class GitlabAPI:
                                 fobj.write(content)
                         if run_pre_commit_vauxoo:
                             if not pcv_cli:
-                                print("Please, install pip install pre-commit-vauxoo")
-                                raise
+                                raise ValueError("Please, install pip install pre-commit-vauxoo")
                             # Use py3.6 to match with dockerv image
                             with chdir(tmp_dir):
                                 pcv_cli.main()
