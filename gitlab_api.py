@@ -2,8 +2,7 @@
 
 # pylint: disable=print-used,useless-object-inheritance
 # TODO: Use logging
-from __future__ import print_function
-
+from click.testing import CliRunner
 import csv
 import os
 import re
@@ -11,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import datetime
 
 import jinja2
@@ -22,11 +22,25 @@ except ImportError:
     print("Please, install pip install python-gitlab==3.9.0")
     raise
 
+try:
+    from pre_commit_vauxoo import cli as pcv_cli
+except ImportError:
+    pcv_cli = None
 
 CFG = os.path.expanduser("~/.python-gitlab.cfg")
 
 
-class GitlabAPI(object):
+@contextmanager
+def chdir(directory):
+    original_dir = os.getcwd()
+    try:
+        os.chdir(directory)
+        yield
+    finally:
+        os.chdir(original_dir)
+
+
+class GitlabAPI:
     """Custom functions using python-gitlab API
 
         In order to use the API you need to have a config file in your $HOME, you can find an example here:
@@ -48,18 +62,18 @@ class GitlabAPI(object):
     """
 
     def __init__(self):
-        self.gitlab_api = gitlab.Gitlab.from_config('default', [CFG])
+        self.gitlab_api = gitlab.Gitlab.from_config("default", [CFG])
         self.access_level_code_name = {
-            gitlab.const.GUEST_ACCESS: 'guest',
-            gitlab.const.REPORTER_ACCESS: 'reporter',
-            gitlab.const.DEVELOPER_ACCESS: 'developer',
-            gitlab.const.MAINTAINER_ACCESS: 'maintainer',
-            gitlab.const.OWNER_ACCESS: 'owner',
+            gitlab.const.GUEST_ACCESS: "guest",
+            gitlab.const.REPORTER_ACCESS: "reporter",
+            gitlab.const.DEVELOPER_ACCESS: "developer",
+            gitlab.const.MAINTAINER_ACCESS: "maintainer",
+            gitlab.const.OWNER_ACCESS: "owner",
         }
         self.access_level_name_code = {v: k for k, v in self.access_level_code_name.items()}
         self.pydir = os.path.abspath(os.path.dirname(__file__))
         self.mr_tmpl = os.path.join(self.pydir, "gitlab_mr_template")
-        self.workdir = 'gitlab_content'
+        self.workdir = "gitlab_content"
         try:
             os.mkdir(self.workdir)
         except FileExistsError:  # pylint: disable=except-pass
@@ -74,8 +88,8 @@ class GitlabAPI(object):
             # diffs = mr.diffs.list()
             # print(diffs)
             # print(dir(mr))
-            for change in mr.changes()['changes']:
-                print(change['diff'])
+            for change in mr.changes()["changes"]:
+                print(change["diff"])
             # pylint: disable=pointless-string-statement
             """
             for diff in diffs:
@@ -112,7 +126,7 @@ class GitlabAPI(object):
                            gitlab api will run "vauxoo_group1/project1.delete(member_juan)" too
                           """
         )
-        reporter_members = self.get_members_grouped_by_access_level(group_id).get('reporter', [])
+        reporter_members = self.get_members_grouped_by_access_level(group_id).get("reporter", [])
         for member in reporter_members:
             print("Deleting: <%s> %s" % (member.name, member.username))
             member.delete()
@@ -124,11 +138,11 @@ class GitlabAPI(object):
 
     def get_basic_user_data(self, user):
         return {
-            'id': user.id,
-            'name': user.name,
-            'username': user.username,
-            'state': user.state,
-            'email': user.email,
+            "id": user.id,
+            "name": user.name,
+            "username": user.username,
+            "state": user.state,
+            "email": user.email,
         }
 
     def get_users(self, email_domain=None):
@@ -145,55 +159,55 @@ class GitlabAPI(object):
         if not project_id:
             return
 
-        task_label_pattern = re.compile(r'(task|t|vx|issue|i|us|hu)[# | -]?\d+', re.IGNORECASE)
-        numbers_regex = re.compile(r'\d+')
-        task_url_tmpl = 'https://www.vauxoo.com/web#id=%s&model=%s&view_type=form'
+        task_label_pattern = re.compile(r"(task|t|vx|issue|i|us|hu)[# | -]?\d+", re.IGNORECASE)
+        numbers_regex = re.compile(r"\d+")
+        task_url_tmpl = "https://www.vauxoo.com/web#id=%s&model=%s&view_type=form"
 
         project = self.gitlab_api.projects.get(project_id)
-        mrs = project.mergerequests.list(state='all', scope='all', all=True)
+        mrs = project.mergerequests.list(state="all", scope="all", all=True)
 
-        csv_name = '%s_mrs_%s%s' % (project.name, datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), '.csv')
-        with open(csv_name, 'w+', newline='') as csv_file:
+        csv_name = "%s_mrs_%s%s" % (project.name, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), ".csv")
+        with open(csv_name, "w+", newline="") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
                 [
-                    '# de MR',
-                    'URL del MR',
-                    'Nombre de persona asignada',
-                    'Título',
-                    'Tarea',
-                    'URL de la tarea',
-                    'Estado',
-                    'Etiquetas',
-                    'Fecha de creación',
-                    'Fecha de última actualización',
-                    'Fecha de mezcla',
+                    "# de MR",
+                    "URL del MR",
+                    "Nombre de persona asignada",
+                    "Título",
+                    "Tarea",
+                    "URL de la tarea",
+                    "Estado",
+                    "Etiquetas",
+                    "Fecha de creación",
+                    "Fecha de última actualización",
+                    "Fecha de mezcla",
                 ]
             )
 
             for mr in mrs:
                 task_label = task_label_pattern.search(mr.title)
-                task_id = ''
-                task_url = ''
+                task_id = ""
+                task_url = ""
 
                 if task_label:
                     task_id = task_label[0]
                     task_type = task_label[1]
 
-                    if task_type in ('task', 't'):
-                        model = 'project.task'
+                    if task_type in ("task", "t"):
+                        model = "project.task"
                     else:
-                        model = 'helpdesk.ticket'
+                        model = "helpdesk.ticket"
 
                     task_url = task_url_tmpl % (numbers_regex.search(task_id)[0], model)
 
-                merge_date = mr.merged_at[:10] if mr.merged_at else ''
+                merge_date = mr.merged_at[:10] if mr.merged_at else ""
 
                 writer.writerow(
                     [
                         mr.iid,
                         mr.web_url,
-                        mr.author['name'],
+                        mr.author["name"],
                         mr.title,
                         task_id,
                         task_url,
@@ -213,12 +227,12 @@ class GitlabAPI(object):
         grep -rn "INCLUDE\|EXCLUDE" vauxoo\_* jarsa\_* |sort | grep -v COVERAGE
         """
         if not fnames:
-            fnames = ['variables.sh', '.gitlab-ci.yml']
+            fnames = ["variables.sh", ".gitlab-ci.yml"]
         if not branches:
-            branches = ['16.0', '15.0', '14.0', '13.0', '12.0']
+            branches = ["16.0", "15.0", "14.0", "13.0", "12.0"]
         print("Download files: %s\nfrom branches: %s\nto local path: ./%s" % (fnames, branches, self.workdir))
         for project in self.gitlab_api.projects.list(iterator=True):
-            if project.path_with_namespace.split('/')[0].strip().endswith('-dev'):
+            if project.path_with_namespace.split("/")[0].strip().endswith("-dev"):
                 # Filter "-dev" projects only stable ones
                 continue
             # TODO: Get file from branch (currently it is only from project)
@@ -229,18 +243,26 @@ class GitlabAPI(object):
                     continue
                 for fname in fnames:
                     try:
-                        branch_file = project.files.get(fname, branch.commit['id'])
+                        branch_file = project.files.get(fname, branch.commit["id"])
                     except GitlabGetError:
                         continue
                     full_name = "%s_%s" % (project.path_with_namespace, branch.name)
-                    for invalid_char in '@:/#.':
-                        full_name = full_name.replace(invalid_char, '_')
+                    for invalid_char in "@:/#.":
+                        full_name = full_name.replace(invalid_char, "_")
                     full_name = os.path.join(self.workdir, "%s_%s" % (full_name, branch_file.file_name))
                     print("Wrote file %s" % full_name)
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
-    def make_mr(self, projects_branches, commit_msg, branch_dev_name, task_id=None, prefix_version=True):
+    def make_mr(  # pylint:disable=too-complex
+        self,
+        projects_branches,
+        commit_msg,
+        branch_dev_name,
+        task_id=None,
+        prefix_version=True,
+        run_pre_commit_vauxoo=False,
+    ):
         """Make a MR
         projects is a list of projects similar to ['vauxoo/addons@14.0']
         Use "gitlab_mr_template/" folder to make files changes in jinja2 format
@@ -253,12 +275,14 @@ class GitlabAPI(object):
         project_branches_dict = defaultdict(set)
         for project_branch in projects_branches:
             try:
-                project_str, branch_str = project_branch.lower().strip().split('@')
+                project_str, branch_str = project_branch.lower().strip().split("@")
             except ValueError:
                 raise UserWarning("You need to use the format ['OWNER/PROJECT@BRANCH']")
             project_branches_dict[project_str.strip()].add(branch_str.strip())
         mrs = []
-        self.jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.join(self.mr_tmpl, branch_dev_name)))
+        self.jinja_env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(os.path.join(self.mr_tmpl, branch_dev_name)), autoescape=True
+        )
         for project_str, branches_str in project_branches_dict.items():
             print("Processing project %s" % project_str)
             project = self.gitlab_api.projects.get(project_str)
@@ -272,9 +296,16 @@ class GitlabAPI(object):
             for branch_str in branches_str:
                 branch = project.branches.get(branch_str)
                 custom_branch_dev_name = "%s-%s" % (branch.name, branch_dev_name)
-                branch_dev = project_dev.branches.create({"branch": custom_branch_dev_name, "ref": branch.commit["id"]})
+                try:
+                    branch_dev = project_dev.branches.get(custom_branch_dev_name)
+                    branch_dev.delete()
+                except (gitlab.exceptions.GitlabGetError, gitlab.exceptions.GitlabHttpError):
+                    pass
+                branch_dev = project_dev.branches.create(
+                    {"branch": custom_branch_dev_name, "ref": branch.commit["id"]}
+                )
                 with tempfile.TemporaryDirectory() as tmp_dir:
-                    git_work_tree = os.path.join(tmp_dir, 'gitlab')
+                    git_work_tree = os.path.join(tmp_dir, "gitlab")
                     git_cmd = [
                         "git",
                         "--git-dir=%s" % os.path.join(git_work_tree, ".git"),
@@ -301,14 +332,14 @@ class GitlabAPI(object):
                         if not tmpl_data["modules"]:
                             print("MR creating skipped %s@%s no modules" % (project_name, branch.name))
                             continue
-                        tmpl_data["project"] = project_name.split('/')[1]
+                        tmpl_data["project"] = project_name.split("/")[1]
                         tmpl_data["version"] = branch.name
                         for fname_tmpl in self.jinja_env.list_templates():
                             try:
                                 with open(os.path.join(git_work_tree, fname_tmpl)) as sf_obj:
-                                    tmpl_data['self_file'] = sf_obj.read()
+                                    tmpl_data["self_file"] = sf_obj.read()
                             except BaseException:
-                                tmpl_data['self_file'] = ""
+                                tmpl_data["self_file"] = ""
                             tmpl = self.jinja_env.get_template(fname_tmpl)
                             content = tmpl.render(tmpl_data).strip("\n") + "\n"
                             if len(content) == 1 and content == "\n":
@@ -319,7 +350,22 @@ class GitlabAPI(object):
                                 fobj.write(content)
                             cmd = git_cmd + ["add", fname_tmpl]
                             subprocess.check_call(cmd)
-                        cmd = git_cmd + ["commit", "-m", commit_msg]
+                        if run_pre_commit_vauxoo:
+                            if not pcv_cli:
+                                raise ValueError("Please, install pip install pre-commit-vauxoo")
+                            # Use py3.8.10 to match with dockerv image
+                            with chdir(git_work_tree):
+                                runner = CliRunner()
+                                runner.invoke(pcv_cli.main, [])
+                        git_cmd_diff = git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
+                        diff = subprocess.check_output(git_cmd_diff).strip(b"\n ")[:1]
+                        diff += subprocess.check_output(git_cmd_diff + ["--cached"]).strip(b"\n ")[:1]
+                        if not diff:
+                            branch_dev.delete()
+                            print("Skip: diff empty")
+                            continue
+                        # import pdb;pdb.set_trace()
+                        cmd = git_cmd + ["commit", "-am", commit_msg]
                         subprocess.check_call(cmd)
                         cmd = git_cmd + ["push", "origin", "-f", custom_branch_dev_name]
                         subprocess.check_call(cmd)
@@ -328,19 +374,18 @@ class GitlabAPI(object):
                             mr_title += " t#%s" % task_id
                         mr = project_dev.mergerequests.create(
                             {
-                                'target_project_id': project.id,
-                                'source_branch': branch_dev.name,
-                                'target_branch': branch.name,
-                                'title': mr_title,
-                                'description': description,
-                                'remove_source_branch': True,
+                                "target_project_id": project.id,
+                                "source_branch": branch_dev.name,
+                                "target_branch": branch.name,
+                                "title": mr_title,
+                                "description": description,
+                                "remove_source_branch": True,
                             }
                         )
                         print(mr.web_url)
                         mrs.append(mr.web_url)
-                        import pdb;pdb.set_trace()
                     except subprocess.CalledProcessError:
-                        print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, ' '.join(cmd)))
+                        print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, " ".join(cmd)))
                     except BaseException as e:
                         print("MR creating error %s@%s err: %s" % (project_name, branch.name, e))
         return mrs
@@ -350,7 +395,7 @@ class GitlabAPI(object):
         group = self.gitlab_api.groups.get(group)
         for project_group in group.projects.list(iterator=True):
             project = self.gitlab_api.projects.get(project_group.id)
-            project_name = project.path_with_namespace.replace('/', '_')
+            project_name = project.path_with_namespace.replace("/", "_")
             visited = set()
             branches2work = set()
             for branch in branches:
@@ -372,7 +417,7 @@ class GitlabAPI(object):
                 if artifact_key in visited:
                     # TODO: Get the last job of a particular branch
                     continue
-                fname_base = "_".join(artifact_key + (str(job.id),)).replace('.', '_')
+                fname_base = "_".join(artifact_key + (str(job.id),)).replace(".", "_")
                 dirname = os.path.join(self.workdir, fname_base)
                 fname = os.path.join(dirname, artifacts_fname)
                 print("\nProcessing job: %s from %s" % (fname, job.web_url))
