@@ -123,4 +123,49 @@ if __name__ == '__main__':
     #     "mr101-moy",
     # )
     # print("Created MRs:\n%s" % '\n'.join(created_mrs))
-    obj.get_project_files()
+    custom_projects_branches = [
+        # "ircodoo/ircanada@14.0",
+        "mexico/l10n-mx-edi-hr-expense@16.0",
+        "qualifirst/qualifirst@13.0",
+        "qualifirst/qualifirst@15.0",
+        "vauxoo/account-customer-invoice-split-discount@14.0",
+        "vauxoo/addons-vauxoo@15.0",
+        "vauxoo/bantracking@16.0",
+        "vauxoo/bibo@15.0",
+        "vauxoo/budget@14.0",
+        "vauxoo/cutting@15.0",
+        "vauxoo/difacza@15.0",
+        "vauxoo/edicionesfiscales@15.0",
+        "vauxoo/facerindustrial@15.0",
+        "vauxoo/honduras@15.0",
+        "vauxoo/icm@15.0",
+        "vauxoo/imesa@15.0",
+        "vauxoo/instance@14.0",
+        "vauxoo/l10n-mx-edi-40@13.0",
+        "vauxoo/l10n-mx-payroll@14.0",
+        "vauxoo/mexico-document@15.0",
+        "vauxoo/nortenas@12.0",
+        "vauxoo/opencfdi-server@15.0",
+        "vauxoo/performance@12.0",
+        "vauxoo/performance@14.0",
+        "vauxoo/performance@15.0",
+        "vauxoo/performanceair@15.0",
+        "vauxoo/psadurango@15.0",
+        "vauxoo/python-jasper-report@12.0",
+        "vauxoo/samosol@15.0",
+        "vauxoo/sbd@14.0",
+        "vauxoo/sbdgroup@14.0",
+        "vauxoo/tanner-common@15.0",
+        "vauxoo/tanner@15.0",
+        "vauxoo/trevly@15.0",
+        "vauxoo/typ@14.0",
+    ]
+    # obj.get_project_files()
+    created_mrs = obj.make_mr(
+        custom_projects_branches,
+        "[REF] autofixes: Apply future autofixes",
+        "Autofixes new version are creating changes",
+        "autofixes-moy",
+        run_pre_commit_vauxoo=True,
+    )
+    print("MRs created: %s" % '\n'.join(created_mrs))

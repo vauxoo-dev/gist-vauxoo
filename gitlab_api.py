@@ -347,11 +347,11 @@ class GitlabAPI:
                             if not pcv_cli:
                                 raise ValueError("Please, install pip install pre-commit-vauxoo")
                             # Use py3.6 to match with dockerv image
-                            with chdir(tmp_dir):
+                            with chdir(git_work_tree):
                                 pcv_cli.main()
                         diff = subprocess.check_output(
                             git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
-                        ).strip("\n ")[:1]
+                        ).strip(b"\n ")[:1]
                         if not diff:
                             continue
                         cmd = git_cmd + ["commit", "-am", commit_msg]
