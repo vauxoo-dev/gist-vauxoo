@@ -313,7 +313,9 @@ class GitlabAPI(object):
                             content = tmpl.render(tmpl_data).strip("\n") + "\n"
                             if len(content) == 1 and content == "\n":
                                 content = ""
-                            with open(os.path.join(git_work_tree, fname_tmpl), "w") as fobj:
+                            fname_out = os.path.join(git_work_tree, fname_tmpl)
+                            os.makedirs(os.path.dirname(fname_out), exist_ok=True)
+                            with open(fname_out, "w") as fobj:
                                 fobj.write(content)
                             cmd = git_cmd + ["add", fname_tmpl]
                             subprocess.check_call(cmd)
