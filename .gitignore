@@ -89,3 +89,17 @@ docs/_build/
 # Backup files
 *~
 *.swp
+
+# pre-commit-vauxoo
+.bandit*
+.config/
+.editorconfig
+.eslintrc*
+.flake8*
+.isort.cfg
+.pre-commit*.yaml
+.prettierrc.yml
+.pylintrc*
+bandit*.yaml
+doc8.ini
+pyproject.toml
