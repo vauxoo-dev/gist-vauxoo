@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from datetime import datetime
+from contextlib import contextmanager
 
 import jinja2
 
@@ -24,6 +25,16 @@ except ImportError:
 
 
 CFG = os.path.expanduser("~/.python-gitlab.cfg")
+
+
+@contextmanager
+def chdir(directory):
+    original_dir = os.getcwd()
+    try:
+        os.chdir(directory)
+        yield
+    finally:
+        os.chdir(original_dir)
 
 
 class GitlabAPI(object):
@@ -240,7 +251,7 @@ class GitlabAPI(object):
                     with open(full_name, "wb") as fobj:
                         fobj.write(branch_file.decode())
 
-    def make_mr(self, projects_branches, commit_msg, branch_dev_name, task_id=None, prefix_version=True):
+    def make_mr(self, projects_branches, commit_msg, branch_dev_name, task_id=None, prefix_version=True, run_pre_commit_vauxoo=False):
         """Make a MR
         projects is a list of projects similar to ['vauxoo/addons@14.0']
         Use "gitlab_mr_template/" folder to make files changes in jinja2 format
@@ -319,7 +330,12 @@ class GitlabAPI(object):
                                 fobj.write(content)
                             cmd = git_cmd + ["add", fname_tmpl]
                             subprocess.check_call(cmd)
-                        cmd = git_cmd + ["commit", "-m", commit_msg]
+                        if run_pre_commit_vauxoo:
+                            from pre_commit_vauxoo import cli
+                            with chdir(tmp_dir):
+                                cli.main()
+                        # TODO: Check if there are diff
+                        cmd = git_cmd + ["commit", "-am", commit_msg]
                         subprocess.check_call(cmd)
                         cmd = git_cmd + ["push", "origin", "-f", custom_branch_dev_name]
                         subprocess.check_call(cmd)
