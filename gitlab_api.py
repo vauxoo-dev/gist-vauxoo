@@ -2,7 +2,6 @@
 
 # pylint: disable=print-used,useless-object-inheritance
 # TODO: Use logging
-from click.testing import CliRunner
 import csv
 import os
 import re
@@ -14,6 +13,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 import jinja2
+from click.testing import CliRunner
 
 try:
     import gitlab
@@ -356,6 +356,8 @@ class GitlabAPI:
                             # Use py3.8.10 to match with dockerv image
                             with chdir(git_work_tree):
                                 runner = CliRunner()
+                                runner.invoke(pcv_cli.main, [])
+                                # Call 2 times to fix conflicts with multiple autofixes
                                 runner.invoke(pcv_cli.main, [])
                         git_cmd_diff = git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
                         diff = subprocess.check_output(git_cmd_diff).strip(b"\n ")[:1]
