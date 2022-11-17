@@ -2,7 +2,7 @@
 
 # pylint: disable=print-used,useless-object-inheritance
 # TODO: Use logging
-
+from click.testing import CliRunner
 import csv
 import os
 import re
@@ -353,15 +353,18 @@ class GitlabAPI:
                         if run_pre_commit_vauxoo:
                             if not pcv_cli:
                                 raise ValueError("Please, install pip install pre-commit-vauxoo")
-                            # Use py3.6 to match with dockerv image
+                            # Use py3.8.10 to match with dockerv image
                             with chdir(git_work_tree):
-                                pcv_cli.main()
+                                runner = CliRunner()
+                                runner.invoke(pcv_cli.main, [])
                         git_cmd_diff = git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
                         diff = subprocess.check_output(git_cmd_diff).strip(b"\n ")[:1]
                         diff += subprocess.check_output(git_cmd_diff + ["--cached"]).strip(b"\n ")[:1]
-                        # import pdb;pdb.set_trace()
                         if not diff:
+                            branch_dev.delete()
+                            print("Skip: diff empty")
                             continue
+                        # import pdb;pdb.set_trace()
                         cmd = git_cmd + ["commit", "-am", commit_msg]
                         subprocess.check_call(cmd)
                         cmd = git_cmd + ["push", "origin", "-f", custom_branch_dev_name]

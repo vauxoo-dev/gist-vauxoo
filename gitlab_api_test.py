@@ -167,5 +167,6 @@ if __name__ == '__main__':
         "Autofixes new version are creating changes",
         "autofixes-moy",
         run_pre_commit_vauxoo=True,
+        task_id="1147",  # Similar to LINT xD
     )
     print("MRs created: %s" % '\n'.join(created_mrs))
