@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+xml_data_generator.access_xml_data_generator,access_xml_data_generator,xml_data_generator.model_xml_data_generator,base.group_allow_export,1,1,1,1
