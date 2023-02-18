@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<odoo>
+    <record id="res_partner_auto_1" model="res.partner">
+        <field name="name">XML Data Generator Company</field>
+        <field name="parent_id" ref="base.res_partner_12" />
+        <field name="lang">en_US</field>
+        <field
+            name="category_id"
+            eval="[Command.set([
+                ref('base.res_partner_category_8'),
+                ref('base.res_partner_category_14'),
+                ref('base.res_partner_category_3'),
+            ])]"
+        />
+        <field name="function">Some position</field>
+        <field name="street">4557 De Silva St</field>
+        <field name="zip">94538</field>
+        <field name="city">Fremont</field>
+        <field name="state_id" ref="base.state_us_5" />
+        <field name="country_id" ref="base.us" />
+        <field name="email">xmldatagenerator@vauxoo.com</field>
+        <field name="is_company" eval="True" />
+    </record>
+
+    <record id="res_partner_auto_2" model="res.partner">
+        <field name="name">Partner Child One</field>
+        <field name="parent_id" ref="res_partner_auto_1" />
+        <field name="lang">en_US</field>
+        <field name="type">other</field>
+        <field name="street">4557 De Silva St</field>
+        <field name="zip">94538</field>
+        <field name="city">Fremont</field>
+        <field name="state_id" ref="base.state_us_5" />
+        <field name="country_id" ref="base.us" />
+    </record>
+
+    <record id="res_partner_auto_3" model="res.partner">
+        <field name="name">Partner Child Two</field>
+        <field name="parent_id" ref="res_partner_auto_1" />
+        <field name="lang">en_US</field>
+        <field name="type">other</field>
+        <field name="street">Some Address</field>
+        <field name="zip">23080</field>
+        <field name="city">Baja California Sur</field>
+        <field name="country_id" ref="base.mx" />
+        <field name="email">xmldatademo@vauxoo.com</field>
+        <field name="mobile">556122333222</field>
+    </record>
+</odoo>

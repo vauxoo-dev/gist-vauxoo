@@ -1,0 +1,79 @@
+<odoo>
+    <record id="xml_data_generator_view_form" model="ir.ui.view">
+        <field name="name">xml.data.generator.view.form</field>
+        <field name="model">xml.data.generator</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <p class="oe_grey">
+                        <span style="font-weight: bold;">This tool</span> will show a record's non-computed,
+                        non-related fields as if it were a record defined by XML. This is a harmless procedure
+                        with no consequence to the records themselves. <span style="color: red; font-weight: bold;">
+                        This will not create nor modify any data.</span> Depending on the
+                        <span style="font-weight: bold;">Records to Export field</span>, the field values of
+                        related records will also be shown, in the correct dependency order.<br /><br />
+                        A record's External ID, in case it does not already exist, will be computed as follows:<br />
+                        <br /> External ID = __xml_data_generator_virtual__.<span
+                            style="font-weight: bold;"
+                        >model_name</span>_auto_<span style="font-weight: bold;">id</span><br /><br />
+                        where
+                    </p>
+                    <ul class="oe_grey">
+                        <li><span style="font-weight: bold;">model_name</span>
+                        is the name of the model with underscores instead of dots;</li>
+                        <li><span style="font-weight: bold;">id</span>
+                        is the name database id of the record.</li>
+                    </ul>
+                    <p class="oe_grey">
+                        Please note that those external IDs do not exist and are computed on the fly to demonstrate
+                        the record's relations to other records.
+                    </p>
+                    <separator string="Record to export" />
+                    <group>
+                        <field name="search_by_external_id" />
+                        <field
+                            name="model_name"
+                            attrs="{
+                            'required': [('search_by_external_id', '=', False)],
+                            'invisible': [('search_by_external_id', '=', True)],
+                        }"
+                        />
+                        <field
+                            name="res_id"
+                            attrs="{
+                            'required': [('search_by_external_id', '=', False)],
+                            'invisible': [('search_by_external_id', '=', True)],
+                        }"
+                        />
+                        <field
+                            name="xml_data_generator_external_id"
+                            attrs="{
+                            'required': [('search_by_external_id', '=', True)],
+                            'invisible': [('search_by_external_id', '=', False)],
+                        }"
+                        />
+                    </group>
+                    <separator string="Options" />
+                    <group>
+                        <field name="mode" />
+                        <field name="recursive_depth" />
+                        <field name="avoid_duplicates" />
+                        <field name="ignore_access" />
+                    </group>
+                    <separator string="Results" attrs="{'invisible': [('fetched_data', '=', False)]}" />
+                    <field name="fetched_data" attrs="{'invisible': [('fetched_data', '=', False)]}" nolabel="1" />
+                    <footer>
+                        <button
+                            string="Export to XML"
+                            name="action_export_to_xml"
+                            class="btn-info"
+                            type="object"
+                            data-hotkey="v"
+                        />
+                        <button string="Cancel" class="btn-danger" special="cancel" data-hotkey="z" />
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

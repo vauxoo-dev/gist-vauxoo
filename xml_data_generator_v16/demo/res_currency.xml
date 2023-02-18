@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<odoo>
+    <record id="res_currency_auto_1" model="res.currency">
+        <field name="name">XML</field>
+        <field name="full_name">XML Data Generator Demo Currency</field>
+        <field name="symbol">#</field>
+        <field name="currency_unit_label">DEMO</field>
+        <field name="currency_subunit_label">DEMO</field>
+    </record>
+
+    <record id="res_currency_rate_auto_1" model="res.currency.rate">
+        <field name="rate">1.0</field>
+        <field name="currency_id" ref="res_currency_auto_1" />
+    </record>
+</odoo>
