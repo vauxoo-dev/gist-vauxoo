@@ -7,14 +7,16 @@ A similar patch is needed in production:
 
 import csv
 import re
+import sys
 from collections import OrderedDict, defaultdict
 
-limit_lines = 1000000
-fname = "graylog-search-result-relative-28800.csv.crdownload"
+limit_lines = 10000000
+fname = sys.argv[1]
 with open(fname) as csvfile:
     reader = csv.DictReader(csvfile)
 
     counter = defaultdict(int)
+    sha_message = {}
     line_no = 0
     for row in reader:
         message = row["message"]
@@ -30,6 +32,8 @@ with open(fname) as csvfile:
 
         key = match.groups()[0]
         counter[key] += 1
+        if key not in sha_message:
+            sha_message[key] = message
 
 
 counter_ordered = OrderedDict(sorted(counter.items(), key=lambda item: item[1], reverse=True))
@@ -37,4 +41,4 @@ limit = 10
 for line_no, (key, key_count) in enumerate(counter_ordered.items()):
     if line_no > limit:
         break
-    print(f"count {key_count}, sha {key}")
+    print(f"count {key_count}, sha {key}\n{sha_message[key]}\n\n")
