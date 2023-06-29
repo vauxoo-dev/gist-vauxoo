@@ -356,9 +356,9 @@ class GitlabAPI:
                             # Use py3.8.10 to match with dockerv image
                             with chdir(git_work_tree):
                                 runner = CliRunner()
-                                runner.invoke(pcv_cli.main, [])
+                                runner.invoke(pcv_cli.main, ["-t", "fix"])
                                 # Call 2 times to fix conflicts with multiple autofixes
-                                runner.invoke(pcv_cli.main, [])
+                                runner.invoke(pcv_cli.main, ["-t", "fix"])
                         git_cmd_diff = git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
                         diff = subprocess.check_output(git_cmd_diff).strip(b"\n ")[:1]
                         diff += subprocess.check_output(git_cmd_diff + ["--cached"]).strip(b"\n ")[:1]
