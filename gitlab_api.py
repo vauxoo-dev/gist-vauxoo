@@ -373,7 +373,7 @@ class GitlabAPI:
                         subprocess.check_call(cmd)
                         mr_title = "%s - %s" % (branch.name, title) if prefix_version else title
                         if task_id:
-                            mr_title += " t#%s" % task_id
+                            mr_title += " T#%s" % task_id
                         mr = project_dev.mergerequests.create(
                             {
                                 "target_project_id": project.id,
