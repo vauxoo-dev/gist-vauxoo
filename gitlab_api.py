@@ -360,18 +360,32 @@ class GitlabAPI:
                                 # Call 2 times to fix conflicts with multiple autofixes
                                 runner.invoke(pcv_cli.main, ["-t", "fix"])
                         git_cmd_diff = git_cmd + ["--no-pager", "diff", "--no-ext-diff", "--name-only"]
-                        diff = subprocess.check_output(git_cmd_diff).strip(b"\n ")[:1]
-                        diff += subprocess.check_output(git_cmd_diff + ["--cached"]).strip(b"\n ")[:1]
-                        if not diff:
+                        diff = subprocess.check_output(git_cmd_diff).strip()
+                        changed_files = diff.decode("utf-8").splitlines()
+                        changed_translations = [f for f in changed_files if f.endswith((".po", ".pot"))]
+                        if not changed_translations:
                             branch_dev.delete()
                             print("Skip: diff empty")
                             continue
-                        # import pdb;pdb.set_trace()
-                        cmd = git_cmd + ["commit", "-am", commit_msg]
-                        subprocess.check_call(cmd)
+
+                        # group changed files by translations
+                        files_per_module = {}
+                        for file in sorted(changed_translations):
+                            module = file.split("/", 1)[0]
+                            files_per_module.setdefault(module, []).append(file)
+
+                        # Generate one commit per module
+                        for module, files in files_per_module.items():
+                            cmd = git_cmd + ["add", *files]
+                            subprocess.check_call(cmd)
+                            cmd = git_cmd + ["commit", "-m", commit_msg.replace("$module", module)]
+                            subprocess.check_call(cmd)
+
+                        # breakpoint()
                         cmd = git_cmd + ["push", "origin", "-f", custom_branch_dev_name]
                         subprocess.check_call(cmd)
                         mr_title = "%s - %s" % (branch.name, title) if prefix_version else title
+                        mr_title = mr_title.replace("$module", (module if len(files_per_module) == 1 else "*"))
                         if task_id:
                             mr_title += " T#%s" % task_id
                         mr = project_dev.mergerequests.create(
