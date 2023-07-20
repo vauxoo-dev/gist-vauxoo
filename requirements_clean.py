@@ -34,7 +34,7 @@ def clean_requirements(**kwargs):
         odoo_requirements_packages = get_packages(f_odoo_requirements)
 
         missing_exclude = full_requirements_packages - odoo_requirements_packages - project_requirements_packages
-        print("Missing packages from requirements_exclude.txt %s" % "\n".join(sorted(missing_exclude)))
+        print("Missing packages from requirements_exclude.txt\n%s" % "\n".join(sorted(missing_exclude)))
 
 
 def get_packages(lines):
