@@ -38,7 +38,7 @@ def clean_requirements(**kwargs):
 
 
 def get_packages(lines):
-    split_re = re.compile(r"[<>=#]")
+    split_re = re.compile(r"[<>=#@]")
     packages = set()
     for line in lines:
         package = split_re.split(line)[0].strip()
