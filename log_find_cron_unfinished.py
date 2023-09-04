@@ -28,7 +28,7 @@ def lines(f_obj):
         for row in f_obj_csv:
             yield row['message']
     else:
-        for line in f:
+        for line in f_obj:
             yield line
 
 
@@ -48,7 +48,8 @@ def main():
             if date_pid_match in date_pids_used:
                 continue
             date_pids_used.append(date_pid_match)
-            key = (line_separated[1], date_pid_match[1])
+            cron_name = line_separated[1]
+            key = (cron_name, date_pid_match[1])
             crons[key].setdefault('running', 0)
             if 'Starting job ' in line_separated[0]:
                 crons[key]['started'] = line
@@ -61,7 +62,7 @@ def main():
 
     top_heavy_crons = []
     for cron_name, step in crons.items():
-        if step['running'] == 0:
+        if step['running'] == 0 and step.get('finished_datetime') and step.get('started_datetime'):
             diff_s = (step['finished_datetime'] - step['started_datetime']).seconds
             if diff_s >= 30:
                 top_heavy_crons.append([diff_s, cron_name, step])
@@ -70,7 +71,7 @@ def main():
         finished = step.get('finished')
         # if finished and step['started'] <= finished:
         #     continue
-        print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
+        # print("cron_name: %s\nStarted line: %s\nFinished line: %s.\nRunnig: %d\n\n" % (cron_name, step['started'], finished or '', step['running']))
 
     # print(crons)
     if top_heavy_crons:
