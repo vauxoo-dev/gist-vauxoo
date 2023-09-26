@@ -163,7 +163,7 @@ def print_stats(cr):
     )
     res = map(dict, cr.fetchall())
     for record in res:
-        print(f"Cron: {record['cron_name']} pid: {record['pid']} diff_m: {record['diff_s']/60}")
+        print(f"Cron: {record['cron_name']} pid: {record['pid']} diff_m: {round(record['diff_s']/60, 2)}")
 
 
 def main(fname):
