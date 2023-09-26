@@ -13,12 +13,10 @@ From graylog uses a similar filter
 """
 
 import csv
-import hashlib
 import os
 import re
 import sqlite3
 import sys
-from collections import defaultdict
 from datetime import datetime
 
 DATE_PID_REGEX = re.compile(r"^(?:(?P<date>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) (?P<pid>\d+) )", re.M)
@@ -58,24 +56,16 @@ def initialize_database(cr):
         )
     """
     )
-    # cr.execute("CREATE INDEX log_line_cron_name_date_pid_idx (cron_name, date, pid)")
+    cr.execute("CREATE INDEX IF NOT EXISTS log_line_cron_name_date_pid_idx ON log_line (cron_name, date, pid)")
 
 
 def insert_crons_data(cr, fname):
-    lines_read_sha = set()
     with open(fname) as f_obj:
         for line in lines(f_obj):
             line = line.strip(' \n"')
             cron_match = CRON_REGEX.search(line)
-            if not cron_match:
-                continue
-            hash_obj = hashlib.new("sha1", line.encode("UTF-8"))
-            line_sha = hash_obj.digest()
-            if line_sha in lines_read_sha:
-                continue
-            lines_read_sha.add(line_sha)
             date_pid_match = DATE_PID_REGEX.search(line)
-            if not date_pid_match:
+            if not cron_match or not date_pid_match:
                 continue
             line_date = datetime.strptime(date_pid_match["date"], DATETIME_FORMAT)
 
@@ -113,7 +103,7 @@ def insert_line(cr, record):
 
 
 def match_lines(cr):
-    cr.execute("SELECT * FROM log_line WHERE cron_name_status='start'")
+    cr.execute("SELECT * FROM log_line WHERE cron_name_status='start' ORDER BY date ASC")
     res = map(dict, cr.fetchall())
     for record in res:
         # query = """SELECT l1.id AS start_id, l2.id AS end_id
@@ -129,6 +119,7 @@ def match_lines(cr):
         #     LIMIT 1)
         # WHERE l1.cron_name_status = 'start'
         # AND l1.id <> l2.related_id
+        # ORDER BY l1.date ASC
         # """
 
         cr.execute(
@@ -152,6 +143,14 @@ def match_lines(cr):
         diff_time_s = (date_end - date_start).seconds
         start_id = record["id"]
         done_id = res2upd["id"]
+
+        # Clean old related_id in order to only store the most recent and closest
+        query = """UPDATE log_line
+            SET related_id=Null, diff_s=Null
+            WHERE related_id IN (?, ?)
+        """
+        cr.execute(query, (start_id, done_id))
+
         query = """UPDATE log_line
             SET related_id=?, diff_s=?
             WHERE id=?
@@ -161,13 +160,22 @@ def match_lines(cr):
 
 
 def print_stats(cr):
-    print("unfinished")
-    cr.execute("""SELECT * FROM log_line WHERE related_id IS NULL""")
+    cr.execute("""SELECT max(date), min(date) FROM log_line""")
+    max_min = dict(cr.fetchone())
+    print(max_min)
+    print("==== Unfinished ====")
+    cr.execute(
+        """SELECT *
+        FROM log_line
+        WHERE related_id IS NULL
+          AND cron_name_status = 'start'
+        ORDER BY date"""
+    )
     res = map(dict, cr.fetchall())
     for record in res:
         print(record)
 
-    print("Top slow cron")
+    print("==== Top slow cron ====")
     cr.execute(
         """
         SELECT *
@@ -179,7 +187,10 @@ def print_stats(cr):
     )
     res = map(dict, cr.fetchall())
     for record in res:
-        print(f"Cron: {record['cron_name']} pid: {record['pid']} diff_m: {round(record['diff_s']/60, 2)}")
+        print(
+            f"Cron: {record['cron_name']} pid: {record['pid']} diff_m: {round(record['diff_s']/60, 2)}"
+            f"\nline: {record['line']}\n"
+        )
 
 
 def main(fname):
