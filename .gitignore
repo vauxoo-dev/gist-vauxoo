@@ -103,3 +103,6 @@ docs/_build/
 bandit*.yaml
 doc8.ini
 pyproject.toml
+
+# databases
+*.db
