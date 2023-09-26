@@ -58,10 +58,10 @@ def initialize_database(cr):
         )
     """
     )
+    # cr.execute("CREATE INDEX log_line_cron_name_date_pid_idx (cron_name, date, pid)")
 
 
 def insert_crons_data(cr, fname):
-    defaultdict(list)
     lines_read_sha = set()
     with open(fname) as f_obj:
         for line in lines(f_obj):
@@ -116,6 +116,21 @@ def match_lines(cr):
     cr.execute("SELECT * FROM log_line WHERE cron_name_status='start'")
     res = map(dict, cr.fetchall())
     for record in res:
+        # query = """SELECT l1.id AS start_id, l2.id AS end_id
+        # FROM log_line AS l1
+        # LEFT JOIN log_line AS l2 ON l2.id = (
+        #     SELECT l3.id
+        #     FROM log_line AS l3
+        #     WHERE l3.cron_name_status <> 'start'
+        #         AND l3.date > l1.date
+        #         AND l3.pid = l1.pid
+        #         AND l3.cron_name = l1.cron_name
+        #     ORDER BY l3.date ASC
+        #     LIMIT 1)
+        # WHERE l1.cron_name_status = 'start'
+        # AND l1.id <> l2.related_id
+        # """
+
         cr.execute(
             """
             SELECT *
@@ -123,6 +138,7 @@ def match_lines(cr):
             WHERE cron_name_status <> 'start'
               AND date > :date
               AND pid = :pid
+              AND cron_name = :cron_name
             ORDER BY date ASC
             LIMIT 1
         """,
