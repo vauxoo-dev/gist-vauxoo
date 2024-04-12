@@ -109,6 +109,9 @@ docker run -it --rm -v /Users/moylop260/odoo/json_vs_csv:/root/json_vs_csv -m 2g
 # Swap Memory Information: 2,056 MB
 ```
 
+<img width="1511" alt="Screenshot 2024-04-12 at 2 30 00 p m  copy" src="https://github.com/vauxoo-dev/gist-vauxoo/assets/6644187/6507cc09-829d-4087-980a-42e76589eb7a">
+
+
 Notice the use of the swap reading the whole file could be slower for system loaded
 
 Also, notice the I/O rate could affects here
