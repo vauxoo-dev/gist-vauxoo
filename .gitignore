@@ -106,3 +106,5 @@ pyproject.toml
 
 # databases
 *.db
+
+json_vs_csv_bigfiles/data*
