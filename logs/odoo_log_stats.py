@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 import re
 import sys
@@ -6,6 +7,40 @@ from datetime import datetime
 
 import psycopg2
 import psycopg2.errorcodes
+
+try:
+    import geoip2.database
+    import geoip2.errors
+except ImportError:
+    print("Requires 'pip install geoip2==4.5.0' to get ip info")
+
+geoip_default_paths = [
+    "/usr/share/GeoIP/GeoLite2-City.mmdb",
+    "/usr/local/share/GeoIP/GeoLite2-City.mmdb",
+]
+geoip_path = None
+for geoip_default_path in geoip_default_paths:
+    if os.path.isfile(geoip_default_path):
+        geoip_path = geoip_default_path
+
+if not geoip_path:
+    print(
+        """Requires download geoip database
+GEOIP2_URLS="https://s3.vauxoo.com/GeoLite2-City_20191224.tar.gz https://s3.vauxoo.com/GeoLite2-Country_20191224.tar.gz https://s3.vauxoo.com/GeoLite2-ASN_20191224.tar.gz"
+GEOIP_PATH="/usr/local/share/GeoIP"
+function geoip_install(){
+    URLS="${1}"
+    DIR="$( mktemp -d )"
+    mkdir -p $GEOIP_PATH
+    for URL in ${URLS}; do
+        wget -qO- "${URL}" | tar -xz -C "${DIR}/"
+        mv "$(find ${DIR} -name "GeoLite2*mmdb")" "$GEOIP_PATH"
+    done
+    rm -rf "${DIR}"
+}
+geoip_install "${GEOIP2_URLS}"
+    """
+    )
 
 """
 odoo_log_stats_group_traceback.py   ODOO_LOG_FILE_NAME   MIN_DATE
@@ -30,6 +65,10 @@ odoo_log_stats_group_traceback.py   ODOO_LOG_FILE_NAME   MIN_DATE
 # CREATE VIEW odoo_logs_test AS (SELECT row_number() OVER() AS row_number, * FROM odoo_logs WHERE module LIKE '%\.tests\.%' AND (message LIKE 'test\_%' OR message LIKE 'Ran %') ORDER BY id);
 # SELECT module, diff, message, db FROM (SELECT (l2.date - l1.date)  AS diff, l1.date as l1_date, l2.date AS l2_date,  l1.* FROM odoo_logs_test l1 LEFT OUTER JOIN odoo_logs_test l2 ON l1.row_number+1 = l2.row_number ORDER BY id) vw WHERE message LIKE 'test\_%' ORDER BY 2 DESC;
 
+# SELECT * FROM (SELECT count(*), DATE_TRUNC('minute', date) AS minute_timestamp FROM odoo_logs GROUP BY DATE_TRUNC('minute', date) ORDER BY 1 DESC LIMIT 30) order by 2;
+# SELECT message, ip_data->'country'->>'iso_code' FROM odoo_logs WHERE date BETWEEN '2024-04-22 15:11:00' AND '2024-04-22 16:12:00';
+
+
 DBNAME = "odoologs"
 try:
     MIN_DATE = sys.argv[2]
@@ -41,7 +80,7 @@ FILE_NAME = os.path.expandvars(os.path.expanduser(sys.argv[1]))
 # Parsing the following logger message output
 # https://github.com/odoo/odoo/blob/3da37bb2474318463a40deba2878a83102c37984/odoo/netsvc.py#L135
 # TODO: Support ctime part  ,\d{3}
-_re_log = r"(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d),\d{3} (?P<pid>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?\-\_]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)"
+_re_log = r"(?P<date>^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) (?P<pid>\d+) (?P<level>WARNING|ERROR|INFO|DEBUG) (?P<db>[0-9a-zA-Z$_\?\-\_]+) (?P<module>[0-9a-zA-Z$_\.]+): (?P<message>.*)"
 _re_poll_log = r" (?P<date>\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\]|\[\d\d\/[A-Z][a-z][a-z]\/\d{4} \d\d:\d\d:\d\d\]) "
 _re_ip_compile = re.compile(r"^(?P<ip>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})) ")
 _re_werkzeug_log_compile = re.compile(
@@ -49,8 +88,8 @@ _re_werkzeug_log_compile = re.compile(
 )
 
 insert_query = (
-    "INSERT INTO odoo_logs (date, pid, db, level, module, message, ip, action, url, response, time1, time2) "
-    "VALUES (%(date)s, %(pid)s, %(db)s, %(level)s, %(module)s, %(message)s, %(ip)s, %(action)s, %(url)s, %(response)s, %(time1)s, %(time2)s)"
+    "INSERT INTO odoo_logs (date, pid, db, level, module, message, ip, action, url, response, time1, time2, ip_data) "
+    "VALUES (%(date)s, %(pid)s, %(db)s, %(level)s, %(module)s, %(message)s, %(ip)s, %(action)s, %(url)s, %(response)s, %(time1)s, %(time2)s, %(ip_data)s)"
 )
 
 
@@ -71,7 +110,8 @@ def init_db(cr, conn):
             url text,
             response integer,
             time1 float,
-            time2 float
+            time2 float,
+            ip_data jsonb
     );"""
     )
     cr.execute("""CREATE INDEX IF NOT EXISTS odoo_logs_level ON odoo_logs (level);""")
@@ -89,15 +129,28 @@ def get_message_split(message_str):
     match = re.match(_re_log, message_str)
     if not match:
         return {}
-    return match.groupdict()
+    message_data = match.groupdict()
+    # ms format valid for postgresql using . instead of ,
+    message_data["date"] = message_data["date"].replace(",", ".", 1)
+    return message_data
 
 
 def get_message_details(message):
     """Get IP from message"""
     new_data = dict.fromkeys(set(_re_ip_compile.groupindex.keys()) | set(_re_werkzeug_log_compile.groupindex.keys()))
+    new_data.update({"ip_data": None})
     ip_match = _re_ip_compile.match(message)
     if ip_match:
         new_data.update(ip_match.groupdict())
+        ip = new_data["ip"]
+        geoipdb = geoip2.database.Reader(geoip_path)
+        try:
+            ip_json = json.dumps(geoipdb.city(ip).raw)
+            new_data["ip_data"] = ip_json
+        except geoip2.errors.AddressNotFoundError:
+            # Local IPs
+            pass
+
     werkzeug_match = _re_werkzeug_log_compile.search(message)
     if werkzeug_match:
         new_data.update(werkzeug_match.groupdict())
