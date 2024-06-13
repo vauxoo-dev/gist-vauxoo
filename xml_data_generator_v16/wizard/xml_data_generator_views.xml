@@ -54,12 +54,18 @@
                         />
                     </group>
                     <separator string="Options" />
-                    <group>
-                        <field name="mode" />
-                        <field name="recursive_depth" />
-                        <field name="avoid_duplicates" />
-                        <field name="ignore_access" />
-                    </group>
+                    <div class="row">
+                        <group class="col-6">
+                            <field name="mode" />
+                            <field name="recursive_depth" />
+                            <field name="ignore_access" />
+                        </group>
+                        <group class='col-6'>
+                            <field name="show_xml_records" />
+                            <field name="show_field_modules" />
+                            <field name="show_computed_fields" />
+                        </group>
+                    </div>
                     <separator string="Results" attrs="{'invisible': [('fetched_data', '=', False)]}" />
                     <field name="fetched_data" attrs="{'invisible': [('fetched_data', '=', False)]}" nolabel="1" />
                     <footer>

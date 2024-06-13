@@ -55,14 +55,14 @@ class XmlDataGenerator(models.TransientModel):
     res_id = fields.Integer("Record ID")
     search_by_external_id = fields.Boolean()
     xml_data_generator_external_id = fields.Char(
-        string="Record External ID",
+        string="External ID",
         help="Real external ID - if any, or proposed external ID, if one does not exist.",
     )
     mode = fields.Selection(
         [("demo", "Export Anonymized Data"), ("real", "Export Real Data")],
         default="real",
         required=True,
-        help="Wether to anonymize Char/Text fields or not.",
+        help="Show dummy data for Char/Text fields.",
     )
     recursive_depth = fields.Selection(
         RECURSIVE_DEPTH_STATES,
@@ -71,16 +71,22 @@ class XmlDataGenerator(models.TransientModel):
         required=True,
     )
     ignore_access = fields.Boolean(
-        string="Show Dummy Data For Restricted Fields",
         default=False,
-        help="Determines if a char/text field must be dummied in case of access error.",
+        help="Show dummy data for restricted Char/Text fields (does not bypass access to real data).",
     )
-    avoid_duplicates = fields.Boolean(
-        string="Avoid showing records that already have an External ID",
-        default=True,
-        help="Wether to avoid exporting data that already has an external ID by XML or not.",
+    show_xml_records = fields.Boolean(
+        string="Show XML Records",
+        default=False,
+        help="Show related records that were defined by XML code (records installed with the module).",
     )
     fetched_data = fields.Html(readonly=True)
+    show_field_modules = fields.Boolean(
+        default=False,
+        help="Show a comment at the end of each field to clarify where the field is defined/overriden.",
+    )
+    show_computed_fields = fields.Boolean(
+        default=False, help="If not checked, all related and compute fields will be hidden from result."
+    )
 
     def _prepare_external_id(self, model_name, res_id):
         """Returns either the real or a processed placeholder External ID."""
@@ -159,6 +165,11 @@ class XmlDataGenerator(models.TransientModel):
         fetch_demo_field = False
         field_name = field_object.name
         ttype = field_object.type
+        model_name = record._name
+        modules = ""
+        if self.show_field_modules:
+            field_record = self.env["ir.model.fields"].search([("name", "=", field_name), ("model", "=", model_name)])
+            modules = field_record.with_context(prefetch_fields=False).modules
         try:
             current_value = record[field_name]
             default_value = field_object.default and field_object.default(record) or False
@@ -166,12 +177,14 @@ class XmlDataGenerator(models.TransientModel):
             if ttype == "html":
                 current_value = ustr(current_value) if current_value else False
                 default_value = ustr(default_value) if default_value else False
-        except AccessError as e:
-            if not self.ignore_access:
-                raise AccessError(e)
+        except Exception as e:
             default_value = "placeholder"
             current_value = "placeholder"
             fetch_demo_field = True
+            error_message = "Exception while reading %s's field '%s':\n\n %s" % (model_name, field_name, e)
+            is_access_error = isinstance(e, AccessError)
+            if (is_access_error and not self.ignore_access) or not is_access_error:
+                raise type(e)(_(error_message))
         # Anonymize record text data, this is preferred when only trying to replicate relations between models
         # also, this option will be forced when the user does not have field access to avoid missing required fields
         if (self.mode == "demo" or fetch_demo_field) and ttype in TEXT_TTYPES and current_value:
@@ -191,6 +204,7 @@ class XmlDataGenerator(models.TransientModel):
                 "value": current_value,
                 "ttype": ttype,
                 "related_model": field_object.comodel_name,
+                "modules": modules,
             }
         }
 
@@ -199,7 +213,7 @@ class XmlDataGenerator(models.TransientModel):
         return [
             field_objects[field]
             for field in field_objects
-            if field_objects[field].compute is None
+            if (field_objects[field].compute is None or self.show_computed_fields)
             and field_objects[field].type not in UNWANTED_TTYPES
             and field not in UNWANTED_FIELDS
         ]
@@ -208,7 +222,7 @@ class XmlDataGenerator(models.TransientModel):
         """Decide if a record should be exported to XML depending on parameters and iteration."""
         if recursive_depth == 0:
             return False
-        return not self.is_xml_data_generator_external_id(external_id) and self.avoid_duplicates
+        return not self.is_xml_data_generator_external_id(external_id) and not self.show_xml_records
 
     def _prepare_data_to_export(self, records, data, dependency_tree, dependency_data, recursive_depth):
         """Recursive method to traverse a recordset's fields and record dependencies.
@@ -232,16 +246,16 @@ class XmlDataGenerator(models.TransientModel):
                 continue
             record_data = {"model_name": model_name, "xml_model": xml_model}
             for field_object in field_objects:
-                field_value = self._xml_data_generator_get_field_data(record, field_object)
+                field_data = self._xml_data_generator_get_field_data(record, field_object)
                 field_ttype = field_object.type
                 field_name = field_object.name
                 # Update the data if field is not one2many field
                 if field_ttype != "one2many":
-                    record_data.update(field_value)
+                    record_data.update(field_data)
                 # Begin fetching data for child recordsets
-                if field_ttype not in ["one2many", "many2one", "many2many"] or not field_value:
+                if field_ttype not in ["one2many", "many2one", "many2many"] or not field_data:
                     continue
-                related_recordset = field_value[field_name].pop("value")
+                related_recordset = field_data[field_name].pop("value")
                 child_external_ids = []
                 for related_record in related_recordset:
                     child_model = related_record._name
@@ -264,7 +278,7 @@ class XmlDataGenerator(models.TransientModel):
                             recursive_depth + 1,
                         )
                 # Replace the records themselves by their external_ids
-                field_value[field_name]["value"] = child_external_ids
+                field_data[field_name]["value"] = child_external_ids
             data.setdefault(model_name, {}).update({external_id: record_data})
             dependency_data["record_dependencies"].update({external_id: dependency_tree.get(external_id, {})})
         return data, dependency_data
@@ -310,16 +324,22 @@ class XmlDataGenerator(models.TransientModel):
             )
         return row
 
-    def _prepare_xml_row_to_append(self, field_name, field_value, field_ttype):
-        row_dict = {"t": "&nbsp;&nbsp;&nbsp;&nbsp;", "field": field_name}
-        if field_ttype not in ["many2many", "many2one", "one2many"]:
-            return self._prepare_primary_typed_row(field_value, row_dict, field_ttype)
-        if field_ttype == "many2one":
-            return self._prepare_many2one_row(field_value, row_dict)
-        if field_ttype == "many2many":
-            return self._prepare_many2many_row(field_value, row_dict)
+    def _prepare_xml_row_to_append(self, field_name, field_data):
+        field_value = field_data.get("value")
+        field_ttype = field_data.get("ttype")
+        field_modules = field_data.get("modules")
+        row_dict = {"t": "&nbsp;&nbsp;&nbsp;&nbsp;", "field": field_name, "modules": field_modules}
+        row = None
         # Do not add one2many rows (they will be handled in the "many" side of the relation)
-        return None
+        if field_ttype not in ["many2many", "many2one", "one2many"]:
+            row = self._prepare_primary_typed_row(field_value, row_dict, field_ttype)
+        if field_ttype == "many2one":
+            row = self._prepare_many2one_row(field_value, row_dict)
+        if field_ttype == "many2many":
+            row = self._prepare_many2many_row(field_value, row_dict)
+        if row and field_modules:
+            row += "%(t)s<span style='color: gray'>&lt;!--In modules: %(modules)s --&gt;</span>" % row_dict
+        return row
 
     def prepare_xml_data_to_export(self, target_external_id, sorted_data, sorted_model_dependencies_dict):
         xml_records_code = []
@@ -343,7 +363,7 @@ class XmlDataGenerator(models.TransientModel):
                     field_related_model, -1
                 ) < sorted_model_dependencies_dict.get(model_name, -1):
                     continue
-                row2append = self._prepare_xml_row_to_append(field_name, field_data["value"], field_data["ttype"])
+                row2append = self._prepare_xml_row_to_append(field_name, field_data)
                 if row2append:
                     xml_code.append(row2append)
             xml_code.append("&nbsp;&nbsp;&nbsp;&nbsp;&lt;/record&gt;</div>")
