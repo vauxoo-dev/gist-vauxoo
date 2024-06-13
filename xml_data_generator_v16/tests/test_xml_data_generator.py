@@ -16,6 +16,37 @@ class TestXMLDataGenerator(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.xml_wizard = cls.env["xml.data.generator"]
+        cls.company_partner = cls.env.ref("xml_data_generator.res_partner_auto_1")
+        cls.partner_1 = cls.env["res.partner"].create(
+            {
+                "name": "Partner Child",
+                "parent_id": cls.company_partner.id,
+                "lang": "en_US",
+                "type": "other",
+                "street": "Some street",
+                "zip": "94538",
+                "city": "Freemont",
+                "state_id": cls.env.ref("base.state_us_5").id,
+                "country_id": cls.env.ref("base.us").id,
+                "email": "xmldatademo@vauxoo.com",
+            }
+        )
+        cls.partner_2 = cls.partner_1.copy()
+        cls.currency = cls.env["res.currency"].create(
+            {
+                "name": "TXML",
+                "full_name": "XML Data Generator Test Currency",
+                "symbol": "T",
+                "currency_unit_label": "TEST",
+                "currency_subunit_label": "TEST",
+            }
+        )
+        cls.currency_rate = cls.env["res.currency.rate"].create(
+            {
+                "rate": "1.0",
+                "currency_id": cls.currency.id,
+            }
+        )
 
     def get_xml_trees(self, data):
         # Manage encoding
@@ -26,6 +57,7 @@ class TestXMLDataGenerator(TransactionCase):
             res.replace("<br>", "")
             .replace('<div><?xml version="1.0" ?>', '<?xml version="1.0" ?>')
             .replace("</div></odoo></div>", "</div></odoo>")
+            .replace("\xa0", " ")
         )
         res = res.split('<?xml version="1.0" ?>')[1:]
         return [ET.ElementTree(ET.fromstring('<?xml version="1.0" ?>%s' % record)) for record in res]
@@ -82,7 +114,7 @@ class TestXMLDataGenerator(TransactionCase):
 
     def test_02_export_partner_by_model_and_id(self):
         """Export a partner to XML, search it by model and id."""
-        partner = self.env.ref("xml_data_generator.res_partner_auto_1")
+        partner = self.company_partner
         field_objects = self.xml_wizard._get_field_objects(partner._name)
         field_object_map = {field_object.name: field_object for field_object in field_objects}
         partner_context = {"active_model": partner._name, "active_id": partner.id}
@@ -102,7 +134,7 @@ class TestXMLDataGenerator(TransactionCase):
 
     def test_03_export_partner_dummy_string_data(self):
         """Export a partner to XML, but fetch demo data from model using defined methods for it, if any."""
-        partner = self.env.ref("xml_data_generator.res_partner_auto_3")
+        partner = self.partner_2
         field_objects = self.xml_wizard._get_field_objects(partner._name)
         field_object_map = {field_object.name: field_object for field_object in field_objects}
         partner_context = {"active_model": partner._name, "active_id": partner.id}
@@ -122,7 +154,7 @@ class TestXMLDataGenerator(TransactionCase):
 
     def test_04_export_partner_company_dummy_string_data(self):
         """Export a partner company to XML, but fetch demo data from model using defined methods for it, if any."""
-        partner = self.env.ref("xml_data_generator.res_partner_auto_1")
+        partner = self.partner_2
         field_objects = self.xml_wizard._get_field_objects(partner._name)
         field_object_map = {field_object.name: field_object for field_object in field_objects}
         partner_context = {"active_model": partner._name, "active_id": partner.id}
@@ -144,7 +176,7 @@ class TestXMLDataGenerator(TransactionCase):
         """Export a partner to XML, set recursive depth = 1 to trigger methods that compute dependencies.
         This test deals with many2many and many2one fields.
         """
-        partner = self.env.ref("xml_data_generator.res_partner_auto_1")
+        partner = self.company_partner
         field_objects = self.xml_wizard._get_field_objects(partner._name)
         field_object_map = {field_object.name: field_object for field_object in field_objects}
         partner_context = {"active_model": partner._name, "active_id": partner.id}
@@ -166,13 +198,13 @@ class TestXMLDataGenerator(TransactionCase):
         """Export a currency to XML, set recursive depth = 2 to trigger methods that compute dependencies.
         This test deals with one2many fields.
         """
-        currency = self.env.ref("xml_data_generator.res_currency_auto_1")
+        currency = self.currency
         field_objects = self.xml_wizard._get_field_objects(currency._name)
         field_object_map = {field_object.name: field_object for field_object in field_objects}
         currency_context = {"active_model": currency._name, "active_id": currency.id}
         xml_wizard_form = Form(self.xml_wizard.with_context(**currency_context))
         xml_wizard_form.recursive_depth = RECURSIVE_DEPTH_STATES[2][0]
-        xml_wizard_form.avoid_duplicates = False
+        xml_wizard_form.show_xml_records = False
         self.assertEqual(xml_wizard_form.res_id, currency.id)
         xml_wizard = xml_wizard_form.save()
         # Export XML for a single currency
