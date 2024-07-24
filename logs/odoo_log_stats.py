@@ -86,6 +86,12 @@ _re_ip_compile = re.compile(r"^(?P<ip>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})|(([0-
 _re_werkzeug_log_compile = re.compile(
     r"\"(?P<action>(POST|GET)) (?P<url>.*) HTTP.* (?P<response>\d\d\d) \- \d+ (?P<time1>\d+.\d+) (?P<time2>\d+.\d+)"
 )
+_re_sql_log_compile = re.compile(
+    r"\[(?P<time1>\d+\.\d+) ms\] query:(?P<message>.*)",
+    re.DOTALL
+    # odoo.sql_db [1.956 ms] query: SELECT ...
+)
+
 
 insert_query = (
     "INSERT INTO odoo_logs (date, pid, db, level, module, message, ip, action, url, response, time1, time2, ip_data) "
@@ -135,8 +141,9 @@ def get_message_split(message_str):
     return message_data
 
 
-def get_message_details(message):
+def get_message_details(message_data):
     """Get IP from message"""
+    message = message_data["message"]
     new_data = dict.fromkeys(set(_re_ip_compile.groupindex.keys()) | set(_re_werkzeug_log_compile.groupindex.keys()))
     new_data.update({"ip_data": None})
     ip_match = _re_ip_compile.match(message)
@@ -154,6 +161,13 @@ def get_message_details(message):
     werkzeug_match = _re_werkzeug_log_compile.search(message)
     if werkzeug_match:
         new_data.update(werkzeug_match.groupdict())
+
+    if message_data["module"] == "odoo.sql_db":
+        sql_match = _re_sql_log_compile.search(message)
+        if sql_match:
+            sql_match_data = sql_match.groupdict()
+            sql_match_data["message"] = sql_match_data["message"].strip(" \n")
+            new_data.update(sql_match_data)
     return new_data
 
 
@@ -161,7 +175,7 @@ def insert_message(message, cr, conn):
     if MIN_DATE and MIN_DATE >= datetime.strptime(message["date"], "%c"):
         return
     # message['date'] = message['date']
-    message.update(get_message_details(message["message"]))
+    message.update(get_message_details(message))
     cr.execute("SAVEPOINT msg")
     try:
         cr.execute(insert_query, message)
