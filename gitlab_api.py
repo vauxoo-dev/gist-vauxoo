@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import urllib.parse
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
@@ -219,6 +220,25 @@ class GitlabAPI:
                     ]
                 )
 
+    def look_for_filename(self, fname_regex):
+        non_ascii_pattern = re.compile(fname_regex)
+        odoo_stable_branch = re.compile(r"^\d{2}\.0$")  # stable version of odoo
+        for project in self.gitlab_api.projects.list(iterator=True):
+            if project.path_with_namespace.split("/")[0].strip().endswith("-dev"):
+                # Filter "-dev" projects only stable ones
+                continue
+            for branch in project.branches.list(iterator=True):
+                if not odoo_stable_branch.match(branch.name):
+                    continue
+                for project_file_obj in project.repository_tree(recursive=True, iterator=True):
+                    if project_file_obj["type"] != "blob":
+                        # only files
+                        continue
+                    path_name = project_file_obj["path"]
+                    if non_ascii_pattern.search(path_name):
+                        url = urllib.parse.quote(f"{project.path_with_namespace}/-/blob/{branch.name}/{path_name}")
+                        print(f"Found {self.gitlab_api.url}/{url}")
+
     def get_project_files(self, fnames=None, branches=None):
         r"""Read the content of list of fnames and list of branches only
         stable projects and branches by default
@@ -229,7 +249,7 @@ class GitlabAPI:
         if not fnames:
             fnames = ["variables.sh", ".gitlab-ci.yml"]
         if not branches:
-            branches = ["16.0", "15.0", "14.0", "13.0", "12.0"]
+            branches = ["17.0", "16.0", "15.0", "14.0", "13.0", "12.0"]
         print("Download files: %s\nfrom branches: %s\nto local path: ./%s" % (fnames, branches, self.workdir))
         for project in self.gitlab_api.projects.list(iterator=True):
             if project.path_with_namespace.split("/")[0].strip().endswith("-dev"):
