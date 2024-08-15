@@ -220,24 +220,35 @@ class GitlabAPI:
                     ]
                 )
 
-    def look_for_filename(self, fname_regex):
+    def look_for_filename(self, fname_regex, only_default_branch=False):
         non_ascii_pattern = re.compile(fname_regex)
         odoo_stable_branch = re.compile(r"^\d{2}\.0$")  # stable version of odoo
         for project in self.gitlab_api.projects.list(iterator=True):
-            if project.path_with_namespace.split("/")[0].strip().endswith("-dev"):
-                # Filter "-dev" projects only stable ones
+            if project.path_with_namespace.split("/")[0].strip().endswith("-dev") or getattr(
+                project, "forked_from_project", None
+            ):
+                # Filter "-dev" projects only stable ones and skip forked project
                 continue
-            for branch in project.branches.list(iterator=True):
-                if not odoo_stable_branch.match(branch.name):
+            branch_names = (
+                [project.default_branch]
+                if only_default_branch
+                else [branch.name for branch in project.branches.list(get_all=True)]
+            )
+            for branch_name in branch_names:
+                if not odoo_stable_branch.match(branch_name):
                     continue
-                for project_file_obj in project.repository_tree(recursive=True, iterator=True):
+                try:
+                    project_file_objs = project.repository_tree(ref=branch_name, recursive=True, get_all=True)
+                except gitlab.exceptions.GitlabGetError:
+                    pass  # empty project
+                for project_file_obj in project_file_objs:
                     if project_file_obj["type"] != "blob":
                         # only files
                         continue
                     path_name = project_file_obj["path"]
                     if non_ascii_pattern.search(path_name):
-                        url = urllib.parse.quote(f"{project.path_with_namespace}/-/blob/{branch.name}/{path_name}")
-                        print(f"Found {self.gitlab_api.url}/{url}")
+                        url = urllib.parse.quote(f"{project.path_with_namespace}/-/blob/{branch_name}/{path_name}")
+                        print(f"{self.gitlab_api.url}/{url}")
 
     def get_project_files(self, fnames=None, branches=None):
         r"""Read the content of list of fnames and list of branches only

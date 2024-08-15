@@ -171,4 +171,4 @@ if __name__ == '__main__':
     # )
     # print("MRs created: %s" % '\n'.join(created_mrs))
     non_ascii = r"[^\x00-\x7F]"
-    print(obj.look_for_filename(fname_regex=non_ascii))
+    print(obj.look_for_filename(fname_regex=non_ascii, only_default_branch=True))
