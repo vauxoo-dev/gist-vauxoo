@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import urllib.parse
 from collections import defaultdict
 from contextlib import contextmanager
@@ -293,6 +294,7 @@ class GitlabAPI:
         task_id=None,
         prefix_version=True,
         run_pre_commit_vauxoo=False,
+        cancel_pipelines=True,
     ):
         """Make a MR
         projects is a list of projects similar to ['vauxoo/addons@14.0']
@@ -332,9 +334,13 @@ class GitlabAPI:
                     branch_dev.delete()
                 except (gitlab.exceptions.GitlabGetError, gitlab.exceptions.GitlabHttpError):
                     pass
-                branch_dev = project_dev.branches.create(
-                    {"branch": custom_branch_dev_name, "ref": branch.commit["id"]}
-                )
+                try:
+                    branch_dev = project_dev.branches.create(
+                        {"branch": custom_branch_dev_name, "ref": branch.commit["id"]}
+                    )
+                except gitlab.exceptions.GitlabCreateError as err:
+                    print("Couldn't create branch due tothe following error:", err)
+                    continue
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     git_work_tree = os.path.join(tmp_dir, "gitlab")
                     git_cmd = [
@@ -416,11 +422,26 @@ class GitlabAPI:
                             }
                         )
                         print(mr.web_url)
-                        mrs.append(mr.web_url)
+                        mrs.append(mr)
                     except subprocess.CalledProcessError:
                         print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, " ".join(cmd)))
                     except BaseException as e:
                         print("MR creating error %s@%s err: %s" % (project_name, branch.name, e))
+
+        if cancel_pipelines:
+            # Wait a few seconds so pipelines have enough time to be created
+            print("Starting to cancel pipelines")
+            time.sleep(5)
+            for mr in mrs:
+                pipelines = mr.pipelines.list()
+                for pipeline in pipelines:
+                    # Retrieve the full pipeline object to cancel it, as not available in the simplified object
+                    pipeline_project = self.gitlab_api.projects.get(pipeline.project_id)
+                    full_pipeline = pipeline_project.pipelines.get(pipeline.id)
+                    full_pipeline.cancel()
+                if not pipelines:
+                    print(f"Not cancelling pipelines of MR {mr.web_url} because none was found")
+
         return mrs
 
     def get_pipeline_artifacts(self, group, branches, job_names, artifacts_fname="artifacts.zip"):
