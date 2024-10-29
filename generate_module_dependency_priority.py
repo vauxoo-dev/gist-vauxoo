@@ -1,5 +1,5 @@
 # Generate a module list sorted by dependency priority, so modules not inherited by other ones are located before.
-# This is useful during migrations, to identify what modules to migrate atfirst.
+# This is useful during migrations, to identify what modules to migrate at first.
 #
 # The result is output as a CSV and downloaded.
 
@@ -23,19 +23,27 @@ for x in range(25):
 
 # Exclude native modules from result
 known_native_names = [
-    "l10n_ca",
+    "l10n_latam_base",
+    "l10n_latam_invoice_document",
+    "l10n_mx_reports",
+    "l10n_mx_reports_closing",
+    "l10n_pe_edi",
+    "l10n_pe_reports",
     "sale_subscription",
     # Not actually native from Odoo, but we don't want it to be included
     "web_environment_ribbon_isolated",
 ]
 native_modules = module_base.search(
     [
+        ("state", "=", "installed"),
+        "|",
         "|",
         "|",
         ("author", "in", ("Odoo S.A.", "Odoo")),
-        ("author", "like", "Odoo SA"),
+        ("author", "ilike", "Odoo SA"),
         ("name", "in", known_native_names),
-        ("state", "=", "installed"),
+        # CoA modules (l10n_XX) are generally not authored by Odoo
+        ("name", "=like", "l10n\\___"),
     ]
 )
 levels_to_output = [level - native_modules for level in levels if level - native_modules]
