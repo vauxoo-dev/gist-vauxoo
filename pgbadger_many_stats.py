@@ -1,38 +1,33 @@
 # pylint: disable=print-used
-
 import csv
 import os
 
-from bs4 import BeautifulSoup
+from lxml import html
 
 directory = os.path.expanduser("~/Downloads/pgbadger")
-csv_file = os.path.join(directory, "pgbadger_top_queries.csv")
+csv_file = os.path.join(directory, "pgbadger_top_queries3.csv")
 
 
 def get_top_queries_from_file(file_path, top=3):
     result = []
     with open(file_path) as file:
-        soup = BeautifulSoup(file, "lxml")
-        table = soup.find(id="time-consuming-queries-table")
-
-        rows = table.find_all("tr") if table else []
-        rank = 1
-        for row in rows:
-            cols = row.find_all("td")
-            if not cols or len(cols) < 6:
+        tree = html.parse(file)
+        for row in tree.xpath('//*[@id="time-consuming-queries-table"]//tr')[1:]:
+            cols = row.xpath(".//td")
+            if len(cols) < 6:
                 continue
+            rank = int(cols[0].text_content().strip())
             result.append(
                 {
                     "rank": rank,
-                    "total_duration": cols[1].get_text(strip=True),
-                    "times_executed": cols[2].get_text(strip=True).replace("Details", ""),
-                    "avg_duration": cols[5].get_text(strip=True),
-                    "query": cols[6].find_all("div")[0].get_text().strip("\n "),
+                    "total_duration": cols[1].text_content().strip(),
+                    "times_executed": cols[2].text_content().replace("Details", "").strip(),
+                    "avg_duration": cols[5].text_content().strip(),
+                    "query": "".join(cols[6].xpath("./div[1]//text()")).strip("\n "),
                     "filename": os.path.basename(file_path),
                 }
             )
-            rank += 1
-            if len(result) >= top:
+            if rank >= top:
                 break
     return result
 
@@ -52,7 +47,7 @@ def main():
 
             writer.writerows(top_queries)
 
-    print(f"csv file generated {csv_file}")
+    print(f"CSV file generated: {csv_file}")
 
 
 if __name__ == "__main__":
