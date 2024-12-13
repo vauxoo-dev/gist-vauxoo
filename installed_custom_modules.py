@@ -9,7 +9,7 @@ env.cr.execute(
         ir_module_module
     WHERE
         state = 'installed'
-        AND author NOT IN ('Odoo S.A.', 'Odoo SA', 'Odoo')
+        AND LOWER(author) NOT IN ('odoo s.a.', 'odoo sa', 'odoo')
         -- CoA modules are generally not authored by Odoo
         AND name NOT LIKE 'l10n\\___'
     ORDER BY
