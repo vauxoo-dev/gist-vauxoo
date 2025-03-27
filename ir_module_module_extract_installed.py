@@ -37,6 +37,7 @@ def compute_dependencies(modules):
 module_obj = env['ir.module.module'].sudo()
 installed_modules = module_obj.search([
     ('state', '=', 'installed'),
+    ('category_id.name', '!=', 'Tests'),
     '|',
     ('auto_install', '=', False),
     # l10n_mx_edi is marked as autoinstall, but it should be added anyway
