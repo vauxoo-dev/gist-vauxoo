@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "python",
+    "/home/odoo/.local/share/jupyter/kernels/odoo16/jupy_wrapper.py",
+    "-f",
+    "{connection_file}"
+  ],
+  "display_name": "Odoo 16",
+  "language": "python",
+  "metadata": {
+    "debugger": true
+  }
+}
