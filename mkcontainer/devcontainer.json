@@ -1,0 +1,16 @@
+{
+	// ~/.config/Code/User/globalStorage/ms-vscode-remote.remote-containers/imageConfigs/devcontainer.json
+	"workspaceFolder": "/home/odoo/instance",
+	"extensions": [
+		"mechatroner.rainbow-csv",
+		"ms-python.debugpy",
+		"ms-python.flake8",
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"trinhanhngoc.vscode-odoo",
+		"ms-python.black-formatter",
+		"redhat.vscode-xml"
+	],
+	"remoteUser": "odoo",
+	"postStartCommand": "sudo service postgresql start"
+}

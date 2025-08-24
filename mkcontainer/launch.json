@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // Replace $MODULE, $CLASS and $METHOD with the needed values
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/home/odoo/instance/odoo/odoo-bin",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": "--workers=0 --dev all -d test --db-filter '^test$'"
+        },
+        {
+            "name": "Run CI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/home/odoo/instance/odoo/odoo-bin",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": "--workers=0 --dev all -d test --db-filter '^test$' --stop-after-init -u $MODULE --test-tags :$CLASS.$METHOD"
+        },
+        {
+            "name": "Run Jupy",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/usr/local/bin/jupyter-lab",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {"ODOO_DB_NAME": "test"},
+            "args": "--port=8069 --no-browser"
+            // Change this  ^^^^ to the actual port exposed in the container
+        }
+    ]
+}
+
