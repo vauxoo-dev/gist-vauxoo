@@ -7,23 +7,26 @@ fake = Faker()
 
 fields = ["name", "email", "ref", "create_uid", "create_date", "write_uid", "write_date"]
 fields_required_possible = {
-    # if you database has installed a few extra modules it could raise not null errors
-    # Better define a manual default
+    # if you database has installed a few extra modules it could raise not null errors
+    # Better define a manual default
     "autopost_bills": "ask",
     "group_rfq": "default",
     "group_on": "default",
 }
 
-def generate_csv(file_name, total_records, cursor):
-    cursor.execute("""
+
+def generate_csv(file_name, total_records, cr):
+    cr.execute(
+        """
         SELECT column_name
         FROM information_schema.columns
         WHERE table_name = 'res_partner'
           AND table_schema = 'public'
           AND is_nullable = 'NO'
           AND column_default IS NULL
-    """)
-    columns_not_null = [i[0] for i in cursor.fetchall()]
+    """
+    )
+    columns_not_null = [i[0] for i in cr.fetchall()]
     missing_columns = set(columns_not_null) - set(fields)
     missing_columns_wo_default = missing_columns - set(fields_required_possible)
     if missing_columns_wo_default:
@@ -45,24 +48,27 @@ def generate_csv(file_name, total_records, cursor):
             writer.writerow([name, email, ref, create_uid, "NOW()", write_uid, "NOW()"] + default_values)
 
 
-def copy_from_csv(file_name, cursor):
+def copy_from_csv(file_name, cr):
     with open(file_name) as file:
-        cursor.copy_expert(
+        cr.copy_expert(
             "COPY res_partner(%s) FROM STDIN WITH CSV HEADER" % ",".join(fields),
             file,
         )
-        conn.commit()
 
 
-
-if __name__ == "__main__":
+def main():
+    fname = "partners.csv"
     # Use PG* environment variables to connect to database
     conn = psycopg2.connect()
     cursor = conn.cursor()
     try:
-        fname = "partners.csv"
-        generate_csv(fname, total_records=2000000, cursor=cursor)
-        copy_from_csv(fname, cursor)
+        generate_csv(fname, total_records=2000000, cr=cursor)
+        copy_from_csv(fname, cr=cursor)
+        conn.commit()
     finally:
         cursor.close()
         conn.close()
+
+
+if __name__ == "__main__":
+    main()
