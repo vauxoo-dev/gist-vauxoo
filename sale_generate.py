@@ -19,12 +19,12 @@ def create_sales_thread(count):
 
 def main():
     threads = []
-    total = 10000
-    num_threads = 10
+    total = 200000
+    num_threads = 20
     per_thread = total // num_threads
 
     for _i in range(num_threads):
-        thread = threading.Thread(target=create_sales_thread, args=per_thread)
+        thread = threading.Thread(target=create_sales_thread, args=(per_thread,))
         thread.start()
         threads.append(thread)
 
