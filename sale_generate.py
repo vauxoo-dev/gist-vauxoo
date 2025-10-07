@@ -1,4 +1,5 @@
 # Run this code using odoo-bin shell
+# Change the ~/.odoorc to db_maxconn=99999
 import logging
 import threading
 from unittest.mock import patch
@@ -21,12 +22,11 @@ def _patched_write_multi(self, vals_list):
     return _original_write_multi(self, vals_list)
 
 
-def create_sales_thread(count):
+def create_sales_thread(count, vals):
     with self.pool.cursor() as cr2:  # noqa: F821 pylint: disable=undefined-variable
         new_env = api.Environment(cr2, SUPERUSER_ID, {})
-        sale_tmpl = new_env["sale.order"].search([], limit=1, order="id")
         for _i in range(count):
-            new_so = sale_tmpl.copy()
+            new_so = new_env["sale.order"].create(vals)
             _logger.info("Sale Order ID: %s created", new_so.id)
             cr2.commit()
 
@@ -34,11 +34,13 @@ def create_sales_thread(count):
 def main():
     threads = []
     total = 200000
-    num_threads = 20
+    num_threads = 150  # connections=num_threads*2*(1+20%) Use num_threads=100 for 250 max_connections
     per_thread = total // num_threads
+    sale_tmpl = self.env["sale.order"].search([], limit=1, order="id")  # noqa: F821 pylint: disable=undefined-variable
+    vals = sale_tmpl.copy_data()  # using copy_data is faster since that it is built only one time and re-use the vals
     with patch("odoo.models.Model._write_multi", new=_patched_write_multi):
         for _i in range(num_threads):
-            thread = threading.Thread(target=create_sales_thread, args=(per_thread,))
+            thread = threading.Thread(target=create_sales_thread, args=(per_thread, vals))
             thread.start()
             threads.append(thread)
 
