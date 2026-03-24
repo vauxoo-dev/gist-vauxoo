@@ -1,5 +1,5 @@
 """
-Script to output all views that don't whose file name doesn't match their model name.
+Script to output all views whose file name doesn't match their model name.
 """
 
 import re
