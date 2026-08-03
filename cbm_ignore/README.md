@@ -10,6 +10,7 @@ The generated file includes:
 - no Odoo addon modules named `test_*`;
 - only `*.py`, `*.xml`, and `*.js` source-like files;
 - no `.git`, `__pycache__`, `node_modules`, minified JS, or static vendored libraries.
+- no frontend `static/tests` trees.
 
 ## Usage
 
