@@ -1,0 +1,50 @@
+# Generated from installed Odoo modules.
+# Keep repo_path=/home/odoo/instance and project name stable.
+
+*
+
+# Odoo core package. Keep it complete for ORM/http/sql/api internals.
+{% for rel in core_dirs %}
+{% for parent in parents(rel) %}
+!{{ parent }}/
+{% endfor %}
+!{{ rel }}/**/
+{% for glob in source_globs %}
+!{{ rel }}/**/{{ glob }}
+{% endfor %}
+{% endfor %}
+
+# Drop Odoo test addon modules, but keep unittest folders inside real installed modules.
+odoo/odoo/addons/test_*/
+odoo/odoo/addons/test_*/**
+odoo/addons/test_*/
+odoo/addons/test_*/**
+
+# Installed Odoo addons only.
+{% for rel in module_paths %}
+{% for parent in parents(rel) %}
+!{{ parent }}/
+{% endfor %}
+!{{ rel }}/**/
+{% for glob in source_globs %}
+!{{ rel }}/**/{{ glob }}
+{% endfor %}
+{% endfor %}
+
+# Heavy/generated/vendor paths.
+.git/
+**/.git/
+__pycache__/
+**/__pycache__/
+node_modules/
+**/node_modules/
+.cache/
+**/.cache/
+dist/
+**/dist/
+build/
+**/build/
+**/static/lib/
+**/static/lib/**
+**/*.min.js
+**/*-min.js
