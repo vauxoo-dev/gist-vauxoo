@@ -13,18 +13,22 @@ The generated file includes:
 
 ## Usage
 
-Copy the files into the Odoo instance root inside the container:
+Keep the files together inside the container, typically:
 
 ```bash
-docker cp .cbmignore.jinja absa120:/home/odoo/instance/.cbmignore.jinja
-docker cp generate_cbmignore_from_jinja.py absa120:/tmp/generate_cbmignore_from_jinja.py
+/home/odoo/gist-vauxoo/cbm_ignore/.cbmignore.jinja
+/home/odoo/gist-vauxoo/cbm_ignore/generate_cbmignore_from_jinja.py
 ```
 
 Run as the `odoo` user:
 
 ```bash
-/home/odoo/instance/odoo/odoo-bin shell --log-level=warn < /tmp/generate_cbmignore_from_jinja.py
+~/instance/odoo/odoo-bin shell --no-http --stop-after-init < /home/odoo/gist-vauxoo/cbm_ignore/generate_cbmignore_from_jinja.py
 ```
+
+By default the script reads `.cbmignore.jinja` from the same directory as
+`generate_cbmignore_from_jinja.py` and writes the rendered file to
+`~/instance/.cbmignore`.
 
 Then index the real instance path:
 
@@ -40,7 +44,6 @@ The script defaults to `/home/odoo/instance`, but these variables can override p
 
 ```bash
 export CBM_ODOO_INSTANCE_PATH=/home/odoo/instance
-export CBMIGNORE_TEMPLATE=/home/odoo/instance/.cbmignore.jinja
 export CBMIGNORE_OUTPUT=/home/odoo/instance/.cbmignore
 export CBMIGNORE_BACKUP=/home/odoo/instance/.cbmignore.before-installed-modules
 ```

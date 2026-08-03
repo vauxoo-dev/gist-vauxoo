@@ -6,11 +6,14 @@ except ImportError:
     raise RuntimeError("jinja2 is required in the Odoo Python environment")
 
 
-ROOT = os.environ.get("CBM_ODOO_INSTANCE_PATH", "/home/odoo/instance")
-TEMPLATE_PATH = os.environ.get(
-    "CBMIGNORE_TEMPLATE",
-    os.path.join(ROOT, ".cbmignore.jinja"),
+ROOT = os.environ.get(
+    "CBM_ODOO_INSTANCE_PATH",
+    os.path.expanduser("~/instance"),
 )
+SCRIPT_DIR = os.path.dirname(
+    os.path.abspath(globals().get("__file__", "/home/odoo/gist-vauxoo/cbm_ignore/generate_cbmignore_from_jinja.py"))
+)
+TEMPLATE_PATH = os.path.join(SCRIPT_DIR, ".cbmignore.jinja")
 OUTPUT_PATH = os.environ.get("CBMIGNORE_OUTPUT", os.path.join(ROOT, ".cbmignore"))
 BACKUP_PATH = os.environ.get(
     "CBMIGNORE_BACKUP",
