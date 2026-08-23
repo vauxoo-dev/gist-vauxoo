@@ -108,3 +108,6 @@ pyproject.toml
 *.db
 
 json_vs_csv_bigfiles/data*
+
+# variables.sh downloaded from the gitlab projects, client data, not source
+gitlab_content/
