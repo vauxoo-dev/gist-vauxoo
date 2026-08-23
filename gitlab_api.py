@@ -30,6 +30,11 @@ except ImportError:
     pcv_cli = None
 
 CFG = os.path.expanduser("~/.python-gitlab.cfg")
+TIMEOUT = 120
+# Pipeline statuses that are still consuming or waiting for a runner
+ACTIVE_PIPELINE_STATUSES = frozenset(
+    ["created", "waiting_for_resource", "preparing", "pending", "running", "scheduled", "manual"]
+)
 
 
 @contextmanager
@@ -65,6 +70,9 @@ class GitlabAPI:
 
     def __init__(self):
         self.gitlab_api = gitlab.Gitlab.from_config("default", [CFG])
+        # The "timeout = 5" of the cfg is not enough for writes on big projects, a
+        # ReadTimeout in the middle of a mass MR run leaves its pipelines uncancelled
+        self.gitlab_api.timeout = TIMEOUT
         self.access_level_code_name = {
             gitlab.const.GUEST_ACCESS: "guest",
             gitlab.const.REPORTER_ACCESS: "reporter",
@@ -295,10 +303,13 @@ class GitlabAPI:
         prefix_version=True,
         run_pre_commit_vauxoo=False,
         cancel_pipelines=True,
+        require_modules=True,
     ):
         """Make a MR
         projects is a list of projects similar to ['vauxoo/addons@14.0']
         Use "gitlab_mr_template/" folder to make files changes in jinja2 format
+        Set require_modules=False to also process repositories without odoo modules
+        in the root path, e.g. tooling or documentation ones
         """
         # TODO: Add export BASE_IMAGE="vauxoo/odoo-{{version.replace('.')}}-image" if not exists or different
         # TODO: py.warnings for 14.0  # Add log-handler to silent py.warnings
@@ -313,6 +324,7 @@ class GitlabAPI:
                 raise UserWarning("You need to use the format ['OWNER/PROJECT@BRANCH']")
             project_branches_dict[project_str.strip()].add(branch_str.strip())
         mrs = []
+        dev_branches = []
         self.jinja_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(os.path.join(self.mr_tmpl, branch_dev_name)), autoescape=True
         )
@@ -326,20 +338,34 @@ class GitlabAPI:
             except GitlabGetError:
                 print("Project %s has no -dev branch, using same project to push dev branch" % project_name)
                 project_dev = project
+            if project_dev.id != project.id and not getattr(project_dev, "forked_from_project", None):
+                # A "-dev" that is not a real fork cannot be the source of the MR, gitlab
+                # answers "Source project is not a fork of the target project"
+                print("Project %s is not a fork of %s, using same project instead" % (project_dev_str, project_name))
+                project_dev = project
             for branch_str in branches_str:
                 branch = project.branches.get(branch_str)
                 custom_branch_dev_name = "%s-%s" % (branch.name, branch_dev_name)
-                try:
-                    branch_dev = project_dev.branches.get(custom_branch_dev_name)
-                    branch_dev.delete()
-                except (gitlab.exceptions.GitlabGetError, gitlab.exceptions.GitlabHttpError):
-                    pass
-                try:
-                    branch_dev = project_dev.branches.create(
-                        {"branch": custom_branch_dev_name, "ref": branch.commit["id"]}
-                    )
-                except gitlab.exceptions.GitlabCreateError as err:
-                    print("Couldn't create branch due tothe following error:", err)
+                # The -dev fork could be outdated so it does not know branch.commit["id"] yet.
+                # In that case fallback to the base project to push the dev branch.
+                project_src = project_dev
+                branch_dev = None
+                for project_src in (project_dev, project):
+                    try:
+                        old_branch_dev = project_src.branches.get(custom_branch_dev_name)
+                        old_branch_dev.delete()
+                    except (gitlab.exceptions.GitlabGetError, gitlab.exceptions.GitlabHttpError):
+                        pass
+                    try:
+                        branch_dev = project_src.branches.create(
+                            {"branch": custom_branch_dev_name, "ref": branch.commit["id"]}
+                        )
+                        break
+                    except gitlab.exceptions.GitlabCreateError as err:
+                        print("Couldn't create branch due tothe following error:", err)
+                    if project_src.id == project.id:
+                        break
+                if branch_dev is None:
                     continue
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     git_work_tree = os.path.join(tmp_dir, "gitlab")
@@ -356,7 +382,7 @@ class GitlabAPI:
                             "--dept=1",
                             "-b",
                             branch_dev.name,
-                            project_dev.ssh_url_to_repo,
+                            project_src.ssh_url_to_repo,
                             git_work_tree,
                         ]
                         subprocess.check_call(cmd)
@@ -366,7 +392,7 @@ class GitlabAPI:
                             for module in os.listdir(git_work_tree)
                             if os.path.isfile(os.path.join(git_work_tree, module, "__manifest__.py"))
                         ]
-                        if not tmpl_data["modules"]:
+                        if require_modules and not tmpl_data["modules"]:
                             print("MR creating skipped %s@%s no modules" % (project_name, branch.name))
                             continue
                         tmpl_data["project"] = project_name.split("/")[1]
@@ -407,11 +433,15 @@ class GitlabAPI:
                         cmd = git_cmd + ["commit", "-am", commit_msg]
                         subprocess.check_call(cmd)
                         cmd = git_cmd + ["push", "origin", "-f", custom_branch_dev_name]
+                        if cancel_pipelines:
+                            # "[ci skip]" in the commit message is not always honored, but
+                            # this push option always is, no pipeline is even created
+                            cmd += ["-o", "ci.skip"]
                         subprocess.check_call(cmd)
                         mr_title = "%s - %s" % (branch.name, title) if prefix_version else title
                         if task_id:
                             mr_title += " T#%s" % task_id
-                        mr = project_dev.mergerequests.create(
+                        mr = project_src.mergerequests.create(
                             {
                                 "target_project_id": project.id,
                                 "source_branch": branch_dev.name,
@@ -423,26 +453,41 @@ class GitlabAPI:
                         )
                         print(mr.web_url)
                         mrs.append(mr)
+                        dev_branches.append((project_src, branch_dev.name))
+                        if cancel_pipelines:
+                            self.cancel_branch_pipelines(project_src, branch_dev.name)
                     except subprocess.CalledProcessError:
                         print("MR creating error %s@%s Last command: %s" % (project_name, branch.name, " ".join(cmd)))
                     except BaseException as e:
                         print("MR creating error %s@%s err: %s" % (project_name, branch.name, e))
 
         if cancel_pipelines:
-            # Wait a few seconds so pipelines have enough time to be created
-            print("Starting to cancel pipelines")
-            time.sleep(5)
-            for mr in mrs:
-                pipelines = mr.pipelines.list()
-                for pipeline in pipelines:
-                    # Retrieve the full pipeline object to cancel it, as not available in the simplified object
-                    pipeline_project = self.gitlab_api.projects.get(pipeline.project_id)
-                    full_pipeline = pipeline_project.pipelines.get(pipeline.id)
-                    full_pipeline.cancel()
-                if not pipelines:
-                    print(f"Not cancelling pipelines of MR {mr.web_url} because none was found")
+            # Second sweep: catch whatever was still being created after each MR
+            for project_src, branch_dev_ref in dev_branches:
+                self.cancel_branch_pipelines(project_src, branch_dev_ref)
 
         return mrs
+
+    def cancel_branch_pipelines(self, project, ref, wait=5):
+        """Cancel every pipeline still alive on a branch, return how many
+
+        Creating the dev branch through the API is a push of the base commit, which has
+        no "[ci skip]", and neither that nor the "ci.skip" push option reliably stops the
+        pipeline of the pushed commit either, so cancelling is the only thing that works.
+        Cancel by (project, ref): the MR object is bound to the source project while its
+        iid belongs to the target one, so "mr.pipelines" answers a 404 there.
+        """
+        # Wait a few seconds so pipelines have enough time to be created
+        time.sleep(wait)
+        cancelled = 0
+        for pipeline in project.pipelines.list(ref=ref, get_all=True):
+            full_pipeline = project.pipelines.get(pipeline.id)
+            if full_pipeline.status not in ACTIVE_PIPELINE_STATUSES:
+                continue
+            full_pipeline.cancel()
+            cancelled += 1
+        print("Cancelled %d pipelines of %s@%s" % (cancelled, project.path_with_namespace, ref))
+        return cancelled
 
     def get_pipeline_artifacts(self, group, branches, job_names, artifacts_fname="artifacts.zip"):
         """Download and unzip artifacts for group/project"""
