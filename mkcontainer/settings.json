@@ -1,0 +1,18 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.extraPaths": ["/home/odoo/instance/odoo"],
+    "python.autoComplete.extraPaths": ["/home/odoo/instance/odoo"],
+    "python.analysis.autoImportCompletions": true,
+    "python.languageServer": "None",
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "flake8.args": [
+         "--max-line-length=120",
+        "--ignore=E301,E302"
+    ],
+    "flake8.severity": {
+        "E": "Warning",
+        "F": "Warning",
+        "I": "Hint",
+        "W": "Information"
+    }
+}

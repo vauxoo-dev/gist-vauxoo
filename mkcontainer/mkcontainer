@@ -1,0 +1,769 @@
+#!/usr/bin/bash
+
+#############################################
+# Config                                    #
+#############################################
+
+# Default config for container
+_VER="16.0"
+_COMMIT="ca9a319910"
+_CUSTOMER="islamicrelief"
+CONTAINER="irc-$_VER-$_COMMIT"
+IMAGE="quay.io/vauxoo/$_CUSTOMER:$_CUSTOMER-$_VER-$_COMMIT"
+PORT="8069"
+EXTRA_ADDON="ircodoo"
+ORIGIN_REPO="git@gitlab.com:ircanada/ircodoo.git"
+DEV_REPO="git@gitlab.com:ircanada/ircodoo-dev.git"
+MAIN_MODULE="islamicrelief"
+
+
+# Default configs for git user
+NAME="Andrea Manenti"
+EMAIL="manenti@vauxoo.com"
+LOCAL_KEY_PATH="$HOME/.ssh/id_vauxoo"
+
+# Extra variables
+PORT_WAS_SET="no"
+
+
+#############################################
+# Utilities                                 #
+#############################################
+
+NOCONFIRM='no'
+ask_for_confirmation () {
+    _PROMPT="$1"
+    if [[ $NOCONFIRM == 'yes' ]]; then
+        return 0
+    fi
+
+    while true; do
+        read -p "$_PROMPT (y = yes, n = no) " yn
+        case $yn in
+            [yY]* ) return 0;;
+            [nN]* ) return 1;;
+            * ) echo "Please answer yes (Yy) or no (Nn).";;
+        esac
+    done
+}
+
+nice_print () {
+     echo -e "\033[32m\033[1m==>\033[0m $@"
+}
+
+nice_print_2 () {
+     echo -e "   \033[93m\033[1m-->\033[0m $@"
+}
+
+error_print () {
+     echo -e "\033[31m\033[1mError\033[0m: $@"
+}
+
+check_image_or_pull () {
+    _GIVEN="$1"
+    if [[ ! $_GIVEN =~ ":" ]]; then
+        _GIVEN="$_GIVEN:latest"
+    fi
+    _available_images=`docker images --format={{.Repository}}:{{.Tag}}`
+    if [[ ! "$_available_images" =~ "$_GIVEN" ]]; then
+        error_print "Image $_GIVEN is not present in local."
+        if ask_for_confirmation "Pull image from remote $_GIVEN?"; then
+            docker pull "$_GIVEN"
+        else
+            exit 1
+        fi
+    fi
+}
+
+
+#############################################
+# Config checker                            #
+#############################################
+
+declare -A _descriptions=(
+    [PORT]="The main port to expose in the container (other ports will be shifted relative to this)"
+    [CONTAINER]="Default container name if not specified by -n / --name"
+    [EXTRA_ADDON]="Name of the subfolder of extra_addons where the repo is"
+    [ORIGIN_REPO]="URL of the repo origin with the main branch"
+    [DEV_REPO]="URL of the repo origin with the development branches"
+    [IMAGE]="Default image name if not specified by -m / --image"
+    [MAIN_MODULE]="Main module to install with odoo-bin -i after creation (should have all other modules as dependencies)"
+    [NAME]="You name, for commit messages"
+    [EMAIL]="Your email, for commit messages"
+    [LOCAL_KEY_PATH]="Path of your SSH public key, to authenticate you to GitLab"
+    [PORT_WAS_SET]="This variable has to start as 'no'"
+)
+declare -A _error_mgsg=()
+for var in "${!_descriptions[@]}"; do
+    val="${!var}"
+    if [[ -z $val ]]; then
+        passed=0
+        error_print "Variable $var cannot be empty"
+        _error_msgs+=( " - $var: ${_descriptions[$var]}\n" )
+    fi
+done
+
+if [[ ! -z $_error_msgs ]]; then
+    for i in "${_error_msgs[@]}"; do
+        printf "$i"
+    done
+    exit 1
+fi
+
+
+#############################################
+# Functions                                 #
+#############################################
+
+create_container () {
+    # Creates a container with some appropriate configurations
+
+    check_image_or_pull "$IMAGE"
+
+    _pgres_port=$((5432 + $PORT - 8069))
+    if [[ ! $_pgres_port -gt 0 ]]; then
+        _pgres_port=$(($PORT + 1000))
+    fi
+
+    nice_print "Running container from image $IMAGE"
+    docker run \
+        --name $CONTAINER \
+        -p $PORT:8069/tcp -p $(($PORT + 103)):8072/tcp -p $_pgres_port:5432 \
+        -dit --entrypoint bash \
+        -e GEVENT_SUPPORT=False \
+        $IMAGE
+        echo "Started container!"
+
+    echo "  - Container name:     $CONTAINER"
+    echo "  - Connect to:         http://localhost:$PORT"
+    echo "  - Postgresql in port: $_pgres_port"
+}
+
+create_new_container () {
+    # Creates a new container with a different name and port
+
+    choice=$CONTAINER
+    present="`docker ps -a --format {{.Names}} | tr '\n' ' '`"
+    while [[ " $present " == *" $choice "* ]]; do
+        read -p "Write a new name for a container, different from `echo $present`: " choice
+    done
+    CONTAINER=$choice
+    if [[ $PORT_WAS_SET != 'yes' ]]; then
+        read -p "Write a local port to use, e.g. 8070: " port
+        PORT=$port
+    fi
+
+    create_container
+}
+
+exit_if_no_container () {
+    # Exists if the target container does not exist
+
+    if [ ! "$(docker ps -a -q -f name=$CONTAINER)" ]; then
+        error_print "Container $CONTAINER does not exist. Exiting"
+        exit 1
+    fi
+}
+
+create_or_recreate_container () {
+    # Asks whether to recreate the container or to just execute the commands in
+    # the existing one, if any
+
+    if [ "$(docker ps -a -q -f name=$CONTAINER)" ]; then
+        echo "Container $CONTAINER exists,"
+
+        while true; do
+            read -p "remove it, execute commands in it or create new? (r = remove, e = execute, n = new) " yn
+            case $yn in
+                [Rr]* ) docker stop $CONTAINER; docker rm $CONTAINER; create_container; break;;
+                [nN]* ) create_new_container; break;;
+                [Ee]* ) break;;
+                * ) echo "Please answer remove (Rr), execute (Ee) or new (Nn).";;
+            esac
+        done
+    else
+        create_container
+    fi
+}
+
+add_repo () {
+    # Adds an additional github repository inside the container
+
+    folder=$1  # folder where to clone it
+    git_remote=$2 # git remote to clone from
+    repo_name=$(echo "$git_remote" | sed -e 's#.*/\([^/]*\)\.git#\1#')
+
+    docker exec -u odoo $CONTAINER mkdir -p "$folder"
+    docker exec -u odoo -w "$folder" -e GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no' $CONTAINER git clone "$git_remote"
+    docker exec -u odoo -w "$folder/$repo_name" $CONTAINER git config user.name "$NAME"
+    docker exec -u odoo -w "$folder/$repo_name" $CONTAINER git config user.email "$EMAIL"
+
+}
+
+modify_config () {
+    # Modifies the file ~/.openerp_serverrc by setting some custom options
+    # If the setting is already there, it leaves the previous value commented out
+    safe_suffix=`date | md5sum | sed -e 's/ .*$//'`
+
+    cat <<END-OF-SCRIPT > tmp_bash.sh
+FILE="/home/odoo/.openerp_serverrc"
+KEY="$1"  # the key to modify
+VAL="$2"  # the new value it takes
+#
+if [[ \$(sed -i "s/^\$KEY\s=/#COMMENT# \$KEY =/w /dev/stdout" "\$FILE" | wc -l) == 0 ]]; then
+    sed -i "$ a \$KEY = \$VAL"  "\$FILE"
+else
+    sed -i "s/#COMMENT# \$KEY =\(.*\)$/# \$KEY =\1\n\$KEY = \$VAL/"  "\$FILE"
+fi
+END-OF-SCRIPT
+    docker cp tmp_bash.sh $CONTAINER:/home/odoo/tmp_bash-$safe_suffix.sh
+    docker exec -u odoo -w "/home/odoo" $CONTAINER bash tmp_bash-$safe_suffix.sh
+    docker exec -u odoo -w "/home/odoo" $CONTAINER rm tmp_bash-$safe_suffix.sh
+    rm tmp_bash.sh
+
+}
+
+make_odoo_sudoer () {
+    # Due to the way vscode is designed, I cannot launch automatically processes as
+    # root after start unless I make the default user root for *everything*.
+    # For this reason I make odoo a passworless sudoer so that I can go to root at will
+
+    docker exec $CONTAINER apt-get update
+    docker exec $CONTAINER apt-get install -y sudo
+    docker exec $CONTAINER touch /etc/sudoers
+    docker exec $CONTAINER sed -i "$ a%sudo ALL=(ALL) NOPASSWD:ALL" /etc/sudoers
+    docker exec $CONTAINER usermod -aG sudo odoo
+}
+
+install_config () {
+    # Copies various config files in .vscode
+
+    docker exec $CONTAINER mkdir -p /home/odoo/instance/.vscode
+
+    if [[ ! -f "launch.json" ]]; then
+        error_print "File launch.json not found. Skipping."
+    else
+        docker cp launch.json $CONTAINER:/home/odoo/instance/.vscode/
+    fi
+
+    if [[ ! -f "settings.json" ]]; then
+        error_print "File settings.json not found. Skipping."
+    else
+        docker cp settings.json $CONTAINER:/home/odoo/instance/.vscode/
+    fi
+}
+
+configure_git () {
+    # Configures git identity and SSH keys
+    _REPO="$1"
+
+    nice_print "Moving SSH keys..."
+    if [[ ! -f "$LOCAL_KEY_PATH" ]]; then
+        error_print "File $LOCAL_KEY_PATH not found. Skipping git configuration"
+        return 1
+    fi
+    docker cp "$LOCAL_KEY_PATH.pub" $CONTAINER:/home/odoo/.ssh/id_ed25519.pub
+    docker cp "$LOCAL_KEY_PATH" $CONTAINER:/home/odoo/.ssh/id_ed25519
+
+    nice_print "Setting name and email"
+    docker exec -u odoo -w "$_REPO" $CONTAINER git config user.name "$NAME"
+    docker exec -u odoo -w "$_REPO" $CONTAINER git config user.email "$EMAIL"
+    docker exec -u odoo -w "$_REPO" $CONTAINER git config push.default current
+}
+
+configure_jupyter () {
+    # Configures Jupyter Lab
+    docker exec $CONTAINER pip install -U ipykernel jupyter jupyterlab
+    docker exec -u odoo $CONTAINER mkdir -p /home/odoo/.local/share/jupyter/kernels/odoo16
+    docker cp "kernel.json" $CONTAINER:/home/odoo/.local/share/jupyter/kernels/odoo16/kernel.json
+    docker cp "jupy_wrapper.py" $CONTAINER:/home/odoo/.local/share/jupyter/kernels/odoo16/jupy_wrapper.py
+}
+
+set_git_remotes () {
+    # Configure the remotes in the git repo
+    _REPO="$1"
+    _ORIGIN_URL="$2"
+    _DEV_URL="$3"
+
+    nice_print "Setting remote origin and dev to SSH instead of http..."
+    docker exec -u odoo -w "$_REPO" $CONTAINER git remote set-url origin "$_ORIGIN_URL"
+    docker exec -u odoo -w "$_REPO" $CONTAINER git remote add dev "$_DEV_URL"
+
+}
+
+install_precommit () {
+    # Installs the precommit repo and adds a call to pre-commit-vauxoo in the precommit script
+
+    REPO="$1"  # The root of the git folder
+    PRECOMMIT_SCR="$REPO/.git/hooks/pre-push"  # I attach the hook to pre-push in case I want to make many commits on local
+    docker exec $CONTAINER pip install -U git+https://github.com/Vauxoo/pre-commit-vauxoo.git@main
+    docker exec $CONTAINER apt-get install -y libecpg-dev  # This is needed to lint the jinja file
+    docker exec -u odoo $CONTAINER touch "$PRECOMMIT_SCR"
+    docker exec -u odoo $CONTAINER chmod +x "$PRECOMMIT_SCR"
+    docker exec -u odoo $CONTAINER sh -c "echo \"pre-commit-vauxoo -t all\" > $PRECOMMIT_SCR"
+}
+
+install_odoo_selenium () {
+    # Installs odoo_selenium for tests
+
+    docker exec $CONTAINER pip install odoo_selenium
+}
+
+install_module () {
+    # Installs a module in the given database
+
+    MODULE="$1"
+    DATABASE="$2"
+    docker exec -u odoo -w "/home/odoo/instance/odoo" $CONTAINER \
+        python odoo-bin -d "$DATABASE" --db-filter "$DATABASE" --no-http -i "$MODULE" --stop-after-init
+}
+
+choose_globbed () {
+    # Given the output of a glob operation, shows a prompt to choose one
+
+    globbed=( "$@" );
+
+    if [[ ${#globbed[@]} > 1 ]]; then
+        select opt in "${globbed[@]}"
+        do
+            if [[ -n ${opt} ]]; then
+                echo "${opt}";
+                break
+            else
+                PS3="Please choose among the available options (1-${#globbed[@]}): "
+            fi
+        done
+    else
+        echo "${globbed[-1]}"
+    fi
+
+}
+
+add_imageconfig () {
+    # Adds the imageConfig JSON file to the appropriate local folder for VSCode
+
+    _image="$1"
+
+    # The devcontainer config can have any name, but the ones below are reserved
+    not_devcontainer=( "./kernel.json" "./settings.json" "./launch.json" )
+    globbed=(./*.json)
+    new_globbed=()
+    for json_file in "${globbed[@]}"
+    do
+        if [[ ! " ${not_devcontainer[*]} " =~ " $json_file " ]]; then
+            new_globbed+=("$json_file")
+        fi
+    done
+    PS3="Several config files match, choose which one to add: "
+    _src=`choose_globbed "${new_globbed[@]}"`;
+    if [[ ! -f "$_src" ]]; then
+        echo "$_src: No such file or directory"
+        return
+    fi
+
+    _image_escaped="${_image//\//%2f}"
+    _image_escaped="${_image_escaped/:/%3a}"
+    _dest="$HOME/.config/Code/User/globalStorage/ms-vscode-remote.remote-containers/imageConfigs/${_image_escaped}.json"
+    if [[ -f "$_dest" ]]; then
+        while true; do
+            read -p "File $_dest already exists, overwrite? (y = yes, n = no) " yn
+            case $yn in
+                [yY]* ) break;;
+                [nN]* ) return ;;
+                * ) echo "Please answer yes (Yy) or no (Nn).";;
+            esac
+        done
+    fi
+
+    cp "$_src" "$_dest"
+
+}
+
+execute_sql () {
+    # Executes all SQL instructions from a .sql file in the current folder on the given db
+
+    _sql_file="$2"
+
+    if [[ ! -z "$_sql_file" ]]; then
+        _src="$_sql_file"
+    else
+        globbed=(./*.sql);
+        PS3="Several SQL files match, choose which one to execute: "
+        _src=`choose_globbed "${globbed[@]}"`;
+        if [[ ! -f "$_src" ]]; then
+            echo "$_src: No such file or directory"
+            return
+        fi
+    fi
+
+    _db="$1"
+    safe_suffix=`date | md5sum | sed -e 's/ .*$//'`
+
+    docker cp "$_src" $CONTAINER:/home/odoo/tmp_sql-$safe_suffix.sql
+    docker exec -u odoo $CONTAINER psql "$_db" --file=/home/odoo/tmp_sql-$safe_suffix.sql
+    docker exec -u odoo $CONTAINER rm /home/odoo/tmp_sql-$safe_suffix.sql
+
+}
+
+run_all () {
+    # Runs various actions in sequence, typically this should be run
+    # for the first time a container is created
+
+    create_or_recreate_container
+
+    set_git_remotes "/home/odoo/instance/extra_addons/$EXTRA_ADDON" "$ORIGIN_REPO" "$DEV_REPO"
+
+    nice_print "Making odoo passwordless sudoer"
+    make_odoo_sudoer
+
+    nice_print "Starting postgres..."
+    docker exec $CONTAINER service postgresql start
+
+    if ask_for_confirmation "Do you want to run chown on /home/odoo?"; then
+        nice_print "Owning all /home/odoo..."
+        docker exec $CONTAINER chown -R odoo:odoo /home/odoo
+    fi
+
+    nice_print "Copying vscode configuration files..."
+    install_config
+    add_imageconfig $IMAGE
+
+    nice_print "Configuring git repo $EXTRA_ADDON"
+    configure_git "/home/odoo/instance/extra_addons/$EXTRA_ADDON"
+
+    if ask_for_confirmation "Do you want to install the vauxoo-pre-commit scripts?"; then
+        nice_print "Install precommit scripts..."
+        install_precommit "/home/odoo/instance/extra_addons/$EXTRA_ADDON"
+    fi
+
+    if ask_for_confirmation "Do you want to install odoo_selenium?"; then
+        nice_print "Installing odoo_selenium..."
+        install_odoo_selenium
+    fi
+
+    nice_print "Modifying .openerp_serverrc..."
+    modify_config "server_wide_modules" "web,queue_job,module_change_auto_install"
+    modify_config "log_handler" "urllib3.connectionpool:DEBUG"
+
+    if ask_for_confirmation "Do you want to install $MAIN_MODULE in the database test?"; then
+        nice_print "Installing $MAIN_MODULE module on database test..."
+        install_module "$MAIN_MODULE" "test"
+    fi
+
+    if ask_for_confirmation "Do you want to run the commands on setup.sql in the test DB?"; then
+        nice_print "Executing setup.sql instructions in database test..."
+        execute_sql "test" "setup.sql"
+    fi
+
+    if ask_for_confirmation "Do you want to install and setup Jupyter Lab?"; then
+        nice_print "Setting up Jupyter Lab..."
+        configure_jupyter
+    fi
+
+
+    # Here you can add more actions e.g.
+    # nice_print "Adding external git repositories..."
+    # add_repo "/home/odoo/instance/extra_addons/my_repo" "git@gitlab.com:your_username/my_repo.git"
+}
+
+
+#############################################
+# Argument parser                           #
+#############################################
+
+run_new_action () {
+    create_new_container
+
+    nice_print "Copying vscode image configuration file..."
+    add_imageconfig $IMAGE
+}
+
+run_postgres_action () {
+    exit_if_no_container
+    nice_print "Restarting postgres..."
+    docker exec $CONTAINER service postgresql restart
+}
+
+run_precommit_action () {
+    exit_if_no_container
+    nice_print "Install precommit scripts..."
+    install_precommit  "/home/odoo/instance/extra_addons/$EXTRA_ADDON"
+}
+
+run_repo_action () {
+    exit_if_no_container
+    nice_print "Adding repo" $(echo "$3" | sed -e 's#.*/\([^/]*\)\.git#\1#')
+    add_repo "$@"
+}
+
+run_install_action () {
+    exit_if_no_container
+    nice_print "Installing $1 module on database $2..."
+    install_module "$@"
+}
+
+run_imageconfig_action () {
+    exit_if_no_container
+    nice_print "Adding imageConfig for $IMAGE"
+    add_imageconfig "$IMAGE"
+}
+
+run_sql_action () {
+    exit_if_no_container
+    nice_print "Executing SQL instruction in database $1..."
+    execute_sql "$@"
+}
+
+run_gitconfig_action () {
+    exit_if_no_container
+    nice_print "Configuring git repo $EXTRA_ADDON..."
+    set_git_remotes "/home/odoo/instance/extra_addons/$EXTRA_ADDON" "$ORIGIN_REPO" "$DEV_REPO"
+    configure_git "/home/odoo/instance/extra_addons/$EXTRA_ADDON"
+}
+
+run_jupyter_action () {
+    nice_print "Configuring Jupyter in $CONTAINER..."
+    configure_jupyter
+}
+
+run_vscode_action () {
+    exit_if_no_container
+    nice_print "Adding VSCode configuration files to $CONTAINER"
+    install_config
+}
+
+run_modify_conf_action () {
+    exit_if_no_container
+    nice_print "Setting $1=$2 in .openerp_serverrc..."
+    modify_config "$@"
+}
+
+set_port () {
+    PORT="$1"
+    PORT_WAS_SET='yes'
+}
+
+set_yes () {
+    NOCONFIRM='yes'
+}
+
+set_container_name () {
+    CONTAINER="$1"
+}
+
+set_origin_repo () {
+    ORIGIN_REPO="$1"
+}
+
+set_dev_repo () {
+    DEV_REPO="$1"
+}
+
+set_extra_addon () {
+    EXTRA_ADDON="$1"
+}
+
+set_docker_image () {
+    IMAGE="$1"
+}
+
+set_ssh_key () {
+    LOCAL_KEY_PATH="$1"
+}
+
+
+show_help () {
+    echo "Usage: mkcontainer [-hCJMPVKG] [-R FOLDER REPO] [-I MODULE [DB]] [-S [DB]] [-E KEY VAL] [<OPTIONS>]"
+    echo ""
+    echo " Actions:"
+    echo "         -N, --New               Creates a new container from the image without any setup"
+    echo "         -C, --Precommit         Install the precommit script"
+    echo "         -h, --help              Show this help message and exit"
+    echo "         -E, --Editconf  KEY VAL Edit .openerp_serverrc setting KEY=VAL"
+    echo "         -I, --Install MODULE DB Install the module MODULE in database DB (default test)"
+    echo "         -M, --Imageconfig       Add the imageConfig.json file to local config"
+    echo "         -G, --Gitconfig         Configure git"
+    echo "         -J, --Jupyter           Configure Jupyter Lab"
+    echo "         -P, --Postgres          Restart the postgres service"
+    echo "         -R, --Repo FOLDER REPO  Install the repository REPO in FOLDER"
+    echo "         -S, --Sql DB            Execute local file *.sql in the database DB"
+    echo "         -V, --Vscode            Add VSCode config files"
+    echo "  (No flag)                      Run all commands"
+    echo ""
+    echo " Options:"
+    echo "         -d, --dev-repo GITURL   Name of the dev git repo"
+    echo "         -y, --yes               Do not ask for confirmation in some actions"
+    echo "         -a, --extra-addon NAME  Name of the extra_addon subfolder in development"
+    echo "         -g, --git-repo GITURL   Name of the origin git repo"
+    echo "         -i, --image URL         URL of the docker image to use"
+    echo "         -k, --key PATH          Path of the local git keys"
+    echo "         -n, --name NAME         The name of the container"
+    echo "         -p, --port PORT         Port to use for http (all other ports will be created relative to it)"
+}
+
+fail_if_action_set () {
+    if [[ "$ACTION" != "run_all" ]]; then
+        error_print "You can choose only one action between -C, -J, -M, -P, -V, -K, -G, -I, -S, -E"
+        exit 1
+    fi
+}
+
+ACTION="run_all"
+PARAMS=()
+
+while true ; do
+    case "$1" in
+        "-N" | "--New")
+            fail_if_action_set
+            ACTION="run_new_action"
+            shift ;;
+        "-P" | "--Postgres")
+            fail_if_action_set
+            ACTION="run_postgres_action"
+            shift ;;
+        "-M" | "--Imageconfig")
+            fail_if_action_set
+            ACTION="run_imageconfig_action"
+            shift ;;
+        "-J" | "--Jupyter")
+            fail_if_action_set
+            ACTION="run_jupyter_action"
+            shift ;;
+        "-G" | "--Gitconfig")
+            fail_if_action_set
+            ACTION="run_gitconfig_action"
+            shift ;;
+        "-V" | "--Vscode")
+            fail_if_action_set
+            ACTION="run_vscode_action"
+            shift ;;
+        "-C" | "--Precommit")
+            fail_if_action_set
+            ACTION="run_precommit_action"
+            shift ;;
+        "-S" | "--Sql")
+            fail_if_action_set
+            ACTION="run_sql_action"
+            if [[ -z "$2" || "$2" =~ -.* ]]; then
+                PARAMS=( "test" )
+            else
+                PARAMS=( "$2" )
+                shift
+            fi
+            shift ;;
+        "-R" | "--Repo")
+            fail_if_action_set
+            if [[ ! -z "$2" && ! -z "$3" ]]; then
+                ACTION="run_repo_action"
+                PARAMS=( "$2" "$3" )
+            else
+                error_print "You need to provide a folder in the container and a repository name"
+                exit 1
+            fi
+            shift 3 ;;
+        "-E" | "--Editconf")
+            fail_if_action_set
+            if [[ ! -z "$2" && ! -z "$3" ]]; then
+                ACTION="run_modify_conf_action"
+                PARAMS=( "$2" "$3" )
+            else
+                error_print "You need to provide a key and a value"
+                exit 1
+            fi
+            shift 3 ;;
+        "-I" | "--Install")
+            fail_if_action_set
+            if [[ ! -z "$2" ]]; then
+                _mod="$2"
+                _db="$3"
+                if [[ -z "$_db" || "$_db" =~ -.* ]]; then
+                    _db="test"
+                else
+                    shift
+                fi
+                ACTION="run_install_action"
+                PARAMS=( "$_mod" "$_db" )
+                shift 2
+            else
+                error_print "You need to provide a module and, optionally, a database"
+                exit 1
+            fi ;;
+        "-p" | "--port")
+            if [[ ! -z "$2" ]]; then
+                set_port "$2"
+                shift 2
+            else
+                error_print "You need to provide a tcp port"
+                exit 1
+            fi ;;
+        "-a" | "--extra-addon")
+            if [[ ! -z "$2" ]]; then
+                set_extra_addon "$2"
+                shift 2
+            else
+                error_print "You need to provide a name for the extra_addon subfolder"
+                exit 1
+            fi ;;
+        "-d" | "--dev-repo")
+            if [[ ! -z "$2" ]]; then
+                set_dev_repo "$2"
+                shift 2
+            else
+                error_print "You need to provide a git URL"
+                exit 1
+            fi ;;
+        "-k" | "--key")
+            if [[ ! -z "$2" ]]; then
+                set_ssh_key "$2"
+                shift 2
+            else
+                error_print "You need to provide a path e.g. ~/.ssh/id_rsa"
+                exit 1
+            fi ;;
+        "-g" | "--git-repo")
+            if [[ ! -z "$2" ]]; then
+                set_origin_repo "$2"
+                shift 2
+            else
+                error_print "You need to provide a git URL"
+                exit 1
+            fi ;;
+        "-n" | "--name")
+            if [[ ! -z "$2" ]]; then
+                set_container_name "$2"
+                shift 2
+            else
+                error_print "You need to provide a container name"
+                exit 1
+            fi ;;
+        "-i" | "--image")
+            if [[ ! -z "$2" ]]; then
+                set_docker_image "$2"
+                shift 2
+            else
+                error_print "You need to provide a docker image"
+                exit 1
+            fi ;;
+        "-y" | "--yes")
+            set_yes
+            shift ;;
+        "-h" | "--help")
+            show_help
+            exit 0
+            shift ;;
+        "")
+            break ;;
+        *)
+            error_print "Option $1 not known"
+            show_help
+            exit 1 ;;
+    esac
+done
+
+
+#############################################
+# Main                                      #
+#############################################
+
+$ACTION ${PARAMS[@]}
+
